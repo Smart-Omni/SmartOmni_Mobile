@@ -13,6 +13,7 @@ export 'so_button.dart';
 export 'so_colors.dart';
 export 'so_feedback.dart';
 export 'so_filter_chip.dart';
+export 'so_list.dart';
 export 'so_logo.dart';
 export 'so_order_row.dart';
 export 'so_segmented.dart';

@@ -1,31 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../core/design/design.dart';
 import 'account_widgets.dart';
 
-/// Tài khoản Customer.
+/// Tài khoản Customer. Giao diện Customer sẽ làm lại ở đợt sau theo mockup;
+/// tạm dùng chung thẻ hồ sơ và hàng đăng xuất với Merchant.
 class CustomerAccountScreen extends StatelessWidget {
   const CustomerAccountScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Tài khoản')),
+      appBar: const SoAppBar.root(title: 'Tài khoản'),
       body: ListView(
+        padding: const EdgeInsets.all(SoSpace.screen),
         children: const [
-          ProfileHeader(),
-          Divider(),
-          ComingSoonTile(
-            icon: Icons.edit_outlined,
-            title: 'Sửa thông tin (email, SĐT)',
+          ProfileCard(),
+          GroupTitle('Tài khoản'),
+          SoListGroup(
+            children: [
+              SoListRow(
+                icon: LucideIcons.pencil,
+                title: 'Sửa thông tin (email, SĐT)',
+                comingSoon: true,
+              ),
+              SoListRow(
+                icon: LucideIcons.lock,
+                title: 'Đổi mật khẩu',
+                comingSoon: true,
+              ),
+              SoListRow(
+                icon: LucideIcons.bell,
+                title: 'Thông báo voucher',
+                subtitle: 'Hiện voucher được gửi qua email',
+                comingSoon: true,
+              ),
+            ],
           ),
-          ComingSoonTile(icon: Icons.lock_outline, title: 'Đổi mật khẩu'),
-          ComingSoonTile(
-            icon: Icons.notifications_outlined,
-            title: 'Thông báo voucher',
-            note: 'Hiện voucher được gửi qua email',
-          ),
-          Divider(),
-          LogoutTile(),
+          SizedBox(height: SoSpace.group),
+          SoListGroup(children: [LogoutRow()]),
         ],
       ),
     );

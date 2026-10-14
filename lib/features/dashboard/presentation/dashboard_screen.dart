@@ -219,34 +219,6 @@ class _GroupHeader extends StatelessWidget {
   }
 }
 
-/// Nhóm thẻ trắng bo 12, các hàng ngăn bằng đường chia.
-class _ListGroup extends StatelessWidget {
-  const _ListGroup({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.soColors;
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: SoRadius.mdAll,
-        border: Border.all(color: c.line),
-      ),
-      child: Column(
-        children: [
-          for (var i = 0; i < children.length; i++) ...[
-            if (i > 0) const Divider(),
-            children[i],
-          ],
-        ],
-      ),
-    );
-  }
-}
-
 /// 3 đơn Chờ xử lý mới nhất. Lấy từ API đơn hàng (đã có), không phải mock.
 class _PendingOrders extends ConsumerWidget {
   const _PendingOrders();
@@ -263,7 +235,7 @@ class _PendingOrders extends ConsumerWidget {
                 ),
               );
         if (pending.isEmpty) {
-          return const _ListGroup(
+          return const SoListGroup(
             children: [
               Padding(
                 padding: SoSpace.card,
@@ -272,7 +244,7 @@ class _PendingOrders extends ConsumerWidget {
             ],
           );
         }
-        return _ListGroup(
+        return SoListGroup(
           children: [
             for (final order in pending.take(3))
               OrderRow(
@@ -284,7 +256,7 @@ class _PendingOrders extends ConsumerWidget {
           ],
         );
       }(),
-      AsyncError(:final error) => _ListGroup(
+      AsyncError(:final error) => SoListGroup(
         children: [
           SoEmptyState.error(
             title: 'Không tải được đơn hàng',
@@ -293,7 +265,7 @@ class _PendingOrders extends ConsumerWidget {
           ),
         ],
       ),
-      _ => const _ListGroup(children: [SoSkeletonList(count: 3)]),
+      _ => const SoListGroup(children: [SoSkeletonList(count: 3)]),
     };
   }
 }
@@ -307,13 +279,13 @@ class _AiAlerts extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.soColors;
     if (alerts.isEmpty) {
-      return const _ListGroup(
+      return const SoListGroup(
         children: [
           Padding(padding: SoSpace.card, child: Text('Chưa có cảnh báo nào.')),
         ],
       );
     }
-    return _ListGroup(
+    return SoListGroup(
       children: [
         for (final a in alerts)
           InkWell(
@@ -397,7 +369,7 @@ class _DashboardSkeleton extends StatelessWidget {
       children: [
         _TileGrid(tiles: [tile(), tile(), tile(), tile()]),
         const SizedBox(height: SoSpace.group + SoSize.controlSmall + 8),
-        const _ListGroup(children: [SoSkeletonList(count: 3)]),
+        const SoListGroup(children: [SoSkeletonList(count: 3)]),
       ],
     );
   }
