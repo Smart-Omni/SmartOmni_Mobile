@@ -1,4 +1,5 @@
 import '../../../core/network/api_exception.dart';
+import '../../../core/utils/text_fold.dart';
 
 /// Lý do đăng nhập thất bại. Màn A-02 hiển thị mỗi loại một kiểu
 /// (docs/DESIGN.md mục 8, "A-02 lỗi").
@@ -97,31 +98,4 @@ class ResetFailure implements Exception {
 
   @override
   String toString() => 'ResetFailure($kind): $message';
-}
-
-const _accents = {
-  'a': 'àáạảãâầấậẩẫăằắặẳẵ',
-  'e': 'èéẹẻẽêềếệểễ',
-  'i': 'ìíịỉĩ',
-  'o': 'òóọỏõôồốộổỗơờớợởỡ',
-  'u': 'ùúụủũưừứựửữ',
-  'y': 'ỳýỵỷỹ',
-  'd': 'đ',
-};
-
-/// Chữ thường, bỏ dấu tiếng Việt: "Tạm KHÓA" -> "tam khoa".
-/// Dùng để so khớp thông điệp backend (có thể có dấu hoặc không).
-String foldVietnamese(String input) {
-  final buffer = StringBuffer();
-  for (final ch in input.toLowerCase().split('')) {
-    var out = ch;
-    for (final entry in _accents.entries) {
-      if (entry.value.contains(ch)) {
-        out = entry.key;
-        break;
-      }
-    }
-    buffer.write(out);
-  }
-  return buffer.toString();
 }

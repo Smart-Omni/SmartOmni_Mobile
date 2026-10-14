@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartomni_mobile/core/network/api_exception.dart';
 import 'package:smartomni_mobile/core/utils/mock_delay.dart';
+import 'package:smartomni_mobile/core/utils/text_fold.dart';
 import 'package:smartomni_mobile/features/auth/data/auth_mock_repository.dart';
 import 'package:smartomni_mobile/features/auth/domain/auth_failure.dart';
 
