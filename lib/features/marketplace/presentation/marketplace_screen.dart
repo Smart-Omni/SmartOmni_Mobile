@@ -1,26 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/config/app_config.dart';
 import '../../../core/models/platform.dart';
-import '../../../core/network/api_client.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/state_views.dart';
-import '../data/marketplace_repositories.dart';
 import '../domain/marketplace_connection.dart';
-
-final marketplaceRepositoryProvider = Provider<MarketplaceRepository>((ref) {
-  final config = ref.watch(appConfigProvider);
-  final mock = MarketplaceMockRepository();
-  return config.useMock
-      ? mock
-      : MarketplaceRemoteRepository(ref.watch(dioProvider), mock);
-});
-
-final connectionsProvider =
-    FutureProvider.autoDispose<List<MarketplaceConnection>>(
-      (ref) => ref.watch(marketplaceRepositoryProvider).listConnections(),
-    );
+import 'marketplace_providers.dart';
 
 /// Kết nối shop Shopee / TikTok Shop (chỉ Tenant Admin).
 class MarketplaceScreen extends ConsumerWidget {

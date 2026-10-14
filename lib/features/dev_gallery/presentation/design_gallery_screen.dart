@@ -62,6 +62,7 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
           _Section(title: 'Ô chỉ số', child: _stats()),
           _Section(title: 'Tồn kho', child: _stock()),
           _Section(title: 'Hàng đơn', padded: false, child: _orders()),
+          _Section(title: 'Danh sách', child: _listRows()),
           _Section(title: 'Banner', child: _banners()),
           _Section(title: 'Toast & sheet', child: _overlays(context)),
           _Section(title: 'Rỗng & lỗi', padded: false, child: _empty()),
@@ -352,6 +353,29 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
         statusLabel: 'Chờ giao',
         status: SoStatus.kraft,
         meta: 'Khách mẫu B · 08:15',
+        onTap: () {},
+      ),
+    ],
+  );
+
+  Widget _listRows() => SoListGroup(
+    children: [
+      SoListRow(
+        icon: LucideIcons.chartLine,
+        title: 'AI dự báo & gợi ý',
+        subtitle: 'Dự báo nhu cầu theo SKU',
+        onTap: () {},
+      ),
+      const SoListRow(
+        icon: LucideIcons.users,
+        title: 'Quản lý nhân viên',
+        comingSoon: true,
+      ),
+      SoListRow(
+        icon: LucideIcons.logOut,
+        title: 'Đăng xuất',
+        destructive: true,
+        trailing: const SizedBox.shrink(),
         onTap: () {},
       ),
     ],
