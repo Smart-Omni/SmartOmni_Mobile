@@ -72,3 +72,5 @@ JWT payload: `{ sub: "<userId>", role, tenantId?, iat, exp }` (HS256, hạn 24h)
 3. **Trả DTO thay vì entity** (README backend đã nêu nguyên tắc này) để tránh lộ trường như `appSecretEncrypted`.
 4. Giữ định dạng lỗi `{ success: false, message }` cho mọi lỗi (kể cả 401/403 từ Spring Security) để app hiển thị đúng.
 5. Cấu hình CORS không cần cho mobile, nhưng cần cho web portal sau này.
+6. **Trả kèm `errorCode`** trong body lỗi (`{ success: false, message, errorCode }`). `BusinessException` đã có mã (`INVALID_CREDENTIALS`, `ACCOUNT_TEMP_LOCKED`, `ACCOUNT_DISABLED`) nhưng `GlobalExceptionHandler` chưa gửi ra, nên màn A-02 đang phải đoán loại lỗi qua nội dung `message` (xem `lib/features/auth/domain/auth_failure.dart`).
+7. **Khóa tenant khi đăng nhập (FR-003):** app chờ `403` với `errorCode: TENANT_LOCKED` (mock đang giả lập đúng như vậy).

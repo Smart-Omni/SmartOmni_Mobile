@@ -10,6 +10,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/storage/token_storage.dart';
 import '../data/auth_mock_repository.dart';
 import '../data/auth_remote_repository.dart';
+import '../domain/auth_failure.dart';
 import '../domain/auth_repository.dart';
 
 /// Chọn repository thật hoặc mock theo cấu hình `USE_MOCK`.
@@ -75,16 +76,20 @@ class AuthController extends Notifier<AuthState> {
     state = Authenticated(session);
   }
 
-  /// Đăng nhập. Ném [ApiException] nếu thất bại để màn hình hiển thị lỗi.
+  /// Đăng nhập. Ném [LoginFailure] (đã phân loại) để màn hình hiển thị lỗi.
   Future<void> login({required String email, required String password}) async {
-    final session = await _repo.login(email: email.trim(), password: password);
+    final Session session;
+    try {
+      session = await _repo.login(email: email.trim(), password: password);
+    } on ApiException catch (e) {
+      throw LoginFailure.fromApi(e);
+    }
 
     if (!session.role.isSupportedOnMobile) {
-      throw const ApiException(
-        type: ApiErrorType.forbidden,
-        message:
-            'Tài khoản này không dùng được trên app mobile. '
-            'Vui lòng đăng nhập Super Admin Console trên web.',
+      throw const LoginFailure(
+        LoginFailureKind.superAdmin,
+        'Tài khoản này không dùng được trên app mobile. '
+        'Vui lòng đăng nhập Super Admin Console trên web.',
       );
     }
 

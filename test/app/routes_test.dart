@@ -21,6 +21,7 @@ void main() {
       expect(resolveRedirect(s, Routes.customerShop), Routes.login);
       expect(resolveRedirect(s, Routes.login), isNull);
       expect(resolveRedirect(s, Routes.forgotPassword), isNull);
+      expect(resolveRedirect(s, Routes.resetPassword), isNull);
     });
 
     test('đăng nhập xong vào trang chủ theo role', () {

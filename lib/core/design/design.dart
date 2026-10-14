@@ -5,6 +5,7 @@
 /// ```
 library;
 
+export 'so_action_bar.dart';
 export 'so_app_bar.dart';
 export 'so_bottom_nav.dart';
 export 'so_bottom_sheet.dart';

@@ -16,6 +16,7 @@ class SoTextField extends StatelessWidget {
     this.hint,
     this.helper,
     this.errorText,
+    this.errorKey,
     this.validator,
     this.onChanged,
     this.onSubmitted,
@@ -37,6 +38,9 @@ class SoTextField extends StatelessWidget {
   final String? hint;
   final String? helper;
   final String? errorText;
+
+  /// Key gắn vào dòng [errorText] (để test tìm được).
+  final Key? errorKey;
   final FormFieldValidator<String>? validator;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
@@ -86,7 +90,15 @@ class SoTextField extends StatelessWidget {
           decoration: InputDecoration(
             hintText: hint,
             helperText: helper,
-            errorText: errorText,
+            error: errorText == null
+                ? null
+                : Text(
+                    errorText!,
+                    key: errorKey,
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: c.danger,
+                    ),
+                  ),
             prefixIcon: prefix,
             suffixIcon: suffix,
             fillColor: enabled ? c.surface : c.surfaceSunken,
