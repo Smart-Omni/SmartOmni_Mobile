@@ -45,6 +45,7 @@ Hướng dẫn chi tiết từ A-Z (cài Flutter, Android Studio, Xcode, chạy 
 |---|---|
 | [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) | Yêu cầu nghiệp vụ của dự án, rút ra từ repo backend |
 | [docs/USER_FLOWS.md](docs/USER_FLOWS.md) | Các flow theo role - đầu vào cho bước thiết kế giao diện |
+| [docs/DESIGN.md](docs/DESIGN.md) | Design system SmartOmni + đặc tả màn đợt 1 (nguồn chuẩn khi code giao diện) |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Kiến trúc, cấu trúc thư mục, Riverpod, cách thêm 1 feature mới |
 | [docs/API_CONTRACT.md](docs/API_CONTRACT.md) | Màn hình ↔ API backend; chỗ nào đang dùng mock; API đề xuất cho backend |
 | [docs/SETUP.md](docs/SETUP.md) | Cài đặt môi trường và chạy app (Android + iOS miễn phí) |
