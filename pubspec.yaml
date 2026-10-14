@@ -1,0 +1,40 @@
+name: smartomni_mobile
+description: "SmartOmni Mobile - app cho Customer, Staff và Tenant Admin của nền tảng SmartOmni."
+publish_to: 'none'
+
+# version: <tên phiên bản>+<build number>. CI tự tăng build number khi phát hành.
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^3.4.3
+  # Điều hướng + chặn route theo role
+  go_router: ^18.0.2
+  # Gọi HTTP API
+  dio: ^5.11.1
+  # Lưu JWT an toàn (Keychain trên iOS, Keystore trên Android)
+  flutter_secure_storage: ^11.2.0
+  # Định dạng tiền, ngày giờ + đa ngôn ngữ
+  intl: ^0.20.2
+  # Mở link sản phẩm trên Shopee/TikTok Shop
+  url_launcher: ^6.3.3
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  mocktail: ^1.0.5
+
+flutter:
+  uses-material-design: true
+  # Tự sinh code đa ngôn ngữ từ lib/l10n/*.arb (xem l10n.yaml)
+  generate: true

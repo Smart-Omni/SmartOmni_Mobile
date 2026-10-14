@@ -1,0 +1,36 @@
+{
+  // Bấm F5 trong VS Code và chọn cấu hình phù hợp.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Android · dev (mock)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main_dev.dart",
+      "args": ["--flavor", "dev"]
+    },
+    {
+      "name": "Android · dev (backend local)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main_dev.dart",
+      "args": ["--flavor", "dev", "--dart-define=USE_MOCK=false"]
+    },
+    {
+      "name": "iOS · dev (mock)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main_dev.dart"
+    },
+    {
+      "name": "iOS Simulator · dev (backend local)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main_dev.dart",
+      "args": [
+        "--dart-define=USE_MOCK=false",
+        "--dart-define=API_BASE_URL=http://localhost:8080"
+      ]
+    }
+  ]
+}

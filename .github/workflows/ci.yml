@@ -1,0 +1,101 @@
+# =============================================================================
+# CI (mức 1) - TỰ ĐỘNG chạy cho mọi Pull Request và mỗi lần push lên develop/main.
+# Mục đích: chặn code lỗi trước khi merge. Xem giải thích ở docs/CICD.md.
+# Chi phí: 0đ (repo public dùng GitHub Actions miễn phí).
+# =============================================================================
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+  workflow_dispatch: # cho phép bấm chạy tay trong tab Actions
+
+# Push mới vào cùng 1 PR sẽ hủy lần chạy cũ (tiết kiệm thời gian).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Kiểm tra chất lượng code: format + analyze + test
+  # ---------------------------------------------------------------------------
+  quality:
+    name: Format · Analyze · Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Lấy code
+        uses: actions/checkout@v4
+
+      - name: Cài Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Tải thư viện (flutter pub get)
+        run: flutter pub get
+
+      - name: Sinh code đa ngôn ngữ
+        run: flutter gen-l10n
+
+      - name: Kiểm tra format (chạy `dart format .` ở máy bạn nếu bước này lỗi)
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Phân tích code (flutter analyze)
+        run: flutter analyze
+
+      - name: Chạy test + đo coverage
+        run: flutter test --coverage
+
+      - name: Lưu báo cáo coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: coverage/lcov.info
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # 2. Build APK Android để tải về cài thử
+  # ---------------------------------------------------------------------------
+  build-android:
+    name: Build APK (dev + staging)
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cài Java 17 (cho Gradle)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Cài Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      # Không có keystore thật -> app được ký bằng debug key (cài thử được bình thường).
+      - name: Build APK dev (dùng mock, không cần backend)
+        run: flutter build apk --release --flavor dev -t lib/main_dev.dart --build-number=${{ github.run_number }}
+
+      - name: Build APK staging
+        run: flutter build apk --release --flavor staging -t lib/main_staging.dart --build-number=${{ github.run_number }}
+
+      - name: Lưu file APK (tải ở tab Actions -> lần chạy -> Artifacts)
+        uses: actions/upload-artifact@v4
+        with:
+          name: smartomni-apk-${{ github.run_number }}
+          path: build/app/outputs/flutter-apk/*.apk
+          retention-days: 14

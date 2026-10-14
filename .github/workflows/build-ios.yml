@@ -1,0 +1,35 @@
+# =============================================================================
+# Kiểm tra build iOS (chạy TAY). Dùng máy macOS miễn phí của GitHub (repo public).
+# Build KHÔNG ký (--no-codesign): chỉ để chắc chắn code compile được trên iOS,
+# file này KHÔNG cài lên iPhone được. Muốn chạy trên iPhone xem docs/SETUP.md mục iOS.
+# Cách chạy: tab Actions -> "iOS build check" -> Run workflow.
+# =============================================================================
+name: iOS build check
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['ios/**', 'pubspec.yaml', 'pubspec.lock']
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cài Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      # iOS chưa cấu hình flavor/scheme nên build không có --flavor.
+      - name: Build iOS (không ký)
+        run: flutter build ios --release --no-codesign -t lib/main_dev.dart

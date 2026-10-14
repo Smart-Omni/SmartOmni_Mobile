@@ -1,0 +1,14 @@
+# Dependabot tự mở PR khi thư viện có bản mới (miễn phí). CI sẽ kiểm tra PR đó.
+version: 2
+updates:
+  - package-ecosystem: pub
+    directory: /
+    schedule:
+      interval: weekly
+    target-branch: develop
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    target-branch: develop
