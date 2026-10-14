@@ -9,6 +9,7 @@ import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
+import '../../features/dev_gallery/presentation/design_gallery_screen.dart';
 import '../../features/inventory/presentation/inventory_screen.dart';
 import '../../features/loyalty/presentation/claim_order_screen.dart';
 import '../../features/loyalty/presentation/loyalty_screen.dart';
@@ -21,6 +22,7 @@ import '../../features/products/presentation/product_create_screen.dart';
 import '../../features/products/presentation/product_detail_screen.dart';
 import '../../features/products/presentation/products_screen.dart';
 import '../../features/storefront/presentation/storefront_screens.dart';
+import '../config/app_config.dart';
 import 'routes.dart';
 import 'shells.dart';
 
@@ -34,13 +36,17 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
   ref.listen(authControllerProvider, (_, next) => authListenable.value = next);
   ref.onDispose(authListenable.dispose);
+  final isDev = ref.read(appConfigProvider).flavor == Flavor.dev;
 
   final router = GoRouter(
     navigatorKey: _rootKey,
     initialLocation: Routes.splash,
     refreshListenable: authListenable,
-    redirect: (context, state) =>
-        resolveRedirect(authListenable.value, state.matchedLocation),
+    redirect: (context, state) => resolveRedirect(
+      authListenable.value,
+      state.matchedLocation,
+      allowDevRoutes: isDev,
+    ),
     routes: [
       GoRoute(path: Routes.splash, builder: (_, _) => const SplashScreen()),
       GoRoute(path: Routes.login, builder: (_, _) => const LoginScreen()),
@@ -107,6 +113,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) =>
             StorefrontProductScreen(productId: _intParam(state, 'id')),
       ),
+
+      // ------------------------------------------------------- Chỉ bản dev
+      if (isDev)
+        GoRoute(
+          path: Routes.devGallery,
+          builder: (_, _) => const DesignGalleryScreen(),
+        ),
     ],
   );
   ref.onDispose(router.dispose);
