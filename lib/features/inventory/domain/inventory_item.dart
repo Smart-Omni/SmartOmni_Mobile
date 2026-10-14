@@ -1,3 +1,6 @@
+/// Mức tồn để hiển thị: Hết hàng (có thể bán ≤ 0), Sắp hết (≤ 5), Còn hàng.
+enum StockLevel { ok, low, out }
+
 /// Tồn kho của một SKU (entity `inventory`).
 class InventoryItem {
   const InventoryItem({
@@ -26,6 +29,12 @@ class InventoryItem {
 
   bool get isLow => !isOutOfStock && available <= lowStockThreshold;
 
+  StockLevel get level => isOutOfStock
+      ? StockLevel.out
+      : isLow
+      ? StockLevel.low
+      : StockLevel.ok;
+
   InventoryItem copyWith({int? quantityOnHand}) => InventoryItem(
     skuId: skuId,
     skuCode: skuCode,
@@ -34,6 +43,35 @@ class InventoryItem {
     quantityOnHand: quantityOnHand ?? this.quantityOnHand,
     reservedQuantity: reservedQuantity,
   );
+}
+
+/// Bộ lọc của M-40.
+enum InventoryFilter {
+  all('Tất cả'),
+  attention('Cần chú ý'),
+  out('Hết hàng');
+
+  const InventoryFilter(this.label);
+
+  final String label;
+
+  /// "Cần chú ý" gồm cả sắp hết và hết hàng.
+  bool matches(InventoryItem item) => switch (this) {
+    InventoryFilter.all => true,
+    InventoryFilter.attention => item.level != StockLevel.ok,
+    InventoryFilter.out => item.level == StockLevel.out,
+  };
+}
+
+/// Tổng toàn kho cho thẻ StockMeter đầu M-40.
+({int onHand, int reserved}) inventoryTotals(Iterable<InventoryItem> items) {
+  var onHand = 0;
+  var reserved = 0;
+  for (final i in items) {
+    onHand += i.quantityOnHand;
+    reserved += i.reservedQuantity;
+  }
+  return (onHand: onHand, reserved: reserved);
 }
 
 abstract class InventoryRepository {

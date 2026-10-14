@@ -69,7 +69,18 @@ class MockData {
           'https://shopee.vn',
           'https://www.tiktok.com/shop',
         ),
+        (
+          5,
+          'Khăn bandana họa tiết',
+          'Khăn cotton vuông 55 cm, ngừng bán theo mùa.',
+          [(501, 'KB-HOATIET-DO', 'Đỏ', 59000)],
+          'https://shopee.vn',
+          null,
+        ),
       ];
+
+  /// Sản phẩm đang ẩn (status HIDDEN).
+  static const hiddenProductIds = {5};
 
   /// skuId -> (tồn thực tế, đang giữ chỗ)
   static final inventory = <int, (int, int)>{
@@ -82,6 +93,7 @@ class MockData {
     301: (60, 5),
     401: (12, 0),
     402: (2, 0),
+    501: (7, 0),
   };
 
   // ---------------------------------------------------------------- Đơn hàng

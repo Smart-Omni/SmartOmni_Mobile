@@ -105,3 +105,18 @@ class CreateSkuInput {
     'basePrice': basePrice,
   };
 }
+
+/// Mẫu mã SKU của sản phẩm để hiện trên hàng danh sách:
+/// ["AT-BASIC-TRANG-M", "AT-BASIC-DEN-M"] -> "AT-BASIC-*". Một SKU thì giữ nguyên.
+String skuCodePattern(List<String> codes) {
+  if (codes.isEmpty) return '';
+  if (codes.length == 1) return codes.first;
+  final parts = [for (final c in codes) c.split('-')];
+  final common = <String>[];
+  for (var i = 0; i < parts.first.length; i++) {
+    final seg = parts.first[i];
+    if (parts.any((p) => p.length <= i || p[i] != seg)) break;
+    common.add(seg);
+  }
+  return common.isEmpty ? '*' : '${common.join('-')}-*';
+}
