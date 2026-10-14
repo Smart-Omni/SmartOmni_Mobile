@@ -68,6 +68,7 @@ class ProductsMockRepository implements ProductsRepository {
         id: id,
         name: name,
         description: desc,
+        active: !MockData.hiddenProductIds.contains(id),
         skus: [
           for (final (skuId, code, variant, price) in skus)
             Sku(

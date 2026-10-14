@@ -35,6 +35,7 @@ class _ReturnSheetState extends ConsumerState<ReturnSheet> {
   ReturnReason? _reason;
   bool _reasonMissing = false;
   bool _busy = false;
+  bool _submitted = false;
   String? _error;
 
   @override
@@ -45,7 +46,10 @@ class _ReturnSheetState extends ConsumerState<ReturnSheet> {
 
   Future<void> _submit() async {
     final noteOk = _formKey.currentState!.validate();
-    setState(() => _reasonMissing = _reason == null);
+    setState(() {
+      _submitted = true;
+      _reasonMissing = _reason == null;
+    });
     if (!noteOk || _reason == null) return;
 
     setState(() {
@@ -85,6 +89,10 @@ class _ReturnSheetState extends ConsumerState<ReturnSheet> {
       ),
       child: Form(
         key: _formKey,
+        // Sau lần bấm Ghi nhận đầu tiên: kiểm tra lại khi gõ để lỗi tự mất.
+        autovalidateMode: _submitted
+            ? AutovalidateMode.onUserInteraction
+            : AutovalidateMode.disabled,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
