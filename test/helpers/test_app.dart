@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartomni_mobile/app/app.dart';
 import 'package:smartomni_mobile/app/config/app_config.dart';
@@ -16,6 +17,7 @@ const testConfig = AppConfig(
 Future<InMemoryTokenStorage> pumpSmartOmniApp(
   WidgetTester tester, {
   String? savedToken,
+  List<Override> overrides = const [],
 }) async {
   MockDelay.enabled = false;
   final storage = InMemoryTokenStorage(savedToken);
@@ -24,6 +26,7 @@ Future<InMemoryTokenStorage> pumpSmartOmniApp(
       overrides: [
         appConfigProvider.overrideWithValue(testConfig),
         tokenStorageProvider.overrideWithValue(storage),
+        ...overrides,
       ],
       child: const SmartOmniApp(),
     ),
