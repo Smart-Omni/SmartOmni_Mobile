@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../core/design/design.dart';
 import '../../l10n/l10n.dart';
 
-/// Khung có thanh điều hướng dưới cho Merchant (Staff + Tenant Admin).
+/// Khung có thanh điều hướng dưới cho Merchant (Staff + Tenant Admin):
+/// Tổng quan · Đơn hàng · Sản phẩm · Tồn kho · Thêm.
 class MerchantShell extends StatelessWidget {
   const MerchantShell({super.key, required this.navigationShell});
 
@@ -14,29 +17,30 @@ class MerchantShell extends StatelessWidget {
     final l10n = context.l10n;
     return _ShellScaffold(
       navigationShell: navigationShell,
-      destinations: [
-        NavigationDestination(
-          icon: const Icon(Icons.dashboard_outlined),
-          selectedIcon: const Icon(Icons.dashboard),
+      items: [
+        SoNavItem(
+          key: const Key('nav_dashboard'),
+          icon: LucideIcons.layoutDashboard,
           label: l10n.navDashboard,
         ),
-        NavigationDestination(
-          icon: const Icon(Icons.receipt_long_outlined),
-          selectedIcon: const Icon(Icons.receipt_long),
+        SoNavItem(
+          key: const Key('nav_orders'),
+          icon: LucideIcons.receiptText,
           label: l10n.navOrders,
         ),
-        NavigationDestination(
-          icon: const Icon(Icons.inventory_2_outlined),
-          selectedIcon: const Icon(Icons.inventory_2),
+        SoNavItem(
+          key: const Key('nav_products'),
+          icon: LucideIcons.box,
           label: l10n.navProducts,
         ),
-        NavigationDestination(
-          icon: const Icon(Icons.warehouse_outlined),
-          selectedIcon: const Icon(Icons.warehouse),
+        SoNavItem(
+          key: const Key('nav_inventory'),
+          icon: LucideIcons.warehouse,
           label: l10n.navInventory,
         ),
-        NavigationDestination(
-          icon: const Icon(Icons.menu),
+        SoNavItem(
+          key: const Key('nav_more'),
+          icon: LucideIcons.ellipsis,
           label: l10n.navMore,
         ),
       ],
@@ -55,49 +59,31 @@ class CustomerShell extends StatelessWidget {
     final l10n = context.l10n;
     return _ShellScaffold(
       navigationShell: navigationShell,
-      destinations: [
-        NavigationDestination(
-          icon: const Icon(Icons.storefront_outlined),
-          selectedIcon: const Icon(Icons.storefront),
-          label: l10n.navHome,
-        ),
-        NavigationDestination(
-          icon: const Icon(Icons.stars_outlined),
-          selectedIcon: const Icon(Icons.stars),
-          label: l10n.navLoyalty,
-        ),
-        NavigationDestination(
-          icon: const Icon(Icons.qr_code_scanner),
-          label: l10n.navClaim,
-        ),
-        NavigationDestination(
-          icon: const Icon(Icons.person_outline),
-          selectedIcon: const Icon(Icons.person),
-          label: l10n.navAccount,
-        ),
+      items: [
+        SoNavItem(icon: LucideIcons.store, label: l10n.navHome),
+        SoNavItem(icon: LucideIcons.star, label: l10n.navLoyalty),
+        SoNavItem(icon: LucideIcons.scanLine, label: l10n.navClaim),
+        SoNavItem(icon: LucideIcons.user, label: l10n.navAccount),
       ],
     );
   }
 }
 
 class _ShellScaffold extends StatelessWidget {
-  const _ShellScaffold({
-    required this.navigationShell,
-    required this.destinations,
-  });
+  const _ShellScaffold({required this.navigationShell, required this.items});
 
   final StatefulNavigationShell navigationShell;
-  final List<NavigationDestination> destinations;
+  final List<SoNavItem> items;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
-        destinations: destinations,
+      bottomNavigationBar: SoBottomNav(
+        items: items,
+        currentIndex: navigationShell.currentIndex,
         // Bấm lại tab đang mở -> quay về màn đầu của tab đó.
-        onDestinationSelected: (i) => navigationShell.goBranch(
+        onTap: (i) => navigationShell.goBranch(
           i,
           initialLocation: i == navigationShell.currentIndex,
         ),
