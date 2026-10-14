@@ -19,6 +19,7 @@ class ApiException implements Exception {
     required this.type,
     required this.message,
     this.statusCode,
+    this.code,
   });
 
   final ApiErrorType type;
@@ -26,6 +27,9 @@ class ApiException implements Exception {
   /// Thông điệp hiển thị cho người dùng. Ưu tiên `message` backend trả về.
   final String message;
   final int? statusCode;
+
+  /// Mã lỗi nghiệp vụ nếu backend gửi kèm (`errorCode`), vd. `ACCOUNT_TEMP_LOCKED`.
+  final String? code;
 
   /// Chuyển [DioException] thành [ApiException].
   ///
@@ -52,6 +56,7 @@ class ApiException implements Exception {
           type: _typeForStatus(status),
           message: serverMessage ?? _defaultMessageForStatus(status),
           statusCode: status,
+          code: _extractCode(e.response?.data),
         );
       default: // cancel, badCertificate, unknown, ...
         if (e.error is ApiException) return e.error! as ApiException;
@@ -67,6 +72,14 @@ class ApiException implements Exception {
     if (data is Map<String, dynamic>) {
       final msg = data['message'];
       if (msg is String && msg.isNotEmpty) return msg;
+    }
+    return null;
+  }
+
+  static String? _extractCode(Object? data) {
+    if (data is Map<String, dynamic>) {
+      final code = data['errorCode'] ?? data['code'];
+      if (code is String && code.isNotEmpty) return code;
     }
     return null;
   }

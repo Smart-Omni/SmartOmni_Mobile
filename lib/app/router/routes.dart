@@ -12,6 +12,7 @@ class Routes {
   static const splash = '/splash';
   static const login = '/login';
   static const forgotPassword = '/forgot-password';
+  static const resetPassword = '/reset-password';
 
   // Merchant - các tab (nằm trong bottom navigation)
   static const merchantDashboard = '/m/dashboard';
@@ -61,7 +62,11 @@ String? resolveRedirect(
   String location, {
   bool allowDevRoutes = false,
 }) {
-  const publicRoutes = [Routes.login, Routes.forgotPassword];
+  const publicRoutes = [
+    Routes.login,
+    Routes.forgotPassword,
+    Routes.resetPassword,
+  ];
 
   if (location.startsWith(Routes.devPrefix)) {
     if (allowDevRoutes) return null;

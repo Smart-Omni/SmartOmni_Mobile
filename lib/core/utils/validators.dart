@@ -28,6 +28,14 @@ class Validators {
     return null;
   }
 
+  /// Ô "Nhập lại mật khẩu" phải giống [password].
+  static String? confirmPassword(String? value, String password) {
+    final empty = required(value, field: 'Mật khẩu');
+    if (empty != null) return empty;
+    if (value != password) return 'Hai mật khẩu chưa giống nhau';
+    return null;
+  }
+
   static String? positiveInt(String? value, {String field = 'Số lượng'}) {
     final empty = required(value, field: field);
     if (empty != null) return empty;
