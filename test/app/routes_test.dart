@@ -59,5 +59,18 @@ void main() {
         isNull,
       );
     });
+
+    test('route /dev/ chỉ vào được ở bản dev', () {
+      const s = Unauthenticated();
+      expect(
+        resolveRedirect(s, Routes.devGallery, allowDevRoutes: true),
+        isNull,
+      );
+      expect(resolveRedirect(s, Routes.devGallery), Routes.login);
+      expect(
+        resolveRedirect(_as(UserRole.staff), Routes.devGallery),
+        Routes.merchantDashboard,
+      );
+    });
   });
 }

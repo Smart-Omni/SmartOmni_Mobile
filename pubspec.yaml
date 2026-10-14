@@ -27,6 +27,9 @@ dependencies:
   # Mở link sản phẩm trên Shopee/TikTok Shop
   url_launcher: ^6.3.3
   cupertino_icons: ^1.0.8
+  google_fonts: ^8.2.1
+  lucide_icons_flutter: ^3.1.25
+  flutter_svg: ^2.3.0
 
 dev_dependencies:
   flutter_test:
@@ -38,3 +41,6 @@ flutter:
   uses-material-design: true
   # Tự sinh code đa ngôn ngữ từ lib/l10n/*.arb (xem l10n.yaml)
   generate: true
+
+  assets:
+    - assets/brand/

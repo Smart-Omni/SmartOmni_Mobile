@@ -32,5 +32,12 @@
   "demoAccountsHint": "Chế độ demo (mock): admin@demo.vn, staff@demo.vn, customer@demo.vn - mật khẩu {password}",
   "@demoAccountsHint": {
     "placeholders": { "password": { "type": "String" } }
-  }
+  },
+  "stockOnHand": "Tồn kho",
+  "stockReserved": "Đang giữ",
+  "stockSellable": "Có thể bán",
+  "mockDataLabel": "DỮ LIỆU MẪU",
+  "mockDataNote": "Chức năng này chưa có API, đang hiện dữ liệu mẫu.",
+  "devGalleryOpen": "Xem design system (bản dev)",
+  "devGalleryTitle": "Design system"
 }

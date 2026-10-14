@@ -143,6 +143,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
+                    if (config.flavor == Flavor.dev)
+                      TextButton(
+                        key: const Key('open_dev_gallery'),
+                        onPressed: () => context.push(Routes.devGallery),
+                        child: Text(l10n.devGalleryOpen),
+                      ),
                   ],
                 ),
               ),

@@ -37,6 +37,10 @@ class Routes {
   // Customer - màn hình con
   static String customerProduct(int id) => '/c/product/$id';
 
+  // Chỉ có ở bản dev (flavor dev)
+  static const devPrefix = '/dev/';
+  static const devGallery = '/dev/gallery';
+
   /// Route chỉ Tenant Admin được vào.
   static const tenantAdminOnly = [merchantMarketplace];
 
@@ -49,8 +53,24 @@ class Routes {
 ///
 /// Trả về `null` nếu được phép ở lại [location]. Tách thành hàm thuần (pure
 /// function) để viết unit test dễ dàng (xem test/app/routes_test.dart).
-String? resolveRedirect(AuthState auth, String location) {
+///
+/// [allowDevRoutes]: `true` ở bản dev, cho vào `/dev/...` (vd. gallery) mà
+/// không cần đăng nhập. Bản khác: coi `/dev/...` như route không tồn tại.
+String? resolveRedirect(
+  AuthState auth,
+  String location, {
+  bool allowDevRoutes = false,
+}) {
   const publicRoutes = [Routes.login, Routes.forgotPassword];
+
+  if (location.startsWith(Routes.devPrefix)) {
+    if (allowDevRoutes) return null;
+    return switch (auth) {
+      Authenticated(:final session) => Routes.homeFor(session.role),
+      AuthUnknown() => Routes.splash,
+      Unauthenticated() => Routes.login,
+    };
+  }
 
   switch (auth) {
     case AuthUnknown():

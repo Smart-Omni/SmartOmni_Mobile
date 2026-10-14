@@ -29,5 +29,12 @@
   "navLoyalty": "Points & tier",
   "navClaim": "Claim order",
   "navAccount": "Account",
-  "demoAccountsHint": "Demo (mock) mode: admin@demo.vn, staff@demo.vn, customer@demo.vn - password {password}"
+  "demoAccountsHint": "Demo (mock) mode: admin@demo.vn, staff@demo.vn, customer@demo.vn - password {password}",
+  "stockOnHand": "On hand",
+  "stockReserved": "Reserved",
+  "stockSellable": "Sellable",
+  "mockDataLabel": "SAMPLE DATA",
+  "mockDataNote": "This feature has no API yet, showing sample data.",
+  "devGalleryOpen": "Open design system (dev build)",
+  "devGalleryTitle": "Design system"
 }
