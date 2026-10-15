@@ -111,6 +111,8 @@ Không muốn build ở máy? Mỗi lần CI chạy xong, vào tab **Actions** t
 | Lỗi | Cách sửa |
 |---|---|
 | `Gradle build failed to produce an .apk file` | Thiếu `--flavor dev` |
+| Windows: `Could not close incremental caches ... compileDebugKotlin` | Project và Pub cache nằm khác ổ đĩa (vd. `D:\` và `C:\`). Repo đã đặt `kotlin.incremental=false` trong `android/gradle.properties`; chạy `cd android && gradlew --stop`, rồi `flutter clean` và `flutter run --flavor dev -t lib/main_dev.dart`. Nếu còn lỗi: đặt biến môi trường `PUB_CACHE=D:\pub-cache` (cùng ổ với project) rồi `flutter pub get` |
+| Android Studio bấm Run báo lỗi flavor / chạy `lib\main.dart` | Run → Edit Configurations → **Build flavor**: `dev`, **Dart entrypoint**: `lib/main_dev.dart` |
 | `Target of URI doesn't exist: ...l10n/generated/app_localizations.dart` | Chạy `flutter pub get` (hoặc `flutter gen-l10n`) |
 | Android gọi API báo `Không thể kết nối máy chủ` | Emulator dùng `10.0.2.2`, không dùng `localhost`; kiểm tra backend đã chạy (`curl localhost:8080/health`) |
 | iOS: `CocoaPods not installed` | `brew install cocoapods`, rồi `cd ios && pod install` |
