@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../app/router/routes.dart';
+import '../../../core/utils/clock.dart';
 import '../../../core/design/design.dart';
 import '../../../core/widgets/state_views.dart';
 import '../domain/order.dart';
@@ -95,6 +96,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                   .where((o) => orderMatches(o, _searchCtrl.text))
                   .toList(),
               hasAnyOrder: value.items.isNotEmpty,
+              now: ref.watch(clockProvider)(),
             ),
           ),
           AsyncError(:final error) => ListView(
@@ -191,10 +193,17 @@ class _FilterBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 class _OrderList extends StatelessWidget {
-  const _OrderList({required this.orders, required this.hasAnyOrder});
+  const _OrderList({
+    required this.orders,
+    required this.hasAnyOrder,
+    required this.now,
+  });
 
   final List<Order> orders;
   final bool hasAnyOrder;
+
+  /// Mốc tính nhãn "Hôm nay"/"Hôm qua" (cùng đồng hồ với dữ liệu mẫu).
+  final DateTime now;
 
   @override
   Widget build(BuildContext context) {
@@ -231,7 +240,7 @@ class _OrderList extends StatelessWidget {
               SoSpace.s8,
             ),
             child: Text(
-              '${dayGroupLabel(day)} · ${items.length}',
+              '${dayGroupLabel(day, now: now)} · ${items.length}',
               style: context.soText.title3,
             ),
           ),

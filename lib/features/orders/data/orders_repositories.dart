@@ -63,7 +63,10 @@ class OrdersRemoteRepository implements OrdersRepository {
 
 /// Dữ liệu giả, lưu trong bộ nhớ (mất khi tắt app).
 class OrdersMockRepository implements OrdersRepository {
-  final List<Order> _orders = [...MockData.orders];
+  OrdersMockRepository({DateTime Function()? clock})
+    : _orders = MockData.ordersAt((clock ?? DateTime.now)());
+
+  final List<Order> _orders;
 
   @override
   Future<PageResult<Order>> fetchOrders({int page = 0, int size = 20}) async {
