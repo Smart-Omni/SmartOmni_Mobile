@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'so_text.dart';
 import 'so_tokens.dart';
 
-/// Chip lọc cao 36. Đang chọn: nền ink, chữ trắng. Có thể kèm số đếm mono.
+/// Chip lọc: capsule cao 34. Chưa chọn: nền `fill`, chữ ink2. Đang chọn:
+/// nền ink, chữ trắng. Số đếm cùng dòng, độ đậm 400.
 class SoFilterChip extends StatelessWidget {
   const SoFilterChip({
     super.key,
@@ -21,22 +22,19 @@ class SoFilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.soColors;
-    final fg = selected ? c.surface : c.ink;
+    final fg = selected ? c.surface : c.ink2;
     return Semantics(
       selected: selected,
       button: true,
       child: Material(
-        color: selected ? c.ink : c.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: SoRadius.mdAll,
-          side: BorderSide(color: selected ? c.ink : c.fillStrong),
-        ),
+        color: selected ? c.ink : c.fill,
+        shape: SoShape.squircle(SoRadius.capsuleAll),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onSelected,
           child: Container(
-            height: SoSize.controlSmall,
-            padding: const EdgeInsets.symmetric(horizontal: SoSpace.s12),
+            height: SoSize.chip,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
             alignment: Alignment.center,
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -46,11 +44,13 @@ class SoFilterChip extends StatelessWidget {
                   style: context.textTheme.labelLarge?.copyWith(color: fg),
                 ),
                 if (count != null) ...[
-                  const SizedBox(width: SoSpace.s8),
+                  const SizedBox(width: 6),
                   Text(
                     '$count',
-                    style: context.soText.code.copyWith(
-                      color: selected ? c.fillStrong : c.muted,
+                    style: context.textTheme.labelLarge?.copyWith(
+                      color: fg,
+                      fontWeight: FontWeight.w400,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                 ],

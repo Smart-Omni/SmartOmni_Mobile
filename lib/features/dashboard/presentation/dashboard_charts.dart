@@ -5,7 +5,7 @@ import '../../../core/models/platform.dart';
 import '../../../core/utils/formatters.dart';
 import '../data/dashboard_data.dart';
 
-/// Khung thẻ trắng viền line, dùng cho các thẻ biểu đồ.
+/// Thẻ đặc (SoShape.card), dùng cho các thẻ biểu đồ.
 class DashboardCard extends StatelessWidget {
   const DashboardCard({super.key, required this.child});
 
@@ -22,7 +22,8 @@ class DashboardCard extends StatelessWidget {
   }
 }
 
-/// Doanh thu theo kênh: mỗi sàn một thanh ngang brand + % + số tiền.
+/// Doanh thu theo kênh: mỗi sàn một thanh capsule brand trên rãnh fill
+/// + % + số tiền.
 /// Màu không phân biệt sàn (cùng brand); sàn được nhận ra qua nhãn.
 class RevenueByChannelCard extends StatelessWidget {
   const RevenueByChannelCard({super.key, required this.summary});
@@ -50,16 +51,22 @@ class RevenueByChannelCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: ClipRRect(
-                    borderRadius: SoRadius.smAll,
-                    child: SizedBox(
-                      height: 8,
-                      child: ColoredBox(
+                  child: SizedBox(
+                    height: 8,
+                    child: DecoratedBox(
+                      decoration: ShapeDecoration(
                         color: c.fill,
-                        child: FractionallySizedBox(
-                          alignment: Alignment.centerLeft,
-                          widthFactor: summary.channelShare(platform),
-                          child: ColoredBox(color: c.brand),
+                        shape: SoShape.squircle(SoRadius.capsuleAll),
+                      ),
+                      // Phần tô cũng là capsule nên đầu phải tròn.
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: summary.channelShare(platform),
+                        child: DecoratedBox(
+                          decoration: ShapeDecoration(
+                            color: c.brand,
+                            shape: SoShape.squircle(SoRadius.capsuleAll),
+                          ),
                         ),
                       ),
                     ),
@@ -70,7 +77,10 @@ class RevenueByChannelCard extends StatelessWidget {
                   child: Text(
                     Formatters.percent(summary.channelShare(platform)),
                     textAlign: TextAlign.right,
-                    style: context.soText.code.copyWith(color: c.ink2),
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: c.ink2,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
                   ),
                 ),
               ],
@@ -199,7 +209,9 @@ class _Column extends StatelessWidget {
                   fit: BoxFit.scaleDown,
                   child: Text(
                     Formatters.compactVnd(value),
-                    style: context.soText.code.copyWith(fontSize: 11),
+                    style: context.textTheme.labelSmall?.copyWith(
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
                   ),
                 )
               : null,
@@ -212,14 +224,15 @@ class _Column extends StatelessWidget {
             child: FractionallySizedBox(
               widthFactor: 0.56,
               heightFactor: ratio.clamp(0.02, 1.0),
+              // Cột bo tròn hết (capsule).
               child: DecoratedBox(
-                decoration: BoxDecoration(
+                decoration: ShapeDecoration(
                   color: isToday ? c.brand : c.brandTint,
-                  border: isSelected && !isToday
-                      ? Border.all(color: c.brand)
-                      : null,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(SoRadius.sm),
+                  shape: RoundedSuperellipseBorder(
+                    borderRadius: SoRadius.capsuleAll,
+                    side: isSelected && !isToday
+                        ? BorderSide(color: c.brand)
+                        : BorderSide.none,
                   ),
                 ),
               ),

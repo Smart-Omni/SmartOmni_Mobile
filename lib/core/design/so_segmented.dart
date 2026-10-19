@@ -10,7 +10,8 @@ class SoSegment<T> {
   final String label;
 }
 
-/// Nút chuyển đổi: rãnh fill, mục đang chọn nền trắng.
+/// Nút chuyển đổi: rãnh capsule nền fill; mục đang chọn là viên trắng có
+/// bóng thẻ, chuyển mượt.
 class SoSegmented<T> extends StatelessWidget {
   const SoSegmented({
     super.key,
@@ -28,7 +29,10 @@ class SoSegmented<T> extends StatelessWidget {
     final c = context.soColors;
     return Container(
       padding: const EdgeInsets.all(SoSpace.s4),
-      decoration: BoxDecoration(color: c.fill, borderRadius: SoRadius.mdAll),
+      decoration: ShapeDecoration(
+        color: c.fill,
+        shape: SoShape.squircle(SoRadius.capsuleAll),
+      ),
       child: Row(
         children: [
           for (final s in segments)
@@ -39,17 +43,21 @@ class SoSegmented<T> extends StatelessWidget {
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () => onChanged(s.value),
-                  child: Container(
+                  child: AnimatedContainer(
+                    duration: SoMotion.normal,
+                    curve: SoMotion.curve,
                     height: SoSize.controlSmall,
                     alignment: Alignment.center,
                     padding: const EdgeInsets.symmetric(horizontal: SoSpace.s8),
-                    decoration: s.value == selected
-                        ? BoxDecoration(
-                            color: c.surface,
-                            borderRadius: SoRadius.smAll,
-                            border: Border.all(color: c.fillStrong),
-                          )
-                        : null,
+                    decoration: ShapeDecoration(
+                      color: s.value == selected
+                          ? c.surface
+                          : c.surface.withValues(alpha: 0),
+                      shape: SoShape.squircle(SoRadius.capsuleAll),
+                      shadows: s.value == selected
+                          ? SoShadow.card(c.shadowTint)
+                          : const [],
+                    ),
                     child: Text(
                       s.label,
                       maxLines: 1,

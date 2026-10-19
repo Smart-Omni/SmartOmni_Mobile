@@ -145,8 +145,16 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
           ),
           _ => SingleChildScrollView(
             physics: const NeverScrollableScrollPhysics(),
-            padding: SoSpace.scrollable(context),
-            child: const SoSkeletonList(count: 5),
+            padding: SoSpace.scrollable(
+              context,
+              const EdgeInsets.fromLTRB(
+                SoSpace.screen,
+                SoSpace.s8,
+                SoSpace.screen,
+                0,
+              ),
+            ),
+            child: const SoListGroup(children: [SoSkeletonList(count: 5)]),
           ),
         },
       ),

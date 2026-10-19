@@ -3,6 +3,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../l10n/l10n.dart';
 import 'so_button.dart';
+import 'so_glass.dart';
 import 'so_text.dart';
 import 'so_tokens.dart';
 
@@ -38,8 +39,11 @@ class SoBanner extends StatelessWidget {
       SoBannerTone.danger => (c.dangerTint, c.danger, LucideIcons.circleAlert),
     };
     return Container(
-      padding: const EdgeInsets.all(SoSpace.s12),
-      decoration: BoxDecoration(color: bg, borderRadius: SoRadius.mdAll),
+      padding: const EdgeInsets.all(SoSpace.s16),
+      decoration: ShapeDecoration(
+        color: bg,
+        shape: SoShape.squircle(SoRadius.lgAll),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -66,9 +70,8 @@ class SoBanner extends StatelessWidget {
                         child: Text(
                           actionLabel!,
                           style: context.textTheme.labelLarge?.copyWith(
-                            color: c.ink,
-                            decoration: TextDecoration.underline,
-                            decorationColor: c.ink,
+                            color: fg,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -84,7 +87,7 @@ class SoBanner extends StatelessWidget {
   }
 }
 
-/// Toast: nền ink, chữ trắng, nút hành động brandTint.
+/// Toast: kính mỏng capsule, chữ ink, nút hành động màu brand.
 ///
 /// Thường không dựng trực tiếp mà gọi [showSoToast].
 class SoToast extends StatelessWidget {
@@ -102,34 +105,33 @@ class SoToast extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.soColors;
-    return Container(
-      constraints: const BoxConstraints(minHeight: SoSize.control),
-      padding: const EdgeInsets.only(left: SoSpace.s16, right: SoSpace.s4),
-      decoration: BoxDecoration(
-        color: c.ink,
-        borderRadius: SoRadius.mdAll,
-        boxShadow: SoShadow.glass(c.shadowTint),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: SoSpace.s12),
-              child: Text(
-                message,
-                style: context.textTheme.bodyMedium?.copyWith(color: c.surface),
+    return SoGlass(
+      level: SoGlassLevel.thin,
+      borderRadius: SoRadius.capsuleAll,
+      padding: const EdgeInsets.only(left: SoSpace.s20, right: SoSpace.s4),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: SoSize.control),
+        child: Row(
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: SoSpace.s12),
+                child: Text(
+                  message,
+                  style: context.textTheme.bodyMedium?.copyWith(color: c.ink),
+                ),
               ),
             ),
-          ),
-          if (actionLabel != null)
-            TextButton(
-              onPressed: onAction,
-              style: TextButton.styleFrom(foregroundColor: c.brandTint),
-              child: Text(actionLabel!),
-            )
-          else
-            const SizedBox(width: SoSpace.s12),
-        ],
+            if (actionLabel != null)
+              TextButton(
+                onPressed: onAction,
+                style: TextButton.styleFrom(foregroundColor: c.brand),
+                child: Text(actionLabel!),
+              )
+            else
+              const SizedBox(width: SoSpace.s12),
+          ],
+        ),
       ),
     );
   }
@@ -204,16 +206,16 @@ class SoEmptyState extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
+            width: 64,
+            height: 64,
+            decoration: ShapeDecoration(
               color: isError ? c.dangerTint : c.fill,
-              borderRadius: SoRadius.mdAll,
+              shape: SoShape.squircle(SoRadius.mdAll),
             ),
             child: Icon(icon, color: isError ? c.danger : c.ink2),
           ),
           const SizedBox(height: SoSpace.s16),
-          Text(title, style: context.textTheme.titleMedium),
+          Text(title, style: context.soText.title3),
           if (message != null) ...[
             const SizedBox(height: SoSpace.s4),
             Text(
@@ -249,15 +251,16 @@ class SoSkeleton extends StatelessWidget {
     return Container(
       width: width,
       height: height,
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: context.soColors.fill,
-        borderRadius: BorderRadius.circular(radius),
+        shape: SoShape.squircle(BorderRadius.circular(radius)),
       ),
     );
   }
 }
 
-/// Danh sách skeleton có hình giống [SoOrderRow] / hàng danh sách.
+/// Các hàng skeleton có hình giống [SoOrderRow] / hàng danh sách. Không có
+/// nền riêng: đặt trong [SoListGroup] (thẻ trắng) như nội dung thật.
 class SoSkeletonList extends StatelessWidget {
   const SoSkeletonList({super.key, this.count = 4});
 
@@ -268,14 +271,11 @@ class SoSkeletonList extends StatelessWidget {
     final c = context.soColors;
     return Column(
       children: [
-        for (var i = 0; i < count; i++)
-          Container(
+        for (var i = 0; i < count; i++) ...[
+          if (i > 0) Divider(indent: SoSpace.s16, color: c.fillStrong),
+          const Padding(
             padding: SoSpace.card,
-            decoration: BoxDecoration(
-              color: c.surface,
-              border: Border(bottom: BorderSide(color: c.fillStrong)),
-            ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
@@ -292,6 +292,7 @@ class SoSkeletonList extends StatelessWidget {
               ],
             ),
           ),
+        ],
       ],
     );
   }

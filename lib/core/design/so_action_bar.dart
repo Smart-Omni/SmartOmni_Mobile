@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'so_text.dart';
+import 'so_glass.dart';
 import 'so_tokens.dart';
 
-/// Thanh hành động dưới của màn con (đặt ở `Scaffold.bottomNavigationBar`).
+/// Thanh hành động kính dưới đáy màn con (đặt ở
+/// `Scaffold.bottomNavigationBar`).
 ///
 /// Tối đa 2 nút: nút phụ chiếm 1 phần, nút chính 2 phần.
 class SoActionBar extends StatelessWidget {
@@ -17,12 +18,9 @@ class SoActionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.soColors;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: c.surface,
-        border: Border(top: BorderSide(color: c.fillStrong)),
-      ),
+    return SoGlass(
+      borderRadius: BorderRadius.zero,
+      shadow: false,
       child: SafeArea(
         top: false,
         child: Padding(

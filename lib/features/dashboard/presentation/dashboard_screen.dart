@@ -109,6 +109,8 @@ class _DashboardBody extends StatelessWidget {
               SoStatTile(
                 key: const Key('tile_revenue_today'),
                 label: 'Doanh thu hôm nay',
+                // Thẻ kính nổi bật duy nhất của M-10 Admin (DESIGN.md mục 8).
+                highlighted: true,
                 value: Formatters.compactVnd(s.revenueToday),
               )
             else

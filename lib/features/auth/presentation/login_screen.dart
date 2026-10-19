@@ -305,7 +305,8 @@ class _FailureBanner extends StatelessWidget {
   }
 }
 
-/// Thẻ tài khoản demo (chỉ bản mock). Chạm email để điền sẵn.
+/// Thẻ tài khoản demo (chỉ bản mock): thẻ đặc, mỗi email là một SoCodeTag.
+/// Chạm email để điền sẵn.
 class _DemoAccountsCard extends StatelessWidget {
   const _DemoAccountsCard({required this.onPick});
 
@@ -316,10 +317,7 @@ class _DemoAccountsCard extends StatelessWidget {
     final c = context.soColors;
     return Container(
       padding: SoSpace.card,
-      decoration: ShapeDecoration(
-        color: c.fill,
-        shape: SoShape.squircle(SoRadius.lgAll),
-      ),
+      decoration: SoShape.card(c),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -332,17 +330,20 @@ class _DemoAccountsCard extends StatelessWidget {
             context.l10n.demoAccountsHint(MockAccounts.password),
             style: context.textTheme.bodySmall,
           ),
-          const SizedBox(height: SoSpace.s12),
+          const SizedBox(height: SoSpace.s4),
           Wrap(
             spacing: SoSpace.s8,
-            runSpacing: SoSpace.s8,
             children: [
               for (final email in MockAccounts.accounts.keys)
+                // Vùng chạm cao 48 bao quanh nhãn.
                 InkWell(
                   key: Key('demo_$email'),
-                  borderRadius: SoRadius.smAll,
+                  customBorder: SoShape.squircle(SoRadius.smAll),
                   onTap: () => onPick(email),
-                  child: SoCodeTag(email),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: SoSize.touch),
+                    child: Align(widthFactor: 1, child: SoCodeTag(email)),
+                  ),
                 ),
             ],
           ),

@@ -34,10 +34,12 @@ class SoStockMeter extends StatelessWidget {
     final c = context.soColors;
     final heldPart = reserved.clamp(0, onHand < 0 ? 0 : onHand);
     final sellPart = sellable < 0 ? 0 : sellable;
-    final barHeight = showLegend ? 10.0 : 4.0;
+    final barHeight = showLegend ? 8.0 : 4.0;
 
-    final bar = ClipRRect(
-      borderRadius: const BorderRadius.all(Radius.circular(2)),
+    // Giữ chỗ + có thể bán luôn tô kín rãnh, nên cắt rãnh theo capsule là đủ
+    // để hai đầu thanh tròn.
+    final bar = ClipRSuperellipse(
+      borderRadius: SoRadius.capsuleAll,
       child: SizedBox(
         height: barHeight,
         child: ColoredBox(
@@ -110,7 +112,13 @@ class _Legend extends StatelessWidget {
         Row(
           children: [
             if (swatch != null) ...[
-              Container(width: 8, height: 8, color: swatch),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: swatch,
+                  shape: BoxShape.circle,
+                ),
+                child: const SizedBox.square(dimension: 8),
+              ),
               const SizedBox(width: 6),
             ],
             Flexible(

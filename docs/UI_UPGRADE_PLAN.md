@@ -48,7 +48,7 @@ C-40 (`customer_account_screen.dart`) đã dùng design system một phần; rà
 ## Tiến độ
 
 - [x] DESIGN.md bản 2 Glass + mockup 4 màn (A-02, M-10 Admin, M-20, C-20), duyệt 19/10/2026
-- [ ] Nhánh 0: nền móng Glass
+- [x] Nhánh 0: nền móng Glass (PR #14, xong 20/10/2026; sửa tiếp ở `fix/glass-followups`: đồng hồ dữ liệu mẫu, thẻ nhóm ngày M-20)
 - [ ] Nhánh 1: M-31 · M-32 · M-51 · T-10
 - [ ] Nhánh 2: mục 8b DESIGN.md (A-05 · C-00 · SoShopSwitcher · C-10 · C-11 · C-20 · C-30 · C-40)
 - [ ] Nhánh 3: C-00 · SoShopSwitcher · C-10 · C-11

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../app/router/routes.dart';
+import '../../../core/utils/clock.dart';
 import '../../../core/design/design.dart';
 import '../../../core/widgets/state_views.dart';
 import '../domain/order.dart';
@@ -95,6 +96,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                   .where((o) => orderMatches(o, _searchCtrl.text))
                   .toList(),
               hasAnyOrder: value.items.isNotEmpty,
+              now: ref.watch(clockProvider)(),
             ),
           ),
           AsyncError(:final error) => ListView(
@@ -109,8 +111,16 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
           ),
           _ => SingleChildScrollView(
             physics: const NeverScrollableScrollPhysics(),
-            padding: SoSpace.scrollable(context),
-            child: const SoSkeletonList(count: 6),
+            padding: SoSpace.scrollable(
+              context,
+              const EdgeInsets.fromLTRB(
+                SoSpace.screen,
+                SoSpace.s8,
+                SoSpace.screen,
+                0,
+              ),
+            ),
+            child: const SoListGroup(children: [SoSkeletonList(count: 6)]),
           ),
         },
       ),
@@ -134,7 +144,7 @@ class _FilterBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget> chips;
 
   static const double _searchHeight = SoSpace.s8 + SoSize.input;
-  static const double _chipsHeight = SoSize.controlSmall + SoSpace.s12 * 2;
+  static const double _chipsHeight = SoSize.chip + SoSpace.s12 * 2;
 
   @override
   Size get preferredSize =>
@@ -191,10 +201,17 @@ class _FilterBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 class _OrderList extends StatelessWidget {
-  const _OrderList({required this.orders, required this.hasAnyOrder});
+  const _OrderList({
+    required this.orders,
+    required this.hasAnyOrder,
+    required this.now,
+  });
 
   final List<Order> orders;
   final bool hasAnyOrder;
+
+  /// Mốc tính nhãn "Hôm nay"/"Hôm qua" (cùng đồng hồ với dữ liệu mẫu).
+  final DateTime now;
 
   @override
   Widget build(BuildContext context) {
@@ -222,29 +239,28 @@ class _OrderList extends StatelessWidget {
       key: const Key('orders_list'),
       padding: SoSpace.scrollable(context),
       children: [
-        for (final (day, items) in groups) ...[
+        for (final (g, (day, items)) in groups.indexed) ...[
           Padding(
-            padding: const EdgeInsets.fromLTRB(
+            padding: EdgeInsets.fromLTRB(
               SoSpace.screen,
-              SoSpace.s16,
+              g == 0 ? SoSpace.s8 : SoSpace.group,
               SoSpace.screen,
-              SoSpace.s8,
+              SoSpace.sectionTitle,
             ),
             child: Text(
-              '${dayGroupLabel(day)} · ${items.length}',
+              '${dayGroupLabel(day, now: now)} · ${items.length}',
               style: context.soText.title3,
             ),
           ),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              border: Border.symmetric(
-                horizontal: BorderSide(color: context.soColors.fillStrong),
-              ),
-            ),
+          // Mỗi nhóm ngày là một thẻ trắng bo lg; đường chia thụt vào 16.
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: SoSpace.screen),
+            clipBehavior: Clip.antiAlias,
+            decoration: SoShape.card(context.soColors),
             child: Column(
               children: [
                 for (final (i, order) in items.indexed) ...[
-                  if (i > 0) const Divider(),
+                  if (i > 0) const Divider(indent: SoSpace.s16),
                   OrderRow(
                     key: Key('order_${order.id}'),
                     order: order,

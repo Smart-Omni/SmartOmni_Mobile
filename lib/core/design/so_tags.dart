@@ -10,7 +10,7 @@ import 'so_tokens.dart';
 enum SoStatus { neutral, info, success, warning, danger, brand }
 
 extension SoStatusColors on SoStatus {
-  /// (nền, chữ + ô vuông).
+  /// (nền, chữ + chấm tròn).
   (Color, Color) colors(SoColors c) => switch (this) {
     SoStatus.neutral => (c.fill, c.ink2),
     SoStatus.info => (c.infoTint, c.info),
@@ -21,7 +21,8 @@ extension SoStatusColors on SoStatus {
   };
 }
 
-/// Nhãn trạng thái cao 24: ô vuông 8px + chữ. Luôn có chữ, không chỉ màu.
+/// Nhãn trạng thái: capsule cao 24 nền `*Tint`, chấm tròn 6px + chữ
+/// `caption` cùng màu trạng thái. Luôn có chữ, không chỉ màu.
 class SoStatusTag extends StatelessWidget {
   const SoStatusTag({super.key, required this.label, required this.status});
 
@@ -33,12 +34,18 @@ class SoStatusTag extends StatelessWidget {
     final (bg, fg) = status.colors(context.soColors);
     return Container(
       height: 24,
-      padding: const EdgeInsets.symmetric(horizontal: SoSpace.s8),
-      decoration: BoxDecoration(color: bg, borderRadius: SoRadius.smAll),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: ShapeDecoration(
+        color: bg,
+        shape: SoShape.squircle(SoRadius.capsuleAll),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(width: 8, height: 8, color: fg),
+          DecoratedBox(
+            decoration: BoxDecoration(color: fg, shape: BoxShape.circle),
+            child: const SizedBox.square(dimension: 6),
+          ),
           const SizedBox(width: 6),
           Text(
             label,
@@ -51,7 +58,8 @@ class SoStatusTag extends StatelessWidget {
   }
 }
 
-/// Nhãn hạng khách hàng, chữ caption 600.
+/// Nhãn hạng khách hàng: capsule cao 24 (bản lớn 32), chữ caption 600, màu
+/// theo hạng (DESIGN.md mục 2). Không viền.
 class SoTierBadge extends StatelessWidget {
   const SoTierBadge({super.key, required this.tier, this.large = false});
 
@@ -75,12 +83,9 @@ class SoTierBadge extends StatelessWidget {
         horizontal: large ? SoSpace.s12 : SoSpace.s8,
       ),
       alignment: Alignment.center,
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: bg,
-        borderRadius: SoRadius.smAll,
-        border: tier == LoyaltyTier.standard
-            ? Border.all(color: c.fillStrong)
-            : null,
+        shape: SoShape.squircle(SoRadius.capsuleAll),
       ),
       child: Text(
         tier.label,
@@ -93,7 +98,11 @@ class SoTierBadge extends StatelessWidget {
   }
 }
 
-/// Kênh bán: ô vuông 10px màu sàn + tên sàn màu ink.
+/// Kênh bán: chấm tròn 8px màu sàn + tên sàn `footnote` màu ink2.
+///
+/// Một `Text.rich` duy nhất nên dùng được cả trong chỗ không giới hạn bề
+/// rộng (Row, Wrap) lẫn có giới hạn. Đặt cạnh mã đơn thì để mã đơn co lại,
+/// không để tên sàn bị cắt.
 class SoChannelTag extends StatelessWidget {
   const SoChannelTag({super.key, required this.platform});
 
@@ -102,32 +111,36 @@ class SoChannelTag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.soColors;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          color: switch (platform) {
-            Platform.shopee => c.shopee,
-            Platform.tiktokShop => c.tiktok,
-          },
-        ),
-        const SizedBox(width: 6),
-        Flexible(
-          child: Text(
-            platform.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: context.textTheme.labelLarge?.copyWith(color: c.ink),
+    final dot = switch (platform) {
+      Platform.shopee => c.shopee,
+      Platform.tiktokShop => c.tiktok,
+    };
+    return Text.rich(
+      TextSpan(
+        children: [
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: DecoratedBox(
+                decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+                child: const SizedBox.square(dimension: 8),
+              ),
+            ),
           ),
-        ),
-      ],
+          TextSpan(text: platform.label),
+        ],
+      ),
+      maxLines: 1,
+      softWrap: false,
+      overflow: TextOverflow.ellipsis,
+      style: context.textTheme.bodySmall?.copyWith(color: c.ink2),
     );
   }
 }
 
-/// Mã đơn / mã SKU: khung viền 1px ink, chữ mono 12, như in trên tem.
+/// Mã đơn / mã SKU / email demo: nền `fill`, bo squircle `sm` 10, chữ
+/// `code` (JetBrains Mono 13), không viền.
 class SoCodeTag extends StatelessWidget {
   const SoCodeTag(this.code, {super.key});
 
@@ -137,22 +150,23 @@ class SoCodeTag extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.soColors;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        borderRadius: SoRadius.smAll,
-        border: Border.all(color: c.ink),
+      padding: const EdgeInsets.symmetric(horizontal: SoSpace.s8, vertical: 3),
+      decoration: ShapeDecoration(
+        color: c.fill,
+        shape: SoShape.squircle(SoRadius.smAll),
       ),
       child: Text(
         code,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: context.soText.code.copyWith(fontSize: 12, height: 16 / 12),
+        style: context.soText.code.copyWith(color: c.ink),
       ),
     );
   }
 }
 
-/// Nhãn "AI" cho nội dung do AI gợi ý.
+/// Nhãn "AI" cho nội dung do AI gợi ý: capsule nền brandTint, chữ caption
+/// 600 màu brand.
 class SoAiLabel extends StatelessWidget {
   const SoAiLabel({super.key});
 
@@ -160,10 +174,10 @@ class SoAiLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.soColors;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.symmetric(horizontal: SoSpace.s8, vertical: 2),
+      decoration: ShapeDecoration(
         color: c.brandTint,
-        borderRadius: SoRadius.smAll,
+        shape: SoShape.squircle(SoRadius.capsuleAll),
       ),
       child: Text(
         'AI',

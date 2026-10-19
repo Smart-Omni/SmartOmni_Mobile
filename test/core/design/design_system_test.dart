@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/rendering.dart';
 import 'package:smartomni_mobile/core/design/design.dart';
+import 'package:smartomni_mobile/core/models/platform.dart';
 import 'package:smartomni_mobile/features/dev_gallery/presentation/design_gallery_screen.dart';
 import 'package:smartomni_mobile/l10n/l10n.dart';
 
@@ -94,5 +96,42 @@ void main() {
 
     await tapVisible(tester, find.byKey(const Key('gallery_glass_toggle')));
     expect(find.byType(BackdropFilter), findsWidgets);
+  });
+
+  // Font trong test vẽ mỗi ký tự rộng 1em (rộng hơn Inter nhiều), nên dùng
+  // khung 420 để có đủ chỗ cho "TikTok Shop"; với Inter thì 360dp là đủ.
+  testWidgets('SoOrderRow: mã đơn dài co lại trước, tên sàn giữ đủ chữ', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(420, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _wrap(
+        const Scaffold(
+          body: Padding(
+            padding: EdgeInsets.all(SoSpace.screen),
+            child: SoOrderRow(
+              platform: Platform.tiktokShop,
+              orderCode: '5779000099998888123456',
+              amount: 9000,
+              productSummary: 'Áo thun cổ tròn',
+              statusLabel: 'Chờ xử lý',
+              status: SoStatus.warning,
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    final channel = tester.renderObject<RenderParagraph>(
+      find.textContaining('TikTok Shop', findRichText: true),
+    );
+    expect(channel.didExceedMaxLines, isFalse);
+    final code = tester.renderObject<RenderParagraph>(
+      find.text('5779000099998888123456'),
+    );
+    expect(code.didExceedMaxLines, isTrue);
   });
 }

@@ -91,8 +91,7 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
             _Section(title: 'Rỗng & lỗi', padded: false, child: _empty()),
             const _Section(
               title: 'Skeleton',
-              padded: false,
-              child: SoSkeletonList(count: 2),
+              child: SoListGroup(children: [SoSkeletonList(count: 2)]),
             ),
             _Section(title: 'Tiến trình', child: _timeline()),
           ],

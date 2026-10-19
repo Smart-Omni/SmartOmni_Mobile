@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartomni_mobile/core/design/design.dart';
+import 'package:smartomni_mobile/core/utils/clock.dart';
 import 'package:smartomni_mobile/features/auth/data/auth_mock_repository.dart';
 import 'package:smartomni_mobile/features/orders/data/orders_repositories.dart';
 import 'package:smartomni_mobile/features/orders/presentation/order_detail_screen.dart';
@@ -10,6 +11,8 @@ import '../helpers/test_app.dart';
 
 /// Mock ghi lại các lần gọi `createReturn` để kiểm tra chuỗi `reason`.
 class _RecordingOrdersRepository extends OrdersMockRepository {
+  _RecordingOrdersRepository() : super(clock: () => _now);
+
   final returns = <(int, String)>[];
 
   @override
@@ -18,6 +21,10 @@ class _RecordingOrdersRepository extends OrdersMockRepository {
     return super.createReturn(orderId: orderId, reason: reason);
   }
 }
+
+/// Giờ cố định cho dữ liệu mẫu và nhãn ngày: 14h, nên đơn "1–5 giờ trước"
+/// luôn thuộc "Hôm nay" dù test chạy lúc mấy giờ.
+final _now = DateTime(2026, 10, 15, 14);
 
 /// [tallView]: khung test cao 2000px để danh sách dựng đủ mọi hàng.
 Future<_RecordingOrdersRepository> _openOrders(
@@ -32,7 +39,10 @@ Future<_RecordingOrdersRepository> _openOrders(
   final repo = _RecordingOrdersRepository();
   await pumpSmartOmniApp(
     tester,
-    overrides: [ordersRepositoryProvider.overrideWithValue(repo)],
+    overrides: [
+      ordersRepositoryProvider.overrideWithValue(repo),
+      clockProvider.overrideWithValue(() => _now),
+    ],
   );
   await tester.enterText(find.byKey(const Key('login_email')), 'staff@demo.vn');
   await tester.enterText(
