@@ -11,6 +11,8 @@ App Flutter (Android trước, iOS dùng chung code) cho nền tảng SaaS bán 
 | `docs/USER_FLOWS.md` | Flow và mã màn (A-02, M-20…) |
 | `docs/API_CONTRACT.md` | Endpoint thật vs mock |
 | `docs/REQUIREMENTS.md` | Quy tắc nghiệp vụ |
+| `docs/UI_UPGRADE_PLAN.md` | **Việc giao diện đang làm**: thứ tự nhánh, vòng lặp mỗi màn, tiến độ |
+| `docs/SKILLS_GUIDE.md` | Việc nào dùng skill nào |
 
 ## Lệnh
 
@@ -49,4 +51,4 @@ Chạy đủ 3 lệnh format/analyze/test trước mỗi commit.
 4. `feature/ui-orders`: M-20, M-21, sheet hoàn/trả.
 5. `feature/ui-products-stock`: M-30, M-40, sheet đặt lại tồn.
 6. `feature/ui-more`: M-50.
-7. Đợt sau: mockup Customer, Hộp thư CSKH (M-60/61), Kết nối sàn (T-10).
+7. Đã xong đợt 1. Việc tiếp theo (bản 2 Glass, các màn còn lại): xem `docs/UI_UPGRADE_PLAN.md`.
