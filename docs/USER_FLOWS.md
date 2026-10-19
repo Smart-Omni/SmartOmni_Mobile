@@ -28,7 +28,8 @@ flowchart TD
 | A-02 | Đăng nhập chung | Tất cả | ✅ |
 | A-03 | Quên mật khẩu (gửi email) | Tất cả | ✅ |
 | A-04 | Đặt lại mật khẩu (mã + mật khẩu mới) | Tất cả | ✅ |
-| A-05 | Đăng ký tài khoản khách | Customer | ⚪ |
+| A-05 | Đăng ký tài khoản khách (+ OTP email) | Customer | ⚪ (có mockup) |
+| C-00 | Chọn cửa hàng / thêm cửa hàng (1 khách nhiều cửa hàng) | Customer | ⚪ (có mockup) |
 | C-10 | Storefront - danh sách sản phẩm | Customer | ✅ (mock) |
 | C-11 | Chi tiết sản phẩm + nút mua trên sàn | Customer | ✅ (mock) |
 | C-12 | Chatbot tư vấn | Customer | ⚪ |
@@ -143,7 +144,7 @@ Quy tắc hiển thị: điểm = `floor(tiền hàng thực trả / 1.000₫)`,
 C-40: thông tin (email, SĐT), đổi mật khẩu ⚪, sửa thông tin ⚪, đăng xuất ✅.
 
 ### F-C6. Đăng ký tài khoản khách ⚪
-A-02 → "Chưa có tài khoản? Đăng ký" → A-05: họ tên, email, SĐT, mật khẩu, (chọn cửa hàng nếu 1 khách dùng nhiều tenant - **chưa chốt**) → xác minh (OTP email/SĐT - **chưa chốt**) → đăng nhập.
+A-02 → "Chưa có tài khoản? Đăng ký" → A-05: họ tên, email, SĐT, mật khẩu, mã cửa hàng (nhập hoặc quét QR; **đã chốt: 1 khách dùng nhiều cửa hàng**, thêm cửa hàng khác sau ở C-00) → xác minh OTP qua email (6 số, gửi lại sau 45 giây) → vào C-10 của cửa hàng vừa tham gia.
 
 ---
 
