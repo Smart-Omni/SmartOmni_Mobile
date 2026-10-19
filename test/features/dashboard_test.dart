@@ -127,6 +127,21 @@ void main() {
     expect(find.text('Shop Demo · Chủ cửa hàng'), findsOneWidget);
     expect(find.byKey(const Key('tile_revenue_today')), findsOneWidget);
     expect(find.byKey(const Key('tile_to_ship')), findsNothing);
+    // Ô doanh thu là thẻ kính nổi bật duy nhất; các ô khác là thẻ đặc.
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('tile_revenue_today')),
+        matching: find.byType(SoGlass),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('tile_pending')),
+        matching: find.byType(SoGlass),
+      ),
+      findsNothing,
+    );
     expect(find.text('3,87 tr'), findsWidgets);
     expect(find.text('Doanh thu theo kênh'), findsOneWidget);
     expect(find.text('63%'), findsOneWidget); // 2,45 tr / 3,87 tr
