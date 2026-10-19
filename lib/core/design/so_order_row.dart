@@ -49,12 +49,21 @@ class SoOrderRow extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: Row(
-                      children: [
-                        Flexible(child: SoChannelTag(platform: platform)),
-                        const SizedBox(width: SoSpace.s8),
-                        Flexible(flex: 2, child: SoCodeTag(orderCode)),
-                      ],
+                    child: LayoutBuilder(
+                      // Tên sàn lấy đủ bề rộng nó cần (tối đa 70% để không
+                      // tràn khi quá chật); mã đơn co lại phần còn lại.
+                      builder: (context, box) => Row(
+                        children: [
+                          ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: box.maxWidth * 0.7,
+                            ),
+                            child: SoChannelTag(platform: platform),
+                          ),
+                          const SizedBox(width: SoSpace.s8),
+                          Flexible(child: SoCodeTag(orderCode)),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(width: SoSpace.s12),

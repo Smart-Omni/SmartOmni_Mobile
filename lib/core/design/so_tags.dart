@@ -100,7 +100,11 @@ class SoTierBadge extends StatelessWidget {
   }
 }
 
-/// Kênh bán: ô vuông 10px màu sàn + tên sàn màu ink.
+/// Kênh bán: chấm tròn 8px màu sàn + tên sàn `footnote` màu ink2.
+///
+/// Một `Text.rich` duy nhất nên dùng được cả trong chỗ không giới hạn bề
+/// rộng (Row, Wrap) lẫn có giới hạn. Đặt cạnh mã đơn thì để mã đơn co lại,
+/// không để tên sàn bị cắt.
 class SoChannelTag extends StatelessWidget {
   const SoChannelTag({super.key, required this.platform});
 
@@ -109,27 +113,30 @@ class SoChannelTag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.soColors;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          color: switch (platform) {
-            Platform.shopee => c.shopee,
-            Platform.tiktokShop => c.tiktok,
-          },
-        ),
-        const SizedBox(width: 6),
-        Flexible(
-          child: Text(
-            platform.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: context.textTheme.labelLarge?.copyWith(color: c.ink),
+    final dot = switch (platform) {
+      Platform.shopee => c.shopee,
+      Platform.tiktokShop => c.tiktok,
+    };
+    return Text.rich(
+      TextSpan(
+        children: [
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: DecoratedBox(
+                decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+                child: const SizedBox.square(dimension: 8),
+              ),
+            ),
           ),
-        ),
-      ],
+          TextSpan(text: platform.label),
+        ],
+      ),
+      maxLines: 1,
+      softWrap: false,
+      overflow: TextOverflow.ellipsis,
+      style: context.textTheme.bodySmall?.copyWith(color: c.ink2),
     );
   }
 }
