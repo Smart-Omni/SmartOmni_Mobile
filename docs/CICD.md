@@ -4,7 +4,7 @@
 
 Hãy tưởng tượng có một "người kiểm tra tự động" đứng ở cửa nhánh `develop` và `main`:
 
-- **CI - Continuous Integration (tích hợp liên tục):** mỗi khi có người mở Pull Request, GitHub tự bật một máy ảo, tải code về và chạy: kiểm tra format → phân tích lỗi → chạy test → build thử APK. Có lỗi thì PR hiện ❌ đỏ, không nên merge. Nhờ vậy lỗi bị chặn **trước** khi vào code chung, và không còn cảnh "máy em chạy được mà".
+- **CI - Continuous Integration (tích hợp liên tục):** mỗi khi có người mở Pull Request, GitHub tự bật một máy ảo, tải code về và chạy: kiểm tra format → phân tích lỗi → chạy test (khoảng 2 phút). APK chỉ được build sau khi merge vào `develop`/`main`. Có lỗi thì PR hiện ❌ đỏ, không nên merge. Nhờ vậy lỗi bị chặn **trước** khi vào code chung, và không còn cảnh "máy em chạy được mà".
 - **CD - Continuous Delivery (phân phối liên tục):** khi code đã ổn, GitHub tự build file cài đặt và **gửi đi** (cho tester, lên Google Play...) thay vì bạn build tay rồi gửi qua Zalo.
 
 Mọi thứ được viết trong các file `.github/workflows/*.yml`. GitHub đọc các file này và chạy trên máy của GitHub (gọi là **GitHub Actions**).
@@ -25,7 +25,7 @@ flowchart LR
 
 | File | Chạy khi | Làm gì | Trạng thái |
 |---|---|---|---|
-| `ci.yml` | PR / push vào `develop`, `main`; bấm tay | Format, analyze, test + coverage; build APK dev & staging | ✅ **Bật** (mức 1) |
+| `ci.yml` | PR / push vào `develop`, `main`; bấm tay | Format, analyze, test + coverage; build APK dev & staging (chỉ khi push/bấm tay, không chạy cho PR) | ✅ **Bật** (mức 1) |
 | `build-ios.yml` | Bấm tay; push `main` có sửa `ios/` | Build iOS `--no-codesign` trên macOS để chắc chắn compile được | ✅ Bật (chạy tay) |
 | `release.yml` → job `github-release` | Push tag `v*.*.*` | Build APK prod, tạo **GitHub Release** đính kèm APK | ✅ Bật (miễn phí) |
 | `distribute-firebase.yml` | Push `develop` | Gửi APK staging cho tester qua Firebase App Distribution | ⏸️ **Tắt** (mức 2) |
@@ -45,7 +45,7 @@ Tab **Actions** → chọn workflow bên trái (vd: "iOS build check") → nút 
 Việc duy nhất nên làm: **bật bảo vệ nhánh** để bắt buộc CI xanh mới được merge.
 Settings → Branches → **Add branch ruleset** (hoặc *Add rule*) cho `main` và `develop`:
 - Require a pull request before merging
-- Require status checks to pass → chọn `Format · Analyze · Test`, `Build APK (dev + staging)`
+- Require status checks to pass → chọn `Format · Analyze · Test` (đừng chọn `Build APK`, job này không chạy cho PR)
 
 ### Phát hành một phiên bản (miễn phí, qua GitHub Release)
 ```bash
