@@ -4,7 +4,7 @@ Tài liệu này là **nguồn chuẩn khi code giao diện**. Nếu skill, plug
 
 - **Bản 2 (Glass)**, viết ngày 19/10/2026, thay cho bản 1 (phong cách kho vận, duyệt ngày 14/10/2026). Luồng, mã màn và nội dung từng màn **giữ nguyên**, chỉ đổi ngôn ngữ hình ảnh: chữ, màu, vật liệu kính, bo góc, bố cục.
 - Trạng thái: **bản nháp**, chốt khi người dùng duyệt mockup glass (A-02, M-10 Admin, M-20, C-20). Số đo có thể chỉnh nhẹ sau khi duyệt; khi chỉnh thì sửa ở đây trước rồi mới code.
-- Mockup bản 2: (thêm link sau khi vẽ). Mockup bản 1 (chỉ để xem nội dung, **không** lấy phong cách): đợt 1 https://claude.ai/artifact/4JxPGaPHdtxGM7VrQxTnEw · đợt 2 https://claude.ai/artifact/5jYxMTRbbvn9wTmy663nWC
+- Mockup bản 2 (4 màn mẫu A-02, M-10 Admin, M-20, C-20): https://claude.ai/artifact/WE5CeBwvbjgsRvMcrewpCQ. Mockup bản 1 (chỉ để xem nội dung, **không** lấy phong cách): đợt 1 https://claude.ai/artifact/4JxPGaPHdtxGM7VrQxTnEw · đợt 2 https://claude.ai/artifact/5jYxMTRbbvn9wTmy663nWC
 - Logo: `assets/brand/` (SVG một màu xanh dầu, giữ nguyên).
 
 ## 1. Ý tưởng
