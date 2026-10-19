@@ -64,6 +64,10 @@ JWT payload: `{ sub: "<userId>", role, tenantId?, iat, exp }` (HS256, hạn 24h)
 | Voucher | `GET /api/customer/vouchers` → `[{ code, platform, description, expiresAt }]` | 🟡 |
 | Claim đơn | `POST /api/customer/claims` `{ platform, orderCode }` → `{ points }`; lỗi trả `message` rõ lý do (chưa hoàn tất / chưa đủ 15 ngày / đã claim / không tìm thấy) | 🟡 |
 | Chatbot | `POST /api/storefront/chat` | ⚪ |
+| Đăng ký khách (A-05) | `POST /api/customers/register` `{ shopCode, fullName, email, phone, password }` → gửi OTP; `POST /api/customers/verify-email` `{ email, otp }` → `{ accessToken }` | ⚪ (mock) |
+| Cửa hàng của khách (C-00) | `GET /api/customer/shops` → `[{ tenantId, name, logoUrl, tier, points }]`; `GET /api/storefront/shops/{shopCode}` (xem trước); `POST /api/customer/shops` `{ shopCode }` (tham gia) | ⚪ (mock) |
+
+**Nhiều cửa hàng:** mọi API `/api/customer/*` và `/api/storefront/*` nhận cửa hàng đang xem qua header `X-Tenant-Id` (đề xuất). JWT của khách không mang `tenantId` cố định.
 
 ## 4. Đề xuất gửi team backend
 
@@ -74,3 +78,4 @@ JWT payload: `{ sub: "<userId>", role, tenantId?, iat, exp }` (HS256, hạn 24h)
 5. Cấu hình CORS không cần cho mobile, nhưng cần cho web portal sau này.
 6. **Trả kèm `errorCode`** trong body lỗi (`{ success: false, message, errorCode }`). `BusinessException` đã có mã (`INVALID_CREDENTIALS`, `ACCOUNT_TEMP_LOCKED`, `ACCOUNT_DISABLED`) nhưng `GlobalExceptionHandler` chưa gửi ra, nên màn A-02 đang phải đoán loại lỗi qua nội dung `message` (xem `lib/features/auth/domain/auth_failure.dart`).
 7. **Khóa tenant khi đăng nhập (FR-003):** app chờ `403` với `errorCode: TENANT_LOCKED` (mock đang giả lập đúng như vậy).
+8. **Khách dùng nhiều cửa hàng:** tách tài khoản khách khỏi tenant (bảng nối khách–cửa hàng), thêm các API ở mục 3 (đăng ký + OTP, danh sách/tham gia cửa hàng) và header `X-Tenant-Id` cho API khách.

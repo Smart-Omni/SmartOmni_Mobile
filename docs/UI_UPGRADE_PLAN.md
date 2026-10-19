@@ -19,15 +19,23 @@ Design system (`lib/core/design/`, 21 widget `So…`) và các màn Merchant đ�
 
 C-40 (`customer_account_screen.dart`) đã dùng design system một phần; rà lại khi làm nhánh 4.
 
+**Chưa có code:** A-05 Đăng ký (+ OTP) và C-00 Chọn cửa hàng. Đã chốt: **một tài khoản khách dùng được ở nhiều cửa hàng**; điểm, hạng, voucher tính riêng theo từng cửa hàng.
+
 ## Thứ tự nhánh (mỗi nhánh 1 PR vào `develop`)
 
 0. `feature/ui-glass-foundation`: chuyển design system sang **bản 2 Glass** theo mục 10 của DESIGN.md (token màu, Inter + JetBrains Mono, `SoGlass`, `SoAmbientBackground`, thanh tab nổi, AppBar tiêu đề lớn). Giữ tên và tham số widget `So…`. Xong nhánh này thì các màn đợt 1 tự đổi giao diện; chạy thử và chụp lại A-02, M-10, M-20 để so với mockup glass.
 1. `feature/ui-merchant-subscreens`: M-31, M-32, M-51, T-10. Bố cục giống M-21; SoAppBar.child, Lucide icon, SoButton, SoTextField, SoStatusTag, SoAiLabel. Mỗi màn 1 commit.
-2. `feature/ui-customer-spec`: chưa code. Dùng brainstorming: đề xuất 2 hướng bố cục cho C-10 và C-20 theo bản 2 Glass (C-20 đã có mockup glass), hỏi người dùng chọn, rồi viết **mục 8b – Màn Customer** vào DESIGN.md (C-10, C-11, C-20, C-30, C-40). Không FAB; lối vào chatbot C-12 đặt ở AppBar.
-3. `feature/ui-customer-shop`: C-10, C-11 theo mục 8b. Bỏ FAB, `MockDataBanner` → `SoMockBanner`, nút mua trên sàn dùng SoChannelTag. Thử bằng `customer@demo.vn`.
-4. `feature/ui-customer-loyalty`: C-20, C-30, C-40 theo mục 8b. SoTierBadge, SoTextField mono cho mã đơn.
+2. `feature/ui-customer-spec`: chưa code. Viết **mục 8b – Màn Customer** vào DESIGN.md cho: A-05 Đăng ký (+ OTP), C-00 Chọn cửa hàng (+ sheet Thêm cửa hàng), widget `SoShopSwitcher` (nút đổi cửa hàng trên AppBar), C-10, C-11, C-20, C-30 (+ kết quả và 4 ca lỗi), C-40.
+   - Nội dung lấy từ mockup đợt 2 (https://claude.ai/artifact/5jYxMTRbbvn9wTmy663nWC), vẽ lại theo bản 2 Glass.
+   - C-20 đã có mockup glass được duyệt (https://claude.ai/artifact/WE5CeBwvbjgsRvMcrewpCQ): chỉ chép đặc tả, **không** đề xuất lại.
+   - Chỉ C-10 cần brainstorming: 2 hướng bố cục, hỏi người dùng chọn.
+   - Không FAB; lối vào chatbot C-12 là nút trên AppBar của C-10 (thay thẻ "Chưa biết chọn gì?" trong mockup đợt 2).
+3. `feature/ui-customer-shop`: C-00 + `SoShopSwitcher`, C-10, C-11 theo mục 8b. Bỏ FAB, `MockDataBanner` → `SoMockBanner`, nút mua trên sàn dùng SoChannelTag. Thử bằng `customer@demo.vn`.
+   - **Nhiều cửa hàng chạy bằng mock:** backend chưa có API (xem `docs/API_CONTRACT.md` mục 3). Thêm `CustomerShopRepository` (interface ở `domain/`, Mock ở `data/`) và provider "cửa hàng đang xem"; điểm, voucher, sản phẩm, claim đều đọc theo cửa hàng này.
+4. `feature/ui-customer-loyalty`: C-20, C-30, C-40 theo mục 8b. SoTierBadge, SoTextField mono cho mã đơn. Dữ liệu tách theo cửa hàng đang xem.
+5. `feature/ui-customer-register`: A-05 Đăng ký + OTP, chạy bằng mock (backend chưa có `POST /api/customers/register`). Nút "Chưa có tài khoản? Đăng ký" trên A-02. Thêm route vào `resolveRedirect()` (trang công khai) và test cho router.
 
-Để sau 4 nhánh: C-12, M-60/61, T-20…T-50 (dùng interview-me + writing-plans).
+Để sau 5 nhánh: C-12 Chatbot, M-60/61 Hộp thư CSKH, luồng OAuth/App Key của T-10, T-20…T-50 (dùng interview-me + writing-plans; M-60/61, C-12, T-10 đã có mockup đợt 2).
 
 ## Vòng lặp cho mỗi màn
 
@@ -42,8 +50,9 @@ C-40 (`customer_account_screen.dart`) đã dùng design system một phần; rà
 - [x] DESIGN.md bản 2 Glass + mockup 4 màn (A-02, M-10 Admin, M-20, C-20), duyệt 19/10/2026
 - [ ] Nhánh 0: nền móng Glass
 - [ ] Nhánh 1: M-31 · M-32 · M-51 · T-10
-- [ ] Nhánh 2: mục 8b DESIGN.md
-- [ ] Nhánh 3: C-10 · C-11
+- [ ] Nhánh 2: mục 8b DESIGN.md (A-05 · C-00 · SoShopSwitcher · C-10 · C-11 · C-20 · C-30 · C-40)
+- [ ] Nhánh 3: C-00 · SoShopSwitcher · C-10 · C-11
 - [ ] Nhánh 4: C-20 · C-30 · C-40
+- [ ] Nhánh 5: A-05 (+ OTP)
 
 Claude: cập nhật danh sách này khi xong mỗi màn.
