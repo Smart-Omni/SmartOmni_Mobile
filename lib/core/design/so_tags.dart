@@ -10,7 +10,7 @@ import 'so_tokens.dart';
 enum SoStatus { neutral, info, success, warning, danger, brand }
 
 extension SoStatusColors on SoStatus {
-  /// (nền, chữ + ô vuông).
+  /// (nền, chữ + chấm tròn).
   (Color, Color) colors(SoColors c) => switch (this) {
     SoStatus.neutral => (c.fill, c.ink2),
     SoStatus.info => (c.infoTint, c.info),
@@ -21,7 +21,8 @@ extension SoStatusColors on SoStatus {
   };
 }
 
-/// Nhãn trạng thái cao 24: ô vuông 8px + chữ. Luôn có chữ, không chỉ màu.
+/// Nhãn trạng thái: capsule cao 24 nền `*Tint`, chấm tròn 6px + chữ
+/// `caption` cùng màu trạng thái. Luôn có chữ, không chỉ màu.
 class SoStatusTag extends StatelessWidget {
   const SoStatusTag({super.key, required this.label, required this.status});
 
@@ -33,12 +34,18 @@ class SoStatusTag extends StatelessWidget {
     final (bg, fg) = status.colors(context.soColors);
     return Container(
       height: 24,
-      padding: const EdgeInsets.symmetric(horizontal: SoSpace.s8),
-      decoration: BoxDecoration(color: bg, borderRadius: SoRadius.smAll),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: ShapeDecoration(
+        color: bg,
+        shape: SoShape.squircle(SoRadius.capsuleAll),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(width: 8, height: 8, color: fg),
+          DecoratedBox(
+            decoration: BoxDecoration(color: fg, shape: BoxShape.circle),
+            child: const SizedBox.square(dimension: 6),
+          ),
           const SizedBox(width: 6),
           Text(
             label,
