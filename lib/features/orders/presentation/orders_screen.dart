@@ -231,29 +231,28 @@ class _OrderList extends StatelessWidget {
       key: const Key('orders_list'),
       padding: SoSpace.scrollable(context),
       children: [
-        for (final (day, items) in groups) ...[
+        for (final (g, (day, items)) in groups.indexed) ...[
           Padding(
-            padding: const EdgeInsets.fromLTRB(
+            padding: EdgeInsets.fromLTRB(
               SoSpace.screen,
-              SoSpace.s16,
+              g == 0 ? SoSpace.s8 : SoSpace.group,
               SoSpace.screen,
-              SoSpace.s8,
+              SoSpace.sectionTitle,
             ),
             child: Text(
               '${dayGroupLabel(day, now: now)} · ${items.length}',
               style: context.soText.title3,
             ),
           ),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              border: Border.symmetric(
-                horizontal: BorderSide(color: context.soColors.fillStrong),
-              ),
-            ),
+          // Mỗi nhóm ngày là một thẻ trắng bo lg; đường chia thụt vào 16.
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: SoSpace.screen),
+            clipBehavior: Clip.antiAlias,
+            decoration: SoShape.card(context.soColors),
             child: Column(
               children: [
                 for (final (i, order) in items.indexed) ...[
-                  if (i > 0) const Divider(),
+                  if (i > 0) const Divider(indent: SoSpace.s16),
                   OrderRow(
                     key: Key('order_${order.id}'),
                     order: order,
