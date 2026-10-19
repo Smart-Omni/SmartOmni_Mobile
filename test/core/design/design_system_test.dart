@@ -4,6 +4,8 @@ import 'package:smartomni_mobile/core/design/design.dart';
 import 'package:smartomni_mobile/features/dev_gallery/presentation/design_gallery_screen.dart';
 import 'package:smartomni_mobile/l10n/l10n.dart';
 
+import '../../helpers/test_app.dart';
+
 Widget _wrap(Widget child) => MaterialApp(
   theme: SoTheme.light(),
   locale: const Locale('vi'),
@@ -73,11 +75,24 @@ void main() {
       -300,
       scrollable: list,
     );
+    await revealCentered(tester, find.byKey(const Key('gallery_open_sheet')));
     await tester.tap(find.byKey(const Key('gallery_open_sheet')));
     await tester.pumpAndSettle();
     expect(find.text('Lưu số tồn'), findsOneWidget);
     await tester.tap(find.text('Hủy'));
     await tester.pumpAndSettle();
     expect(find.text('Lưu số tồn'), findsNothing);
+  });
+
+  testWidgets('gallery: công tắc kính tắt/bật làm mờ nền', (tester) async {
+    await tester.pumpWidget(_wrap(const DesignGalleryScreen()));
+    await tester.pumpAndSettle();
+    expect(find.byType(BackdropFilter), findsWidgets);
+
+    await tapVisible(tester, find.byKey(const Key('gallery_glass_toggle')));
+    expect(find.byType(BackdropFilter), findsNothing);
+
+    await tapVisible(tester, find.byKey(const Key('gallery_glass_toggle')));
+    expect(find.byType(BackdropFilter), findsWidgets);
   });
 }

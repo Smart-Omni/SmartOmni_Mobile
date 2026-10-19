@@ -21,9 +21,22 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
   String _chip = 'all';
   bool _hidden = false;
 
+  /// Công tắc kính chỉ cho màn này: bọc màn bằng [SoGlassScope] riêng, không
+  /// đổi `glassEnabledProvider` của cả app.
+  bool _glass = true;
+
   @override
   Widget build(BuildContext context) {
+    return SoGlassScope(
+      enabled: _glass,
+      child: BackdropGroup(child: _scaffold(context)),
+    );
+  }
+
+  Widget _scaffold(BuildContext context) {
     return Scaffold(
+      extendBody: true,
+      extendBodyBehindAppBar: true,
       appBar: SoAppBar(
         title: context.l10n.devGalleryTitle,
         subtitle: 'lib/core/design',
@@ -48,34 +61,81 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
           SoNavItem(icon: LucideIcons.ellipsis, label: context.l10n.navMore),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: SoSpace.s40),
-        children: [
-          const SoMockBanner(message: 'Mọi số liệu ở màn này là ví dụ.'),
-          _Section(title: 'Logo', child: _logos()),
-          _Section(title: 'Màu', child: _swatches(context)),
-          _Section(title: 'Chữ', child: _typography(context)),
-          _Section(title: 'Nút', child: _buttons()),
-          _Section(title: 'Ô nhập', child: _fields()),
-          _Section(title: 'Chip & segmented', child: _chips()),
-          _Section(title: 'Nhãn', child: _tags()),
-          _Section(title: 'Ô chỉ số', child: _stats()),
-          _Section(title: 'Tồn kho', child: _stock()),
-          _Section(title: 'Hàng đơn', padded: false, child: _orders()),
-          _Section(title: 'Danh sách', child: _listRows()),
-          _Section(title: 'Banner', child: _banners()),
-          _Section(title: 'Toast & sheet', child: _overlays(context)),
-          _Section(title: 'Rỗng & lỗi', padded: false, child: _empty()),
-          const _Section(
-            title: 'Skeleton',
-            padded: false,
-            child: SoSkeletonList(count: 2),
-          ),
-          _Section(title: 'Tiến trình', child: _timeline()),
-        ],
+      body: SoAmbientBackground(
+        child: ListView(
+          padding: SoSpace.scrollable(context),
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(
+                SoSpace.screen,
+                SoSpace.s8,
+                SoSpace.screen,
+                0,
+              ),
+              child: SoMockBanner(message: 'Mọi số liệu ở màn này là ví dụ.'),
+            ),
+            _Section(title: 'Kính', child: _glassDemo()),
+            _Section(title: 'Logo', child: _logos()),
+            _Section(title: 'Màu', child: _swatches(context)),
+            _Section(title: 'Chữ', child: _typography(context)),
+            _Section(title: 'Nút', child: _buttons()),
+            _Section(title: 'Ô nhập', child: _fields()),
+            _Section(title: 'Chip & segmented', child: _chips()),
+            _Section(title: 'Nhãn', child: _tags()),
+            _Section(title: 'Ô chỉ số', child: _stats()),
+            _Section(title: 'Tồn kho', child: _stock()),
+            _Section(title: 'Hàng đơn', padded: false, child: _orders()),
+            _Section(title: 'Danh sách', child: _listRows()),
+            _Section(title: 'Banner', child: _banners()),
+            _Section(title: 'Toast & sheet', child: _overlays(context)),
+            _Section(title: 'Rỗng & lỗi', padded: false, child: _empty()),
+            const _Section(
+              title: 'Skeleton',
+              padded: false,
+              child: SoSkeletonList(count: 2),
+            ),
+            _Section(title: 'Tiến trình', child: _timeline()),
+          ],
+        ),
       ),
     );
   }
+
+  /// Công tắc kính + 3 độ dày kính trên nền loang. Tắt: kính vẽ nền surface
+  /// đặc, giống khi máy bật tương phản cao.
+  Widget _glassDemo() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      SoListGroup(
+        children: [
+          SoListRow(
+            title: 'Hiệu ứng kính',
+            subtitle: 'Tắt để xem bản dự phòng nền trắng đặc.',
+            trailing: Switch(
+              key: const Key('gallery_glass_toggle'),
+              value: _glass,
+              onChanged: (v) => setState(() => _glass = v),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: SoSpace.cardGap),
+      Row(
+        children: [
+          for (final (i, level) in SoGlassLevel.values.indexed) ...[
+            if (i > 0) const SizedBox(width: SoSpace.s8),
+            Expanded(
+              child: SoGlass(
+                level: level,
+                padding: SoSpace.card,
+                child: Text(level.name, style: context.textTheme.titleMedium),
+              ),
+            ),
+          ],
+        ],
+      ),
+    ],
+  );
 
   Widget _logos() => const Wrap(
     spacing: SoSpace.s24,
