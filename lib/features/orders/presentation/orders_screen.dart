@@ -138,7 +138,7 @@ class _FilterBar extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: c.surface,
-        border: Border(bottom: BorderSide(color: c.line)),
+        border: Border(bottom: BorderSide(color: c.fillStrong)),
       ),
       child: Column(
         children: [
@@ -232,7 +232,7 @@ class _OrderList extends StatelessWidget {
           DecoratedBox(
             decoration: BoxDecoration(
               border: Border.symmetric(
-                horizontal: BorderSide(color: context.soColors.line),
+                horizontal: BorderSide(color: context.soColors.fillStrong),
               ),
             ),
             child: Column(

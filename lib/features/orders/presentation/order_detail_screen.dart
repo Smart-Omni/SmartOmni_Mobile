@@ -142,8 +142,8 @@ class _Card extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: SoRadius.mdAll,
-        border: Border.all(color: c.line),
+        borderRadius: SoRadius.lgAll,
+        border: Border.all(color: c.fillStrong),
       ),
       child: child,
     );
@@ -226,8 +226,8 @@ class _ItemsCard extends StatelessWidget {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: c.surfaceSunken,
-                      borderRadius: SoRadius.smAll,
+                      color: c.fill,
+                      borderRadius: SoRadius.mdAll,
                     ),
                     child: Icon(
                       LucideIcons.image,

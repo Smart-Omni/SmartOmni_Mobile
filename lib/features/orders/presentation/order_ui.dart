@@ -9,7 +9,7 @@ import '../domain/order_rules.dart';
 extension OrderStatusUi on OrderStatus {
   SoStatus get soStatus => switch (this) {
     OrderStatus.pending => SoStatus.warning,
-    OrderStatus.toShip => SoStatus.kraft,
+    OrderStatus.toShip => SoStatus.brand,
     OrderStatus.shipped || OrderStatus.delivering => SoStatus.info,
     OrderStatus.completed => SoStatus.success,
     OrderStatus.cancelled => SoStatus.neutral,

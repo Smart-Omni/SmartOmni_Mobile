@@ -296,8 +296,8 @@ class _DemoAccountsCard extends StatelessWidget {
       padding: SoSpace.card,
       decoration: BoxDecoration(
         color: c.ground,
-        borderRadius: SoRadius.mdAll,
-        border: Border.all(color: c.line),
+        borderRadius: SoRadius.lgAll,
+        border: Border.all(color: c.fillStrong),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -316,7 +316,7 @@ class _DemoAccountsCard extends StatelessWidget {
               for (final email in MockAccounts.accounts.keys)
                 InkWell(
                   key: Key('demo_$email'),
-                  borderRadius: SoRadius.xsAll,
+                  borderRadius: SoRadius.smAll,
                   onTap: () => onPick(email),
                   child: SoCodeTag(email),
                 ),

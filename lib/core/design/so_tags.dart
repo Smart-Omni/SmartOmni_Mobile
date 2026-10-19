@@ -7,17 +7,17 @@ import 'so_text.dart';
 import 'so_tokens.dart';
 
 /// Tông màu của nhãn trạng thái. Ánh xạ trạng thái đơn ở docs/DESIGN.md mục 6.
-enum SoStatus { neutral, info, success, warning, danger, kraft }
+enum SoStatus { neutral, info, success, warning, danger, brand }
 
 extension SoStatusColors on SoStatus {
   /// (nền, chữ + ô vuông).
   (Color, Color) colors(SoColors c) => switch (this) {
-    SoStatus.neutral => (c.surfaceSunken, c.ink2),
-    SoStatus.info => (c.brandTint, c.brand),
+    SoStatus.neutral => (c.fill, c.ink2),
+    SoStatus.info => (c.infoTint, c.info),
     SoStatus.success => (c.successTint, c.success),
     SoStatus.warning => (c.warningTint, c.warning),
     SoStatus.danger => (c.dangerTint, c.danger),
-    SoStatus.kraft => (c.kraftTint, c.kraftInk),
+    SoStatus.brand => (c.brandTint, c.brand),
   };
 }
 
@@ -34,7 +34,7 @@ class SoStatusTag extends StatelessWidget {
     return Container(
       height: 24,
       padding: const EdgeInsets.symmetric(horizontal: SoSpace.s8),
-      decoration: BoxDecoration(color: bg, borderRadius: SoRadius.xsAll),
+      decoration: BoxDecoration(color: bg, borderRadius: SoRadius.smAll),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -77,8 +77,10 @@ class SoTierBadge extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: SoRadius.xsAll,
-        border: tier == LoyaltyTier.standard ? Border.all(color: c.line) : null,
+        borderRadius: SoRadius.smAll,
+        border: tier == LoyaltyTier.standard
+            ? Border.all(color: c.fillStrong)
+            : null,
       ),
       child: Text(
         tier.label.toUpperCase(),
@@ -134,7 +136,7 @@ class SoCodeTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        borderRadius: SoRadius.xsAll,
+        borderRadius: SoRadius.smAll,
         border: Border.all(color: c.ink),
       ),
       child: Text(
@@ -158,7 +160,7 @@ class SoAiLabel extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
         color: c.brandTint,
-        borderRadius: SoRadius.xsAll,
+        borderRadius: SoRadius.smAll,
       ),
       child: Text(
         'AI',

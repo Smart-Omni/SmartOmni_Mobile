@@ -45,7 +45,7 @@ class SoTimeline extends StatelessWidget {
                       if (i < steps.length - 1)
                         Expanded(
                           child: Center(
-                            child: Container(width: 1, color: c.line),
+                            child: Container(width: 1, color: c.fillStrong),
                           ),
                         ),
                     ],
@@ -104,7 +104,7 @@ class _Node extends StatelessWidget {
         ),
         SoStepState.upcoming => BoxDecoration(
           color: c.surface,
-          border: Border.all(color: c.lineControl, width: 1.5),
+          border: Border.all(color: c.fillStrong, width: 1.5),
         ),
       },
     );

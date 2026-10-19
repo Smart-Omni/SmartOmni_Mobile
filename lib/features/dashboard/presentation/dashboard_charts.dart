@@ -18,8 +18,8 @@ class DashboardCard extends StatelessWidget {
       padding: const EdgeInsets.all(SoSpace.s16),
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: SoRadius.mdAll,
-        border: Border.all(color: c.line),
+        borderRadius: SoRadius.lgAll,
+        border: Border.all(color: c.fillStrong),
       ),
       child: child,
     );
@@ -55,11 +55,11 @@ class RevenueByChannelCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: ClipRRect(
-                    borderRadius: SoRadius.xsAll,
+                    borderRadius: SoRadius.smAll,
                     child: SizedBox(
                       height: 8,
                       child: ColoredBox(
-                        color: c.surfaceSunken,
+                        color: c.fill,
                         child: FractionallySizedBox(
                           alignment: Alignment.centerLeft,
                           widthFactor: summary.channelShare(platform),
@@ -223,14 +223,14 @@ class _Column extends StatelessWidget {
                       ? Border.all(color: c.brand)
                       : null,
                   borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(SoRadius.xs),
+                    top: Radius.circular(SoRadius.sm),
                   ),
                 ),
               ),
             ),
           ),
         ),
-        Divider(height: 1, color: c.line),
+        Divider(height: 1, color: c.fillStrong),
         SizedBox(
           height: labelHeight + 4,
           child: Align(

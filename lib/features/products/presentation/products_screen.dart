@@ -117,7 +117,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
               ),
             ),
           ),
-          Divider(color: context.soColors.line),
+          Divider(color: context.soColors.fillStrong),
           Expanded(
             child: switch (async) {
               AsyncData(:final value) => RefreshIndicator(
@@ -239,8 +239,8 @@ class _ProductRow extends StatelessWidget {
                 width: 56,
                 height: 70,
                 decoration: BoxDecoration(
-                  color: c.surfaceSunken,
-                  borderRadius: SoRadius.smAll,
+                  color: c.fill,
+                  borderRadius: SoRadius.mdAll,
                 ),
                 child: Icon(
                   LucideIcons.image,

@@ -351,8 +351,8 @@ class _DashboardSkeleton extends StatelessWidget {
       padding: SoSpace.card,
       decoration: BoxDecoration(
         color: context.soColors.surface,
-        borderRadius: SoRadius.mdAll,
-        border: Border.all(color: context.soColors.line),
+        borderRadius: SoRadius.lgAll,
+        border: Border.all(color: context.soColors.fillStrong),
       ),
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,

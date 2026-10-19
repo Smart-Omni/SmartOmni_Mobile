@@ -30,7 +30,7 @@ class SoBottomNav extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: c.surface,
-        border: Border(top: BorderSide(color: c.line)),
+        border: Border(top: BorderSide(color: c.fillStrong)),
       ),
       child: SafeArea(
         top: false,
@@ -89,7 +89,7 @@ class _NavButton extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: selected ? c.brandTint : null,
-                borderRadius: SoRadius.smAll,
+                borderRadius: SoRadius.mdAll,
               ),
               child: Icon(item.icon, size: SoSize.icon, color: fg),
             ),

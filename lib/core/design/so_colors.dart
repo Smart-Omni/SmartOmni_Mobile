@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Token màu của SmartOmni (docs/DESIGN.md mục 2).
+/// Token màu của SmartOmni (docs/DESIGN.md bản 2 – Glass, mục 2).
 ///
 /// Là một [ThemeExtension] để sau này thêm bản tối chỉ bằng một bộ giá trị
 /// mới. Widget lấy màu qua `SoColors.of(context)` hoặc `context.soColors`,
@@ -9,10 +9,16 @@ import 'package:flutter/material.dart';
 class SoColors extends ThemeExtension<SoColors> {
   const SoColors({
     required this.ground,
+    required this.ambientTeal,
+    required this.ambientSky,
+    required this.ambientSand,
     required this.surface,
-    required this.surfaceSunken,
-    required this.line,
-    required this.lineControl,
+    required this.fill,
+    required this.fillStrong,
+    required this.glassThin,
+    required this.glassRegular,
+    required this.glassThick,
+    required this.glassStroke,
     required this.ink,
     required this.ink2,
     required this.muted,
@@ -20,9 +26,8 @@ class SoColors extends ThemeExtension<SoColors> {
     required this.brandPress,
     required this.brandTint,
     required this.onBrand,
-    required this.kraft,
-    required this.kraftTint,
-    required this.kraftInk,
+    required this.info,
+    required this.infoTint,
     required this.success,
     required this.successTint,
     required this.warning,
@@ -30,11 +35,11 @@ class SoColors extends ThemeExtension<SoColors> {
     required this.danger,
     required this.dangerTint,
     required this.onDanger,
+    required this.held,
     required this.shopee,
     required this.tiktok,
     required this.scrim,
-    required this.shadowSheet,
-    required this.shadowToast,
+    required this.shadowTint,
     required this.tierStandardBg,
     required this.tierStandardInk,
     required this.tierSilverBg,
@@ -45,42 +50,57 @@ class SoColors extends ThemeExtension<SoColors> {
     required this.tierDiamondInk,
   });
 
-  /// Nền màn hình (Scaffold).
+  /// Nền màn hình (Scaffold), nằm dưới `SoAmbientBackground`.
   final Color ground;
 
-  /// Thẻ, danh sách, sheet, ô nhập.
+  /// Ba mảng màu loang của nền. Chỉ dùng trong `SoAmbientBackground`.
+  final Color ambientTeal;
+  final Color ambientSky;
+  final Color ambientSand;
+
+  /// Thẻ đặc, nhóm danh sách, ô nhập.
   final Color surface;
 
-  /// Rãnh segmented, skeleton, nút vô hiệu, khung ảnh chờ.
-  final Color surfaceSunken;
+  /// Nền chip chưa chọn, CodeTag, rãnh segmented, skeleton.
+  final Color fill;
 
-  /// Đường chia, viền thẻ.
-  final Color line;
+  /// Nút vô hiệu, tay kéo sheet, đường chia, viền ô nhập.
+  final Color fillStrong;
 
-  /// Viền ô nhập, nút secondary, tay kéo sheet.
-  final Color lineControl;
+  /// Kính mỏng: AppBar khi cuộn, toast.
+  final Color glassThin;
 
-  /// Chữ chính, nền toast, chip đang chọn.
+  /// Kính thường: thanh tab nổi, thẻ nổi bật.
+  final Color glassRegular;
+
+  /// Kính dày: bottom sheet.
+  final Color glassThick;
+
+  /// Viền trong 1px của mọi tấm kính.
+  final Color glassStroke;
+
+  /// Chữ chính, chip đang chọn.
   final Color ink;
 
   /// Chữ phụ, nhãn ô nhập.
   final Color ink2;
 
-  /// Chú thích, thời gian, placeholder.
+  /// Chú thích, thời gian, placeholder. Chỉ trên nền đặc hoặc kính dày.
   final Color muted;
 
   /// Xanh dầu: nút chính, tab đang chọn, liên kết, focus.
   final Color brand;
+
+  /// Nút chính khi nhấn; màu của logo.
   final Color brandPress;
 
-  /// Nền thông tin, ô tab đang chọn, nhãn AI, dải "Dữ liệu mẫu".
+  /// Nền thông tin, nhãn AI, dải "Dữ liệu mẫu".
   final Color brandTint;
   final Color onBrand;
 
-  /// Khối màu hàng đang giữ (thanh tồn kho). Không dùng làm màu chữ.
-  final Color kraft;
-  final Color kraftTint;
-  final Color kraftInk;
+  /// Đơn đang vận chuyển.
+  final Color info;
+  final Color infoTint;
 
   final Color success;
   final Color successTint;
@@ -90,18 +110,20 @@ class SoColors extends ThemeExtension<SoColors> {
   final Color dangerTint;
   final Color onDanger;
 
-  /// Chỉ dùng cho ô vuông 10px cạnh chữ "Shopee".
+  /// Phần hàng đang giữ chỗ trên thanh tồn kho. Không dùng làm màu chữ.
+  final Color held;
+
+  /// Chỉ dùng cho chấm tròn 8px cạnh chữ "Shopee".
   final Color shopee;
 
-  /// Chỉ dùng cho ô vuông 10px cạnh chữ "TikTok Shop".
+  /// Chỉ dùng cho chấm tròn 8px cạnh chữ "TikTok Shop".
   final Color tiktok;
 
-  /// Lớp phủ sau sheet/dialog, không blur.
+  /// Lớp phủ sau sheet, kèm làm mờ nền.
   final Color scrim;
 
-  /// Bóng của bottom sheet và toast (chỉ hai chỗ này có bóng).
-  final Color shadowSheet;
-  final Color shadowToast;
+  /// Màu gốc của mọi bóng (xem `SoShadow`).
+  final Color shadowTint;
 
   final Color tierStandardBg;
   final Color tierStandardInk;
@@ -113,40 +135,45 @@ class SoColors extends ThemeExtension<SoColors> {
   final Color tierDiamondInk;
 
   static const light = SoColors(
-    ground: Color(0xFFF2F4F5),
+    ground: Color(0xFFEEF3F5),
+    ambientTeal: Color(0xFF8FD3DB),
+    ambientSky: Color(0xFFA9C8F2),
+    ambientSand: Color(0xFFF2DDBF),
     surface: Color(0xFFFFFFFF),
-    surfaceSunken: Color(0xFFE9EDEF),
-    line: Color(0xFFD5DCE0),
-    lineControl: Color(0xFF7F8C93),
-    ink: Color(0xFF12191C),
-    ink2: Color(0xFF3F4B52),
-    muted: Color(0xFF5E6B72),
-    brand: Color(0xFF0E5A6B),
-    brandPress: Color(0xFF0A4552),
-    brandTint: Color(0xFFE1EEF1),
+    fill: Color(0x0F0B2A33), // α 6%
+    fillStrong: Color(0x1A0B2A33), // α 10%
+    glassThin: Color(0x94FFFFFF), // α 58%
+    glassRegular: Color(0xB8FFFFFF), // α 72%
+    glassThick: Color(0xDBFFFFFF), // α 86%
+    glassStroke: Color(0xB3FFFFFF), // α 70%
+    ink: Color(0xFF0B1A1F),
+    ink2: Color(0xFF44555C),
+    muted: Color(0xFF5F7078),
+    brand: Color(0xFF0F6E80),
+    brandPress: Color(0xFF0E5A6B),
+    brandTint: Color(0xFFE2F1F3),
     onBrand: Color(0xFFFFFFFF),
-    kraft: Color(0xFFA8743F),
-    kraftTint: Color(0xFFF3E8DC),
-    kraftInk: Color(0xFF8A5A2B),
-    success: Color(0xFF1F7A3F),
-    successTint: Color(0xFFE5F3E9),
-    warning: Color(0xFFA65A00),
-    warningTint: Color(0xFFFDF1DC),
-    danger: Color(0xFFB42318),
-    dangerTint: Color(0xFFFCE8E6),
+    info: Color(0xFF1F64C8),
+    infoTint: Color(0xFFE4EEFC),
+    success: Color(0xFF1E7B45),
+    successTint: Color(0xFFE3F4EA),
+    warning: Color(0xFF9A5B00),
+    warningTint: Color(0xFFFDF0DA),
+    danger: Color(0xFFC4321F),
+    dangerTint: Color(0xFFFDE8E5),
     onDanger: Color(0xFFFFFFFF),
+    held: Color(0xFFC48A3A),
     shopee: Color(0xFFEE4D2D),
     tiktok: Color(0xFF111111),
-    scrim: Color(0x6612191C),
-    shadowSheet: Color(0x1F12191C),
-    shadowToast: Color(0x1A12191C),
-    tierStandardBg: Color(0xFFE9EDEF),
-    tierStandardInk: Color(0xFF3F4B52),
-    tierSilverBg: Color(0xFFC9D2D7),
-    tierSilverInk: Color(0xFF12191C),
-    tierPlatinumBg: Color(0xFF4A565C),
+    scrim: Color(0x470B1A1F), // α 28%
+    shadowTint: Color(0xFF0B2A33),
+    tierStandardBg: Color(0xFFE7ECEE),
+    tierStandardInk: Color(0xFF44555C),
+    tierSilverBg: Color(0xFFD4DCE1),
+    tierSilverInk: Color(0xFF0B1A1F),
+    tierPlatinumBg: Color(0xFF3E4E55),
     tierPlatinumInk: Color(0xFFFFFFFF),
-    tierDiamondBg: Color(0xFF12191C),
+    tierDiamondBg: Color(0xFF0B1A1F),
     tierDiamondInk: Color(0xFFFFFFFF),
   );
 
@@ -155,10 +182,16 @@ class SoColors extends ThemeExtension<SoColors> {
 
   List<Color> get _values => [
     ground,
+    ambientTeal,
+    ambientSky,
+    ambientSand,
     surface,
-    surfaceSunken,
-    line,
-    lineControl,
+    fill,
+    fillStrong,
+    glassThin,
+    glassRegular,
+    glassThick,
+    glassStroke,
     ink,
     ink2,
     muted,
@@ -166,9 +199,8 @@ class SoColors extends ThemeExtension<SoColors> {
     brandPress,
     brandTint,
     onBrand,
-    kraft,
-    kraftTint,
-    kraftInk,
+    info,
+    infoTint,
     success,
     successTint,
     warning,
@@ -176,11 +208,11 @@ class SoColors extends ThemeExtension<SoColors> {
     danger,
     dangerTint,
     onDanger,
+    held,
     shopee,
     tiktok,
     scrim,
-    shadowSheet,
-    shadowToast,
+    shadowTint,
     tierStandardBg,
     tierStandardInk,
     tierSilverBg,
@@ -193,40 +225,45 @@ class SoColors extends ThemeExtension<SoColors> {
 
   static SoColors _fromValues(List<Color> v) => SoColors(
     ground: v[0],
-    surface: v[1],
-    surfaceSunken: v[2],
-    line: v[3],
-    lineControl: v[4],
-    ink: v[5],
-    ink2: v[6],
-    muted: v[7],
-    brand: v[8],
-    brandPress: v[9],
-    brandTint: v[10],
-    onBrand: v[11],
-    kraft: v[12],
-    kraftTint: v[13],
-    kraftInk: v[14],
-    success: v[15],
-    successTint: v[16],
-    warning: v[17],
-    warningTint: v[18],
-    danger: v[19],
-    dangerTint: v[20],
-    onDanger: v[21],
-    shopee: v[22],
-    tiktok: v[23],
-    scrim: v[24],
-    shadowSheet: v[25],
-    shadowToast: v[26],
-    tierStandardBg: v[27],
-    tierStandardInk: v[28],
-    tierSilverBg: v[29],
-    tierSilverInk: v[30],
-    tierPlatinumBg: v[31],
-    tierPlatinumInk: v[32],
-    tierDiamondBg: v[33],
-    tierDiamondInk: v[34],
+    ambientTeal: v[1],
+    ambientSky: v[2],
+    ambientSand: v[3],
+    surface: v[4],
+    fill: v[5],
+    fillStrong: v[6],
+    glassThin: v[7],
+    glassRegular: v[8],
+    glassThick: v[9],
+    glassStroke: v[10],
+    ink: v[11],
+    ink2: v[12],
+    muted: v[13],
+    brand: v[14],
+    brandPress: v[15],
+    brandTint: v[16],
+    onBrand: v[17],
+    info: v[18],
+    infoTint: v[19],
+    success: v[20],
+    successTint: v[21],
+    warning: v[22],
+    warningTint: v[23],
+    danger: v[24],
+    dangerTint: v[25],
+    onDanger: v[26],
+    held: v[27],
+    shopee: v[28],
+    tiktok: v[29],
+    scrim: v[30],
+    shadowTint: v[31],
+    tierStandardBg: v[32],
+    tierStandardInk: v[33],
+    tierSilverBg: v[34],
+    tierSilverInk: v[35],
+    tierPlatinumBg: v[36],
+    tierPlatinumInk: v[37],
+    tierDiamondBg: v[38],
+    tierDiamondInk: v[39],
   );
 
   /// Bộ token chỉ thay qua bản sáng/tối, nên không cần đổi từng màu.

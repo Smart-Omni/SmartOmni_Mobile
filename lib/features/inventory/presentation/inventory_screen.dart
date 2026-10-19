@@ -108,8 +108,8 @@ class _InventoryBody extends StatelessWidget {
             padding: const EdgeInsets.all(SoSpace.s16),
             decoration: BoxDecoration(
               color: c.surface,
-              borderRadius: SoRadius.mdAll,
-              border: Border.all(color: c.line),
+              borderRadius: SoRadius.lgAll,
+              border: Border.all(color: c.fillStrong),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -164,7 +164,9 @@ class _InventoryBody extends StatelessWidget {
         else
           DecoratedBox(
             decoration: BoxDecoration(
-              border: Border.symmetric(horizontal: BorderSide(color: c.line)),
+              border: Border.symmetric(
+                horizontal: BorderSide(color: c.fillStrong),
+              ),
             ),
             child: Column(
               children: [

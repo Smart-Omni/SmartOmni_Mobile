@@ -18,8 +18,8 @@ class SoListGroup extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: SoRadius.mdAll,
-        border: Border.all(color: c.line),
+        borderRadius: SoRadius.lgAll,
+        border: Border.all(color: c.fillStrong),
       ),
       child: Column(
         children: [

@@ -30,8 +30,8 @@ class SoStatTile extends StatelessWidget {
     return Material(
       color: c.surface,
       shape: RoundedRectangleBorder(
-        borderRadius: SoRadius.mdAll,
-        side: BorderSide(color: c.line),
+        borderRadius: SoRadius.lgAll,
+        side: BorderSide(color: c.fillStrong),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(

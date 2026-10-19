@@ -79,7 +79,7 @@ void main() {
 
   test('trạng thái đơn -> tông nhãn theo DESIGN.md', () {
     expect(OrderStatus.pending.soStatus, SoStatus.warning);
-    expect(OrderStatus.toShip.soStatus, SoStatus.kraft);
+    expect(OrderStatus.toShip.soStatus, SoStatus.brand);
     expect(OrderStatus.shipped.soStatus, SoStatus.info);
     expect(OrderStatus.delivering.soStatus, SoStatus.info);
     expect(OrderStatus.completed.soStatus, SoStatus.success);

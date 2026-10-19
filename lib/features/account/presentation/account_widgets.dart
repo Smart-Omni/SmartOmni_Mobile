@@ -25,8 +25,8 @@ class ProfileCard extends ConsumerWidget {
       padding: const EdgeInsets.all(SoSpace.s16),
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: SoRadius.mdAll,
-        border: Border.all(color: c.line),
+        borderRadius: SoRadius.lgAll,
+        border: Border.all(color: c.fillStrong),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -37,7 +37,7 @@ class ProfileCard extends ConsumerWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: c.brand,
-              borderRadius: SoRadius.smAll,
+              borderRadius: SoRadius.mdAll,
             ),
             child: Text(
               initial,

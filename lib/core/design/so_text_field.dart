@@ -101,7 +101,7 @@ class SoTextField extends StatelessWidget {
                   ),
             prefixIcon: prefix,
             suffixIcon: suffix,
-            fillColor: enabled ? c.surface : c.surfaceSunken,
+            fillColor: enabled ? c.surface : c.fill,
             constraints: const BoxConstraints(minHeight: SoSize.control),
           ),
         ),

@@ -23,12 +23,12 @@ abstract final class SoTheme {
       onPrimaryContainer: c.brand,
       secondary: c.ink2,
       onSecondary: c.surface,
-      secondaryContainer: c.surfaceSunken,
+      secondaryContainer: c.fill,
       onSecondaryContainer: c.ink,
-      tertiary: c.kraftInk,
+      tertiary: c.info,
       onTertiary: c.surface,
-      tertiaryContainer: c.kraftTint,
-      onTertiaryContainer: c.kraftInk,
+      tertiaryContainer: c.infoTint,
+      onTertiaryContainer: c.info,
       error: c.danger,
       onError: c.onDanger,
       errorContainer: c.dangerTint,
@@ -40,11 +40,11 @@ abstract final class SoTheme {
       surfaceContainerLow: c.surface,
       surfaceContainer: c.surface,
       surfaceContainerHigh: c.surface,
-      surfaceContainerHighest: c.surfaceSunken,
+      surfaceContainerHighest: c.fill,
       surfaceTint: c.surface,
-      outline: c.lineControl,
-      outlineVariant: c.line,
-      shadow: c.ink,
+      outline: c.fillStrong,
+      outlineVariant: c.fill,
+      shadow: c.shadowTint,
       scrim: c.scrim,
       inverseSurface: c.ink,
       onInverseSurface: c.surface,
@@ -52,12 +52,12 @@ abstract final class SoTheme {
     );
 
     OutlineInputBorder border(Color color, double width) => OutlineInputBorder(
-      borderRadius: SoRadius.smAll,
+      borderRadius: SoRadius.mdAll,
       borderSide: BorderSide(color: color, width: width),
     );
 
     const buttonShape = WidgetStatePropertyAll<OutlinedBorder>(
-      RoundedRectangleBorder(borderRadius: SoRadius.smAll),
+      RoundedRectangleBorder(borderRadius: SoRadius.mdAll),
     );
     final buttonText = WidgetStatePropertyAll(so.bodyStrong);
     const buttonSize = WidgetStatePropertyAll(Size(64, SoSize.control));
@@ -71,7 +71,7 @@ abstract final class SoTheme {
       colorScheme: scheme,
       scaffoldBackgroundColor: c.ground,
       canvasColor: c.surface,
-      dividerColor: c.line,
+      dividerColor: c.fillStrong,
       textTheme: text,
       primaryTextTheme: text,
       extensions: [c, so],
@@ -85,18 +85,22 @@ abstract final class SoTheme {
         centerTitle: false,
         toolbarHeight: SoSize.appBar,
         titleTextStyle: text.titleMedium,
-        shape: Border(bottom: BorderSide(color: c.line)),
+        shape: Border(bottom: BorderSide(color: c.fillStrong)),
         iconTheme: IconThemeData(color: c.ink, size: SoSize.icon),
       ),
-      dividerTheme: DividerThemeData(color: c.line, thickness: 1, space: 1),
+      dividerTheme: DividerThemeData(
+        color: c.fillStrong,
+        thickness: 1,
+        space: 1,
+      ),
       cardTheme: CardThemeData(
         color: c.surface,
         surfaceTintColor: c.surface,
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: SoRadius.mdAll,
-          side: BorderSide(color: c.line),
+          borderRadius: SoRadius.lgAll,
+          side: BorderSide(color: c.fillStrong),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -113,12 +117,12 @@ abstract final class SoTheme {
         errorStyle: text.bodySmall?.copyWith(color: c.danger),
         helperMaxLines: 3,
         errorMaxLines: 3,
-        border: border(c.lineControl, 1),
-        enabledBorder: border(c.lineControl, 1),
+        border: border(c.fillStrong, 1),
+        enabledBorder: border(c.fillStrong, 1),
         focusedBorder: border(c.brand, 2),
         errorBorder: border(c.danger, 2),
         focusedErrorBorder: border(c.danger, 2),
-        disabledBorder: border(c.line, 1),
+        disabledBorder: border(c.fillStrong, 1),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: ButtonStyle(
@@ -129,7 +133,7 @@ abstract final class SoTheme {
           elevation: const WidgetStatePropertyAll(0),
           backgroundColor: WidgetStateProperty.resolveWith(
             (s) => s.contains(WidgetState.disabled)
-                ? c.surfaceSunken
+                ? c.fill
                 : s.contains(WidgetState.pressed)
                 ? c.brandPress
                 : c.brand,
@@ -161,7 +165,9 @@ abstract final class SoTheme {
           ),
           side: WidgetStateProperty.resolveWith(
             (s) => BorderSide(
-              color: s.contains(WidgetState.disabled) ? c.line : c.lineControl,
+              color: s.contains(WidgetState.disabled)
+                  ? c.fillStrong
+                  : c.fillStrong,
             ),
           ),
         ),
@@ -202,7 +208,7 @@ abstract final class SoTheme {
         elevation: 0,
         indicatorColor: c.brandTint,
         indicatorShape: const RoundedRectangleBorder(
-          borderRadius: SoRadius.smAll,
+          borderRadius: SoRadius.mdAll,
         ),
         labelTextStyle: WidgetStateProperty.resolveWith(
           (s) => so.navLabel.copyWith(
@@ -232,7 +238,7 @@ abstract final class SoTheme {
         surfaceTintColor: c.surface,
         barrierColor: c.scrim,
         elevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: SoRadius.mdAll),
+        shape: const RoundedRectangleBorder(borderRadius: SoRadius.lgAll),
         titleTextStyle: text.titleMedium,
         contentTextStyle: text.bodyMedium,
       ),
@@ -242,25 +248,25 @@ abstract final class SoTheme {
         actionTextColor: c.brandTint,
         behavior: SnackBarBehavior.floating,
         elevation: 2,
-        shape: const RoundedRectangleBorder(borderRadius: SoRadius.smAll),
+        shape: const RoundedRectangleBorder(borderRadius: SoRadius.mdAll),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: c.surface,
         selectedColor: c.ink,
         labelStyle: text.labelLarge,
-        side: BorderSide(color: c.line),
-        shape: const RoundedRectangleBorder(borderRadius: SoRadius.smAll),
+        side: BorderSide(color: c.fillStrong),
+        shape: const RoundedRectangleBorder(borderRadius: SoRadius.mdAll),
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStatePropertyAll(c.surface),
         trackColor: WidgetStateProperty.resolveWith(
-          (s) => s.contains(WidgetState.selected) ? c.brand : c.lineControl,
+          (s) => s.contains(WidgetState.selected) ? c.brand : c.fillStrong,
         ),
         trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(
         color: c.brand,
-        linearTrackColor: c.surfaceSunken,
+        linearTrackColor: c.fill,
         circularTrackColor: Colors.transparent,
       ),
       textSelectionTheme: TextSelectionThemeData(

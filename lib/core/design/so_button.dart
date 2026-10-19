@@ -74,13 +74,13 @@ class SoButton extends StatelessWidget {
 
     final (Color bg, Color bgPressed, Color fg) = switch (variant) {
       SoButtonVariant.primary => (c.brand, c.brandPress, c.onBrand),
-      SoButtonVariant.secondary => (c.surface, c.surfaceSunken, c.ink),
-      SoButtonVariant.ghost => (Colors.transparent, c.surfaceSunken, c.brand),
+      SoButtonVariant.secondary => (c.surface, c.fill, c.ink),
+      SoButtonVariant.ghost => (Colors.transparent, c.fill, c.brand),
       SoButtonVariant.danger => (c.danger, c.danger, c.onDanger),
     };
     final disabledBg = variant == SoButtonVariant.ghost
         ? Colors.transparent
-        : c.surfaceSunken;
+        : c.fill;
 
     final style = ButtonStyle(
       minimumSize: WidgetStatePropertyAll(Size(height, height)),
@@ -90,7 +90,7 @@ class SoButton extends StatelessWidget {
       ),
       tapTargetSize: MaterialTapTargetSize.padded,
       shape: const WidgetStatePropertyAll(
-        RoundedRectangleBorder(borderRadius: SoRadius.smAll),
+        RoundedRectangleBorder(borderRadius: SoRadius.mdAll),
       ),
       textStyle: WidgetStatePropertyAll(
         small ? context.textTheme.labelLarge : context.soText.bodyStrong,
@@ -109,8 +109,8 @@ class SoButton extends StatelessWidget {
         (s) => variant == SoButtonVariant.secondary
             ? BorderSide(
                 color: s.contains(WidgetState.disabled)
-                    ? c.line
-                    : c.lineControl,
+                    ? c.fillStrong
+                    : c.fillStrong,
               )
             : BorderSide.none,
       ),
