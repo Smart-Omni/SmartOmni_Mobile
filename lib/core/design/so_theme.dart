@@ -56,13 +56,33 @@ abstract final class SoTheme {
       borderSide: BorderSide(color: color, width: width),
     );
 
-    const buttonShape = WidgetStatePropertyAll<OutlinedBorder>(
-      RoundedRectangleBorder(borderRadius: SoRadius.mdAll),
+    // Nút: capsule squircle cao 50 (DESIGN.md mục 4).
+    final buttonShape = WidgetStatePropertyAll<OutlinedBorder>(
+      SoShape.squircle(SoRadius.capsuleAll),
     );
     final buttonText = WidgetStatePropertyAll(text.titleMedium);
     const buttonSize = WidgetStatePropertyAll(Size(64, SoSize.control));
     const buttonPadding = WidgetStatePropertyAll(
-      EdgeInsets.symmetric(horizontal: SoSpace.s16),
+      EdgeInsets.symmetric(horizontal: SoSpace.s20),
+    );
+    // Nút phụ (Elevated/Outlined của Material): nền fill, không viền.
+    final secondaryButton = ButtonStyle(
+      minimumSize: buttonSize,
+      padding: buttonPadding,
+      shape: buttonShape,
+      textStyle: buttonText,
+      elevation: const WidgetStatePropertyAll(0),
+      side: const WidgetStatePropertyAll(BorderSide.none),
+      backgroundColor: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.disabled)
+            ? c.fillStrong
+            : s.contains(WidgetState.pressed)
+            ? c.fillStrong
+            : c.fill,
+      ),
+      foregroundColor: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.disabled) ? c.muted : c.ink,
+      ),
     );
 
     return ThemeData(
@@ -76,16 +96,17 @@ abstract final class SoTheme {
       primaryTextTheme: text,
       extensions: [c, so],
       iconTheme: IconThemeData(color: c.ink, size: SoSize.icon),
+      // AppBar Material (màn chưa chuyển sang SoAppBar): trong suốt, không
+      // viền, không đổ bóng khi cuộn.
       appBarTheme: AppBarTheme(
-        backgroundColor: c.surface,
+        backgroundColor: Colors.transparent,
         foregroundColor: c.ink,
-        surfaceTintColor: c.surface,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
         toolbarHeight: SoSize.appBar,
         titleTextStyle: text.titleMedium,
-        shape: Border(bottom: BorderSide(color: c.fillStrong)),
         iconTheme: IconThemeData(color: c.ink, size: SoSize.icon),
       ),
       dividerTheme: DividerThemeData(
@@ -93,22 +114,22 @@ abstract final class SoTheme {
         thickness: 1,
         space: 1,
       ),
+      // Card Material: squircle bo 22, không viền. Bóng thẻ chuẩn chỉ có ở
+      // SoShape.card (Material không vẽ được bóng hai lớp).
       cardTheme: CardThemeData(
         color: c.surface,
         surfaceTintColor: c.surface,
         elevation: 0,
         margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(
-          borderRadius: SoRadius.lgAll,
-          side: BorderSide(color: c.fillStrong),
-        ),
+        shape: SoShape.squircle(SoRadius.lgAll),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: c.surface,
+        // Ô cao 52: chữ 22 + 15 mỗi bên.
         contentPadding: const EdgeInsets.symmetric(
           horizontal: SoSpace.s16,
-          vertical: SoSpace.s12,
+          vertical: 15,
         ),
         labelStyle: text.labelLarge?.copyWith(color: c.ink2),
         floatingLabelStyle: text.labelLarge?.copyWith(color: c.brand),
@@ -133,7 +154,7 @@ abstract final class SoTheme {
           elevation: const WidgetStatePropertyAll(0),
           backgroundColor: WidgetStateProperty.resolveWith(
             (s) => s.contains(WidgetState.disabled)
-                ? c.fill
+                ? c.fillStrong
                 : s.contains(WidgetState.pressed)
                 ? c.brandPress
                 : c.brand,
@@ -143,41 +164,15 @@ abstract final class SoTheme {
           ),
         ),
       ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ButtonStyle(
-          minimumSize: buttonSize,
-          padding: buttonPadding,
-          shape: buttonShape,
-          textStyle: buttonText,
-          elevation: const WidgetStatePropertyAll(0),
-          backgroundColor: WidgetStatePropertyAll(c.surface),
-          foregroundColor: WidgetStatePropertyAll(c.ink),
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: ButtonStyle(
-          minimumSize: buttonSize,
-          padding: buttonPadding,
-          shape: buttonShape,
-          textStyle: buttonText,
-          foregroundColor: WidgetStateProperty.resolveWith(
-            (s) => s.contains(WidgetState.disabled) ? c.muted : c.ink,
-          ),
-          side: WidgetStateProperty.resolveWith(
-            (s) => BorderSide(
-              color: s.contains(WidgetState.disabled)
-                  ? c.fillStrong
-                  : c.fillStrong,
-            ),
-          ),
-        ),
-      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(style: secondaryButton),
+      outlinedButtonTheme: OutlinedButtonThemeData(style: secondaryButton),
       textButtonTheme: TextButtonThemeData(
         style: ButtonStyle(
           minimumSize: buttonSize,
           padding: const WidgetStatePropertyAll(
             EdgeInsets.symmetric(horizontal: SoSpace.s12),
           ),
+          overlayColor: WidgetStatePropertyAll(c.fill),
           shape: buttonShape,
           textStyle: buttonText,
           foregroundColor: WidgetStateProperty.resolveWith(
@@ -207,9 +202,7 @@ abstract final class SoTheme {
         surfaceTintColor: c.surface,
         elevation: 0,
         indicatorColor: c.brandTint,
-        indicatorShape: const RoundedRectangleBorder(
-          borderRadius: SoRadius.mdAll,
-        ),
+        indicatorShape: SoShape.squircle(SoRadius.capsuleAll),
         labelTextStyle: WidgetStateProperty.resolveWith(
           (s) => text.labelSmall?.copyWith(
             color: s.contains(WidgetState.selected) ? c.brand : c.ink2,
@@ -217,7 +210,7 @@ abstract final class SoTheme {
         ),
         iconTheme: WidgetStateProperty.resolveWith(
           (s) => IconThemeData(
-            size: SoSize.icon,
+            size: SoSize.iconNav,
             color: s.contains(WidgetState.selected) ? c.brand : c.ink2,
           ),
         ),
@@ -230,7 +223,7 @@ abstract final class SoTheme {
         modalBarrierColor: c.scrim,
         elevation: 0,
         modalElevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: SoRadius.sheetTop),
+        shape: SoShape.squircle(SoRadius.sheetTop),
         showDragHandle: false,
       ),
       dialogTheme: DialogThemeData(
@@ -238,8 +231,8 @@ abstract final class SoTheme {
         surfaceTintColor: c.surface,
         barrierColor: c.scrim,
         elevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: SoRadius.lgAll),
-        titleTextStyle: text.titleMedium,
+        shape: SoShape.squircle(SoRadius.lgAll),
+        titleTextStyle: text.titleLarge,
         contentTextStyle: text.bodyMedium,
       ),
       snackBarTheme: SnackBarThemeData(
@@ -247,15 +240,17 @@ abstract final class SoTheme {
         contentTextStyle: text.bodyMedium?.copyWith(color: c.surface),
         actionTextColor: c.brandTint,
         behavior: SnackBarBehavior.floating,
-        elevation: 2,
-        shape: const RoundedRectangleBorder(borderRadius: SoRadius.mdAll),
+        elevation: 0,
+        shape: SoShape.squircle(SoRadius.capsuleAll),
       ),
+      // Chip: capsule 34, chưa chọn nền fill, đang chọn nền ink.
       chipTheme: ChipThemeData(
-        backgroundColor: c.surface,
+        backgroundColor: c.fill,
         selectedColor: c.ink,
-        labelStyle: text.labelLarge,
-        side: BorderSide(color: c.fillStrong),
-        shape: const RoundedRectangleBorder(borderRadius: SoRadius.mdAll),
+        labelStyle: text.labelLarge?.copyWith(color: c.ink2),
+        secondaryLabelStyle: text.labelLarge?.copyWith(color: c.surface),
+        side: BorderSide.none,
+        shape: SoShape.squircle(SoRadius.capsuleAll),
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStatePropertyAll(c.surface),
