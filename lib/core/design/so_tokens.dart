@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import 'so_colors.dart';
+
 /// Khoảng cách theo lưới 4px (docs/DESIGN.md bản 2, mục 4).
 abstract final class SoSpace {
   static const double s4 = 4;
@@ -120,4 +122,20 @@ abstract final class SoMotion {
 
   /// Thẻ và nút thu nhỏ còn 0.97 khi nhấn.
   static const double pressScale = 0.97;
+}
+
+/// Hình dáng squircle (`RoundedSuperellipseBorder`) cho thẻ, nút và sheet.
+abstract final class SoShape {
+  static RoundedSuperellipseBorder squircle(BorderRadius radius) =>
+      RoundedSuperellipseBorder(borderRadius: radius);
+
+  /// Thẻ đặc: nền surface, bo squircle (mặc định `lg`), bóng thẻ, không viền.
+  static ShapeDecoration card(
+    SoColors c, {
+    BorderRadius radius = SoRadius.lgAll,
+  }) => ShapeDecoration(
+    color: c.surface,
+    shape: squircle(radius),
+    shadows: SoShadow.card(c.shadowTint),
+  );
 }

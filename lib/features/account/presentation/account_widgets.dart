@@ -23,11 +23,7 @@ class ProfileCard extends ConsumerWidget {
     return Container(
       key: const Key('profile_card'),
       padding: const EdgeInsets.all(SoSpace.s16),
-      decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: SoRadius.lgAll,
-        border: Border.all(color: c.fillStrong),
-      ),
+      decoration: SoShape.card(c),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

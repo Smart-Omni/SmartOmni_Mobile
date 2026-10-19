@@ -294,10 +294,9 @@ class _DemoAccountsCard extends StatelessWidget {
     final c = context.soColors;
     return Container(
       padding: SoSpace.card,
-      decoration: BoxDecoration(
-        color: c.ground,
-        borderRadius: SoRadius.lgAll,
-        border: Border.all(color: c.fillStrong),
+      decoration: ShapeDecoration(
+        color: c.fill,
+        shape: SoShape.squircle(SoRadius.lgAll),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

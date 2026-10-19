@@ -106,11 +106,7 @@ class _InventoryBody extends StatelessWidget {
           ),
           child: Container(
             padding: const EdgeInsets.all(SoSpace.s16),
-            decoration: BoxDecoration(
-              color: c.surface,
-              borderRadius: SoRadius.lgAll,
-              border: Border.all(color: c.fillStrong),
-            ),
+            decoration: SoShape.card(c),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

@@ -27,43 +27,44 @@ class SoStatTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.soColors;
-    return Material(
-      color: c.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: SoRadius.lgAll,
-        side: BorderSide(color: c.fillStrong),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: SoSpace.card,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: context.textTheme.bodySmall?.copyWith(
-                  color: context.soColors.ink2,
-                ),
-              ),
-              const SizedBox(height: SoSpace.s8),
-              Text(value, maxLines: 1, style: context.soText.metricSm),
-              if (note != null) ...[
-                const SizedBox(height: SoSpace.s4),
+    // Bóng thẻ vẽ ở DecoratedBox ngoài; Material chỉ để có hiệu ứng nhấn.
+    return DecoratedBox(
+      decoration: SoShape.card(c),
+      child: Material(
+        type: MaterialType.transparency,
+        shape: SoShape.squircle(SoRadius.lgAll),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: SoSpace.card,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 Text(
-                  note!,
-                  maxLines: 2,
+                  label,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: context.textTheme.bodySmall?.copyWith(
-                    color: attention ? c.warning : c.muted,
+                    color: context.soColors.ink2,
                   ),
                 ),
+                const SizedBox(height: SoSpace.s8),
+                Text(value, maxLines: 1, style: context.soText.metricSm),
+                if (note != null) ...[
+                  const SizedBox(height: SoSpace.s4),
+                  Text(
+                    note!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: attention ? c.warning : c.muted,
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

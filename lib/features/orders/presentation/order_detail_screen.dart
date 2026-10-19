@@ -140,11 +140,7 @@ class _Card extends StatelessWidget {
     final c = context.soColors;
     return Container(
       padding: padding,
-      decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: SoRadius.lgAll,
-        border: Border.all(color: c.fillStrong),
-      ),
+      decoration: SoShape.card(c),
       child: child,
     );
   }

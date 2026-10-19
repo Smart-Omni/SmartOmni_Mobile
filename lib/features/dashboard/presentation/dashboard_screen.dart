@@ -347,11 +347,7 @@ class _DashboardSkeleton extends StatelessWidget {
     Widget tile() => Container(
       height: 96,
       padding: SoSpace.card,
-      decoration: BoxDecoration(
-        color: context.soColors.surface,
-        borderRadius: SoRadius.lgAll,
-        border: Border.all(color: context.soColors.fillStrong),
-      ),
+      decoration: SoShape.card(context.soColors),
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

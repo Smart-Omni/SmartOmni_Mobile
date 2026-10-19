@@ -16,11 +16,7 @@ class DashboardCard extends StatelessWidget {
     final c = context.soColors;
     return Container(
       padding: const EdgeInsets.all(SoSpace.s16),
-      decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: SoRadius.lgAll,
-        border: Border.all(color: c.fillStrong),
-      ),
+      decoration: SoShape.card(c),
       child: child,
     );
   }
