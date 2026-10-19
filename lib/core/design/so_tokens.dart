@@ -27,6 +27,18 @@ abstract final class SoSpace {
 
   /// Khoảng cách giữa tiêu đề nhóm và thẻ đầu tiên.
   static const double sectionTitle = 10;
+
+  /// Padding cho danh sách cuộn dưới AppBar kính và thanh tab nổi: cộng phần
+  /// bị khung che (`MediaQuery` padding, Scaffold đã tính khi đặt
+  /// `extendBodyBehindAppBar`/`extendBody`) và chừa thêm 24 ở cuối để mục
+  /// cuối không bị che.
+  static EdgeInsets scrollable(
+    BuildContext context, [
+    EdgeInsets base = EdgeInsets.zero,
+  ]) {
+    final p = MediaQuery.paddingOf(context);
+    return base + EdgeInsets.only(top: p.top, bottom: p.bottom + s24);
+  }
 }
 
 /// Bo góc. Thẻ, nút và sheet vẽ bằng `RoundedSuperellipseBorder` (squircle).

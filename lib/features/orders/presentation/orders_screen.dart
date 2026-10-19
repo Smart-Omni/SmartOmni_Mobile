@@ -47,6 +47,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     final counts = countByStatus(orders);
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: SoAppBar.root(
         title: 'Đơn hàng',
         actions: [
@@ -57,69 +58,69 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
             onPressed: _toggleSearch,
           ),
         ],
-      ),
-      body: Column(
-        children: [
-          _FilterBar(
-            searching: _searching,
-            searchCtrl: _searchCtrl,
-            onSearchChanged: (_) => setState(() {}),
-            chips: [
+        bottom: _FilterBar(
+          searching: _searching,
+          searchCtrl: _searchCtrl,
+          onSearchChanged: (_) => setState(() {}),
+          chips: [
+            SoFilterChip(
+              key: const Key('filter_all'),
+              label: 'Tất cả',
+              count: orders.length,
+              selected: _filter == null,
+              onSelected: () => setState(() => _filter = null),
+            ),
+            for (final s in OrderStatus.values)
               SoFilterChip(
-                key: const Key('filter_all'),
-                label: 'Tất cả',
-                count: orders.length,
-                selected: _filter == null,
-                onSelected: () => setState(() => _filter = null),
+                key: Key('filter_${s.name}'),
+                label: s.label,
+                count: counts[s],
+                selected: _filter == s,
+                onSelected: () => setState(() => _filter = s),
               ),
-              for (final s in OrderStatus.values)
-                SoFilterChip(
-                  key: Key('filter_${s.name}'),
-                  label: s.label,
-                  count: counts[s],
-                  selected: _filter == s,
-                  onSelected: () => setState(() => _filter = s),
-                ),
+          ],
+        ),
+      ),
+      body: SoAmbientBackground(
+        child: switch (pageAsync) {
+          AsyncData(:final value) => RefreshIndicator(
+            edgeOffset: MediaQuery.paddingOf(context).top,
+            onRefresh: () async {
+              ref.invalidate(ordersPageProvider);
+              await ref.read(ordersPageProvider.future);
+            },
+            child: _OrderList(
+              orders: value.items
+                  .where((o) => _filter == null || o.status == _filter)
+                  .where((o) => orderMatches(o, _searchCtrl.text))
+                  .toList(),
+              hasAnyOrder: value.items.isNotEmpty,
+            ),
+          ),
+          AsyncError(:final error) => ListView(
+            padding: SoSpace.scrollable(context),
+            children: [
+              SoEmptyState.error(
+                title: 'Không tải được đơn hàng',
+                message: AsyncValueView.errorMessage(error),
+                onAction: () => ref.invalidate(ordersPageProvider),
+              ),
             ],
           ),
-          Expanded(
-            child: switch (pageAsync) {
-              AsyncData(:final value) => RefreshIndicator(
-                onRefresh: () async {
-                  ref.invalidate(ordersPageProvider);
-                  await ref.read(ordersPageProvider.future);
-                },
-                child: _OrderList(
-                  orders: value.items
-                      .where((o) => _filter == null || o.status == _filter)
-                      .where((o) => orderMatches(o, _searchCtrl.text))
-                      .toList(),
-                  hasAnyOrder: value.items.isNotEmpty,
-                ),
-              ),
-              AsyncError(:final error) => ListView(
-                children: [
-                  SoEmptyState.error(
-                    title: 'Không tải được đơn hàng',
-                    message: AsyncValueView.errorMessage(error),
-                    onAction: () => ref.invalidate(ordersPageProvider),
-                  ),
-                ],
-              ),
-              _ => const SingleChildScrollView(
-                physics: NeverScrollableScrollPhysics(),
-                child: SoSkeletonList(count: 6),
-              ),
-            },
+          _ => SingleChildScrollView(
+            physics: const NeverScrollableScrollPhysics(),
+            padding: SoSpace.scrollable(context),
+            child: const SoSkeletonList(count: 6),
           ),
-        ],
+        },
       ),
     );
   }
 }
 
-/// Dải lọc nền trắng dưới AppBar: ô tìm (khi bật) + hàng chip cuộn ngang.
-class _FilterBar extends StatelessWidget {
+/// Dải lọc dính dưới AppBar (nằm chung tấm kính): ô tìm (khi bật) + hàng
+/// chip cuộn ngang.
+class _FilterBar extends StatelessWidget implements PreferredSizeWidget {
   const _FilterBar({
     required this.searching,
     required this.searchCtrl,
@@ -132,39 +133,43 @@ class _FilterBar extends StatelessWidget {
   final ValueChanged<String> onSearchChanged;
   final List<Widget> chips;
 
+  static const double _searchHeight = SoSpace.s8 + SoSize.input;
+  static const double _chipsHeight = SoSize.controlSmall + SoSpace.s12 * 2;
+
+  @override
+  Size get preferredSize =>
+      Size.fromHeight(_chipsHeight + (searching ? _searchHeight : 0));
+
   @override
   Widget build(BuildContext context) {
-    final c = context.soColors;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: c.surface,
-        border: Border(bottom: BorderSide(color: c.fillStrong)),
-      ),
-      child: Column(
-        children: [
-          if (searching)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                SoSpace.screen,
-                SoSpace.s12,
-                SoSpace.screen,
-                0,
-              ),
-              child: TextField(
-                key: const Key('orders_search_field'),
-                controller: searchCtrl,
-                autofocus: true,
-                onChanged: onSearchChanged,
-                textInputAction: TextInputAction.search,
-                style: context.textTheme.bodyMedium,
-                decoration: const InputDecoration(
-                  hintText: 'Mã đơn hoặc tên khách',
-                  prefixIcon: Icon(LucideIcons.search, size: SoSize.iconSmall),
-                  constraints: BoxConstraints(minHeight: SoSize.control),
-                ),
+    return Column(
+      children: [
+        if (searching)
+          Container(
+            height: _searchHeight,
+            padding: const EdgeInsets.fromLTRB(
+              SoSpace.screen,
+              SoSpace.s8,
+              SoSpace.screen,
+              0,
+            ),
+            child: TextField(
+              key: const Key('orders_search_field'),
+              controller: searchCtrl,
+              autofocus: true,
+              onChanged: onSearchChanged,
+              textInputAction: TextInputAction.search,
+              style: context.textTheme.bodyMedium,
+              decoration: const InputDecoration(
+                hintText: 'Mã đơn hoặc tên khách',
+                prefixIcon: Icon(LucideIcons.search, size: SoSize.iconSmall),
+                constraints: BoxConstraints(minHeight: SoSize.control),
               ),
             ),
-          SingleChildScrollView(
+          ),
+        SizedBox(
+          height: _chipsHeight,
+          child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(
               horizontal: SoSpace.screen,
@@ -179,8 +184,8 @@ class _FilterBar extends StatelessWidget {
               ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -195,6 +200,7 @@ class _OrderList extends StatelessWidget {
   Widget build(BuildContext context) {
     if (orders.isEmpty) {
       return ListView(
+        padding: SoSpace.scrollable(context),
         children: [
           hasAnyOrder
               ? const SoEmptyState(
@@ -214,7 +220,7 @@ class _OrderList extends StatelessWidget {
     final groups = groupOrdersByDay(orders);
     return ListView(
       key: const Key('orders_list'),
-      padding: const EdgeInsets.only(bottom: SoSpace.s24),
+      padding: SoSpace.scrollable(context),
       children: [
         for (final (day, items) in groups) ...[
           Padding(

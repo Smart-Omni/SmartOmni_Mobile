@@ -297,7 +297,8 @@ class SoSkeletonList extends StatelessWidget {
   }
 }
 
-/// Dải "Dữ liệu mẫu" dưới AppBar cho chức năng backend chưa có API.
+/// Viên "Dữ liệu mẫu" dưới AppBar (đầu danh sách) cho chức năng backend chưa
+/// có API.
 class SoMockBanner extends StatelessWidget {
   const SoMockBanner({super.key, this.message});
 
@@ -310,9 +311,12 @@ class SoMockBanner extends StatelessWidget {
     final l10n = context.l10n;
     return Container(
       width: double.infinity,
-      color: c.brandTint,
+      decoration: ShapeDecoration(
+        color: c.brandTint,
+        shape: SoShape.squircle(SoRadius.capsuleAll),
+      ),
       padding: const EdgeInsets.symmetric(
-        horizontal: SoSpace.screen,
+        horizontal: SoSpace.s16,
         vertical: SoSpace.s8,
       ),
       child: Row(

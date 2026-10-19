@@ -62,10 +62,19 @@ Future<InMemoryTokenStorage> loginAs(
   return storage;
 }
 
-/// Cuộn tới [finder] rồi chạm.
-Future<void> tapVisible(WidgetTester tester, Finder finder) async {
+/// Cuộn [finder] vào giữa vùng cuộn. Nội dung chạy dưới AppBar kính và thanh
+/// tab nổi, nên mục nằm sát mép trên/dưới (chỗ `ensureVisible` để nó) có thể
+/// bị khung che và chạm trúng khung.
+Future<void> revealCentered(WidgetTester tester, Finder finder) async {
   await tester.ensureVisible(finder);
   await tester.pumpAndSettle();
+  await Scrollable.ensureVisible(tester.element(finder), alignment: 0.5);
+  await tester.pumpAndSettle();
+}
+
+/// Cuộn tới [finder] (vào giữa vùng cuộn) rồi chạm.
+Future<void> tapVisible(WidgetTester tester, Finder finder) async {
+  await revealCentered(tester, finder);
   await tester.tap(finder);
   await tester.pumpAndSettle();
 }

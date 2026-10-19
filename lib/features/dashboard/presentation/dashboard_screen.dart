@@ -36,34 +36,30 @@ class DashboardScreen extends ConsumerWidget {
     }
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: SoAppBar.root(
         title: isAdmin ? 'Tổng quan cửa hàng' : 'Việc hôm nay',
         subtitle: [?shopName, ?role?.label].join(' · '),
       ),
-      body: Column(
-        children: [
-          const SoMockBanner(
-            message: 'Số liệu tổng quan và cảnh báo AI là dữ liệu mẫu.',
+      body: SoAmbientBackground(
+        child: switch (summaryAsync) {
+          AsyncData(:final value) => RefreshIndicator(
+            edgeOffset: MediaQuery.paddingOf(context).top,
+            onRefresh: refresh,
+            child: _DashboardBody(summary: value, isAdmin: isAdmin),
           ),
-          Expanded(
-            child: switch (summaryAsync) {
-              AsyncData(:final value) => RefreshIndicator(
-                onRefresh: refresh,
-                child: _DashboardBody(summary: value, isAdmin: isAdmin),
+          AsyncError(:final error) => ListView(
+            padding: SoSpace.scrollable(context),
+            children: [
+              SoEmptyState.error(
+                title: 'Không tải được tổng quan',
+                message: AsyncValueView.errorMessage(error),
+                onAction: () => ref.invalidate(dashboardSummaryProvider),
               ),
-              AsyncError(:final error) => ListView(
-                children: [
-                  SoEmptyState.error(
-                    title: 'Không tải được tổng quan',
-                    message: AsyncValueView.errorMessage(error),
-                    onAction: () => ref.invalidate(dashboardSummaryProvider),
-                  ),
-                ],
-              ),
-              _ => const _DashboardSkeleton(),
-            },
+            ],
           ),
-        ],
+          _ => const _DashboardSkeleton(),
+        },
       ),
     );
   }
@@ -79,13 +75,20 @@ class _DashboardBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = summary;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(
-        SoSpace.screen,
-        SoSpace.s16,
-        SoSpace.screen,
-        SoSpace.s32,
+      padding: SoSpace.scrollable(
+        context,
+        const EdgeInsets.fromLTRB(
+          SoSpace.screen,
+          SoSpace.s8,
+          SoSpace.screen,
+          SoSpace.s8,
+        ),
       ),
       children: [
+        const SoMockBanner(
+          message: 'Số liệu tổng quan và cảnh báo AI là dữ liệu mẫu.',
+        ),
+        const SizedBox(height: SoSpace.s16),
         _TileGrid(
           tiles: [
             SoStatTile(
@@ -359,7 +362,10 @@ class _DashboardSkeleton extends StatelessWidget {
     );
     return ListView(
       physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(SoSpace.screen),
+      padding: SoSpace.scrollable(
+        context,
+        const EdgeInsets.all(SoSpace.screen),
+      ),
       children: [
         _TileGrid(tiles: [tile(), tile(), tile(), tile()]),
         const SizedBox(height: SoSpace.group + SoSize.controlSmall + 8),

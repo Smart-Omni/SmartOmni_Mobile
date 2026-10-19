@@ -100,130 +100,152 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final failure = _failure;
     final wrongPassword = failure?.kind == LoginFailureKind.invalidCredentials;
 
-    return Scaffold(
-      backgroundColor: context.soColors.surface,
-      body: SafeArea(
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(
-              SoSpace.screen,
-              SoSpace.s40,
-              SoSpace.screen,
-              SoSpace.s24,
-            ),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Form(
-                key: _formKey,
-                child: AutofillGroup(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Align(
-                        alignment: Alignment.centerLeft,
-                        child: SoLogo(),
-                      ),
-                      const SizedBox(height: SoSpace.s32),
-                      Text(
-                        l10n.loginTitle,
-                        style: context.textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: SoSpace.s4),
-                      Text(
-                        l10n.loginSubtitle,
-                        style: context.textTheme.bodyMedium?.copyWith(
-                          color: context.soColors.ink2,
-                        ),
-                      ),
-                      const SizedBox(height: SoSpace.s24),
-                      if (failure != null && !wrongPassword) ...[
-                        _FailureBanner(
-                          failure: failure,
-                          onResetPassword: () =>
-                              context.push(Routes.forgotPassword),
-                        ),
-                        const SizedBox(height: SoSpace.s16),
-                      ] else if (expiredReason != null) ...[
-                        SoBanner(tone: SoBannerTone.info, title: expiredReason),
-                        const SizedBox(height: SoSpace.s16),
-                      ],
-                      SoTextField(
-                        key: const Key('login_email'),
-                        label: l10n.email,
-                        controller: _emailCtrl,
-                        hint: 'ten@cuahang.vn',
-                        keyboardType: TextInputType.emailAddress,
-                        autofillHints: const [AutofillHints.email],
-                        textInputAction: TextInputAction.next,
-                        validator: Validators.email,
-                        onChanged: _onEmailChanged,
-                      ),
-                      const SizedBox(height: SoSpace.s16),
-                      SoTextField(
-                        key: const Key('login_password'),
-                        label: l10n.password,
-                        controller: _passwordCtrl,
-                        obscureText: _obscure,
-                        autofillHints: const [AutofillHints.password],
-                        onSubmitted: (_) => _submit(),
-                        onChanged: _onPasswordChanged,
-                        errorText: wrongPassword
-                            ? l10n.loginWrongCredentials
-                            : null,
-                        errorKey: const Key('login_error'),
-                        validator: (v) =>
-                            Validators.required(v, field: l10n.password),
-                        suffix: IconButton(
-                          tooltip: _obscure
-                              ? l10n.showPassword
-                              : l10n.hidePassword,
-                          icon: Icon(
-                            _obscure ? LucideIcons.eye : LucideIcons.eyeOff,
-                            color: context.soColors.ink2,
-                          ),
-                          onPressed: () => setState(() => _obscure = !_obscure),
-                        ),
-                      ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          key: const Key('login_forgot'),
-                          onPressed: () => context.push(Routes.forgotPassword),
-                          child: Text(l10n.forgotPassword),
-                        ),
-                      ),
-                      const SizedBox(height: SoSpace.s8),
-                      SoButton(
-                        key: const Key('login_submit'),
-                        label: l10n.loginButton,
-                        expand: true,
-                        loading: _submitting,
-                        onPressed: _locked ? null : _submit,
-                      ),
-                      if (failure?.kind == LoginFailureKind.superAdmin) ...[
-                        const SizedBox(height: SoSpace.s12),
-                        SoButton.secondary(
-                          key: const Key('login_use_another'),
-                          label: l10n.loginUseAnotherAccount,
-                          expand: true,
-                          onPressed: _useAnotherAccount,
-                        ),
-                      ],
-                      if (config.useMock) ...[
-                        const SizedBox(height: SoSpace.s32),
-                        _DemoAccountsCard(onPick: _fillDemo),
-                      ],
-                      if (config.flavor == Flavor.dev)
-                        Align(
+    return SoAmbientBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                SoSpace.screen,
+                SoSpace.s40,
+                SoSpace.screen,
+                SoSpace.s24,
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Form(
+                  key: _formKey,
+                  child: AutofillGroup(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Align(
                           alignment: Alignment.centerLeft,
-                          child: TextButton(
-                            key: const Key('open_dev_gallery'),
-                            onPressed: () => context.push(Routes.devGallery),
-                            child: Text(l10n.devGalleryOpen),
+                          child: SoLogo(),
+                        ),
+                        const SizedBox(height: SoSpace.s32),
+                        // Form nằm trong thẻ đặc trên nền loang (DESIGN.md mục 8).
+                        Container(
+                          padding: const EdgeInsets.all(SoSpace.s20),
+                          decoration: SoShape.card(context.soColors),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                l10n.loginTitle,
+                                style: context.textTheme.titleLarge,
+                              ),
+                              const SizedBox(height: SoSpace.s4),
+                              Text(
+                                l10n.loginSubtitle,
+                                style: context.textTheme.bodyMedium?.copyWith(
+                                  color: context.soColors.ink2,
+                                ),
+                              ),
+                              const SizedBox(height: SoSpace.s24),
+                              if (failure != null && !wrongPassword) ...[
+                                _FailureBanner(
+                                  failure: failure,
+                                  onResetPassword: () =>
+                                      context.push(Routes.forgotPassword),
+                                ),
+                                const SizedBox(height: SoSpace.s16),
+                              ] else if (expiredReason != null) ...[
+                                SoBanner(
+                                  tone: SoBannerTone.info,
+                                  title: expiredReason,
+                                ),
+                                const SizedBox(height: SoSpace.s16),
+                              ],
+                              SoTextField(
+                                key: const Key('login_email'),
+                                label: l10n.email,
+                                controller: _emailCtrl,
+                                hint: 'ten@cuahang.vn',
+                                keyboardType: TextInputType.emailAddress,
+                                autofillHints: const [AutofillHints.email],
+                                textInputAction: TextInputAction.next,
+                                validator: Validators.email,
+                                onChanged: _onEmailChanged,
+                              ),
+                              const SizedBox(height: SoSpace.s16),
+                              SoTextField(
+                                key: const Key('login_password'),
+                                label: l10n.password,
+                                controller: _passwordCtrl,
+                                obscureText: _obscure,
+                                autofillHints: const [AutofillHints.password],
+                                onSubmitted: (_) => _submit(),
+                                onChanged: _onPasswordChanged,
+                                errorText: wrongPassword
+                                    ? l10n.loginWrongCredentials
+                                    : null,
+                                errorKey: const Key('login_error'),
+                                validator: (v) => Validators.required(
+                                  v,
+                                  field: l10n.password,
+                                ),
+                                suffix: IconButton(
+                                  tooltip: _obscure
+                                      ? l10n.showPassword
+                                      : l10n.hidePassword,
+                                  icon: Icon(
+                                    _obscure
+                                        ? LucideIcons.eye
+                                        : LucideIcons.eyeOff,
+                                    color: context.soColors.ink2,
+                                  ),
+                                  onPressed: () =>
+                                      setState(() => _obscure = !_obscure),
+                                ),
+                              ),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  key: const Key('login_forgot'),
+                                  onPressed: () =>
+                                      context.push(Routes.forgotPassword),
+                                  child: Text(l10n.forgotPassword),
+                                ),
+                              ),
+                              const SizedBox(height: SoSpace.s8),
+                              SoButton(
+                                key: const Key('login_submit'),
+                                label: l10n.loginButton,
+                                expand: true,
+                                loading: _submitting,
+                                onPressed: _locked ? null : _submit,
+                              ),
+                              if (failure?.kind ==
+                                  LoginFailureKind.superAdmin) ...[
+                                const SizedBox(height: SoSpace.s12),
+                                SoButton.secondary(
+                                  key: const Key('login_use_another'),
+                                  label: l10n.loginUseAnotherAccount,
+                                  expand: true,
+                                  onPressed: _useAnotherAccount,
+                                ),
+                              ],
+                            ],
                           ),
                         ),
-                    ],
+                        if (config.useMock) ...[
+                          const SizedBox(height: SoSpace.s32),
+                          _DemoAccountsCard(onPick: _fillDemo),
+                        ],
+                        if (config.flavor == Flavor.dev)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton(
+                              key: const Key('open_dev_gallery'),
+                              onPressed: () => context.push(Routes.devGallery),
+                              child: Text(l10n.devGalleryOpen),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),

@@ -113,7 +113,7 @@ void main() {
     expect(find.textContaining('Doanh thu'), findsNothing);
     expect(find.byType(SoOrderRow), findsNWidgets(3));
 
-    await tester.ensureVisible(find.byKey(const Key('pending_see_all')));
+    await revealCentered(tester, find.byKey(const Key('pending_see_all')));
     await tester.tap(find.byKey(const Key('pending_see_all')));
     await tester.pumpAndSettle();
     expect(find.byType(OrdersScreen), findsOneWidget);
@@ -152,8 +152,7 @@ void main() {
 
     await tester.tap(find.text('Thêm'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const Key('logout_tile')));
-    await tester.pumpAndSettle();
+    await revealCentered(tester, find.byKey(const Key('logout_tile')));
     await tester.tap(find.byKey(const Key('logout_tile')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('logout_confirm')));
@@ -167,7 +166,7 @@ void main() {
       find.byKey(const Key('login_password')),
       MockAccounts.password,
     );
-    await tester.ensureVisible(find.byKey(const Key('login_submit')));
+    await revealCentered(tester, find.byKey(const Key('login_submit')));
     await tester.tap(find.byKey(const Key('login_submit')));
     await tester.pumpAndSettle();
     await _scrollToBottom(tester);

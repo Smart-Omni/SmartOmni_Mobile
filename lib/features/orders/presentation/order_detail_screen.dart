@@ -58,6 +58,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
     final canReturn = canRecordReturn(o.status);
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: SoAppBar(title: 'Chi tiết đơn', subtitle: o.platformOrderId),
       bottomNavigationBar: next == null && !canReturn
           ? null
@@ -78,40 +79,46 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                       onPressed: () => _prepare(next),
                     ),
             ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(
-          SoSpace.screen,
-          SoSpace.s16,
-          SoSpace.screen,
-          SoSpace.s32,
-        ),
-        children: [
-          if (o.status == OrderStatus.pending) ...[
-            const SoBanner(
-              key: Key('order_pending_banner'),
-              tone: SoBannerTone.warning,
-              title: 'Đơn đang chờ xử lý',
-              message:
-                  'Soạn hàng xong, bấm "Chuẩn bị hàng" để chuyển sang Chờ giao.',
-            ),
-            const SizedBox(height: SoSpace.s16),
-          ],
-          _HeaderCard(order: o),
-          const _GroupTitle('Sản phẩm'),
-          _ItemsCard(order: o),
-          const _GroupTitle('Khách hàng'),
-          _CustomerCard(order: o),
-          const _GroupTitle('Tiến trình'),
-          _Card(
-            child: SoTimeline(
-              steps: [
-                for (final step in orderProgress(o.status)) step.toTimeline(o),
-              ],
+      body: SoAmbientBackground(
+        child: ListView(
+          padding: SoSpace.scrollable(
+            context,
+            const EdgeInsets.fromLTRB(
+              SoSpace.screen,
+              SoSpace.s8,
+              SoSpace.screen,
+              SoSpace.s8,
             ),
           ),
-          const SizedBox(height: SoSpace.s16),
-          const _ShippingLabelRow(),
-        ],
+          children: [
+            if (o.status == OrderStatus.pending) ...[
+              const SoBanner(
+                key: Key('order_pending_banner'),
+                tone: SoBannerTone.warning,
+                title: 'Đơn đang chờ xử lý',
+                message:
+                    'Soạn hàng xong, bấm "Chuẩn bị hàng" để chuyển sang Chờ giao.',
+              ),
+              const SizedBox(height: SoSpace.s16),
+            ],
+            _HeaderCard(order: o),
+            const _GroupTitle('Sản phẩm'),
+            _ItemsCard(order: o),
+            const _GroupTitle('Khách hàng'),
+            _CustomerCard(order: o),
+            const _GroupTitle('Tiến trình'),
+            _Card(
+              child: SoTimeline(
+                steps: [
+                  for (final step in orderProgress(o.status))
+                    step.toTimeline(o),
+                ],
+              ),
+            ),
+            const SizedBox(height: SoSpace.s16),
+            const _ShippingLabelRow(),
+          ],
+        ),
       ),
     );
   }
