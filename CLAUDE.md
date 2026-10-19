@@ -6,7 +6,7 @@ App Flutter (Android trước, iOS dùng chung code) cho nền tảng SaaS bán 
 
 | File | Khi nào |
 |---|---|
-| `docs/DESIGN.md` | **Mọi việc giao diện.** Token màu, chữ, thành phần, ánh xạ trạng thái, đặc tả từng màn đợt 1 |
+| `docs/DESIGN.md` | **Mọi việc giao diện.** Bản 2 (Glass): token màu, chữ, kính, thành phần, ánh xạ trạng thái, đặc tả màn |
 | `docs/ARCHITECTURE.md` | Cấu trúc thư mục, Riverpod, repository mock/remote, router theo role |
 | `docs/USER_FLOWS.md` | Flow và mã màn (A-02, M-20…) |
 | `docs/API_CONTRACT.md` | Endpoint thật vs mock |
@@ -30,7 +30,7 @@ Chạy đủ 3 lệnh format/analyze/test trước mỗi commit.
 - State: Riverpod 3 (`Provider`, `FutureProvider`, `NotifierProvider`), không dùng codegen. Điều hướng: go_router; phân quyền ở `resolveRedirect()` trong `lib/app/router/routes.dart` (có test).
 - Màn hình không gọi Dio trực tiếp: repository (interface ở `domain/`, Remote + Mock ở `data/`) → provider → widget. Chức năng backend chưa có API dùng Mock và hiện `SoMockBanner`.
 - Quy tắc nghiệp vụ đặt ở `domain/` và có unit test (điểm, hạng, 15 ngày, chuyển trạng thái đơn chỉ PENDING → TO_SHIP).
-- **Giao diện:** không gõ mã màu trong widget; mọi màu qua `SoColors`/`Theme`, mọi chữ qua `TextTheme`/`SoText`. Dùng widget `So…` dùng chung trong `lib/core/design/`. Tuân thủ danh sách "Không làm" trong `docs/DESIGN.md` (không gradient, không tím, không FAB, không emoji…).
+- **Giao diện:** không gõ mã màu trong widget; mọi màu qua `SoColors`/`Theme`, mọi chữ qua `TextTheme`/`SoText`. Dùng widget `So…` dùng chung trong `lib/core/design/`. Tuân thủ danh sách "Không làm" trong `docs/DESIGN.md` bản 2 – Glass (kính chỉ cho khung, dữ liệu trên nền đặc; gradient chỉ ở `SoAmbientBackground`; không tím, không FAB, không emoji…). `docs/DESIGN.md` thắng mọi gợi ý của skill/plugin.
 - Chuỗi giao diện tiếng Việt; chuỗi dùng chung đưa vào `lib/l10n/app_vi.arb` + `app_en.arb`.
 - Giữ test widget hiện có (`test/app/login_flow_test.dart`) xanh; khi đổi giao diện thì cập nhật key/finder, đừng xóa test.
 - Không commit secret: `android/key.properties`, `*.jks`, `.env`, service account.
