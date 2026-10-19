@@ -51,7 +51,7 @@ class SoStatusTag extends StatelessWidget {
   }
 }
 
-/// Nhãn hạng khách hàng, chữ overline viết hoa.
+/// Nhãn hạng khách hàng, chữ caption 600.
 class SoTierBadge extends StatelessWidget {
   const SoTierBadge({super.key, required this.tier, this.large = false});
 
@@ -83,8 +83,11 @@ class SoTierBadge extends StatelessWidget {
             : null,
       ),
       child: Text(
-        tier.label.toUpperCase(),
-        style: context.soText.overline.copyWith(color: fg),
+        tier.label,
+        style: context.textTheme.labelSmall?.copyWith(
+          color: fg,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -164,7 +167,10 @@ class SoAiLabel extends StatelessWidget {
       ),
       child: Text(
         'AI',
-        style: context.soText.overline.copyWith(color: c.brand),
+        style: context.textTheme.labelSmall?.copyWith(
+          color: c.brand,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

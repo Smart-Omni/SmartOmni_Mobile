@@ -61,7 +61,7 @@ void main() {
     // Cuộn hết màn: lỗi tràn (overflow) sẽ làm test fail.
     final list = find.byType(Scrollable).first;
     await tester.scrollUntilVisible(
-      find.text('Tiến trình'.toUpperCase()),
+      find.text('Tiến trình'),
       400,
       scrollable: list,
     );

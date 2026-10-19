@@ -225,8 +225,8 @@ class _OrderList extends StatelessWidget {
               SoSpace.s8,
             ),
             child: Text(
-              '${dayGroupLabel(day).toUpperCase()} · ${items.length}',
-              style: context.soText.overline,
+              '${dayGroupLabel(day)} · ${items.length}',
+              style: context.soText.title3,
             ),
           ),
           DecoratedBox(

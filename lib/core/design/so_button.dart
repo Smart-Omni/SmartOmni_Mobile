@@ -93,7 +93,7 @@ class SoButton extends StatelessWidget {
         RoundedRectangleBorder(borderRadius: SoRadius.mdAll),
       ),
       textStyle: WidgetStatePropertyAll(
-        small ? context.textTheme.labelLarge : context.soText.bodyStrong,
+        small ? context.textTheme.labelLarge : context.textTheme.titleMedium,
       ),
       elevation: const WidgetStatePropertyAll(0),
       overlayColor: const WidgetStatePropertyAll(Colors.transparent),

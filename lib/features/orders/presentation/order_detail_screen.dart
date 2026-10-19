@@ -125,7 +125,7 @@ class _GroupTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(top: SoSpace.group, bottom: SoSpace.s8),
-    child: Text(title.toUpperCase(), style: context.soText.overline),
+    child: Text(title, style: context.soText.title3),
   );
 }
 
@@ -183,12 +183,14 @@ class _HeaderCard extends StatelessWidget {
             style: context.textTheme.bodySmall,
           ),
           const SizedBox(height: SoSpace.s12),
-          Text('TỔNG TIỀN', style: context.soText.overline),
-          const SizedBox(height: SoSpace.s4),
           Text(
-            Formatters.vnd(o.totalAmount),
-            style: context.textTheme.titleLarge,
+            'Tổng tiền',
+            style: context.textTheme.bodySmall?.copyWith(
+              color: context.soColors.ink2,
+            ),
           ),
+          const SizedBox(height: SoSpace.s4),
+          Text(Formatters.vnd(o.totalAmount), style: context.soText.metric),
         ],
       ),
     );
@@ -258,7 +260,7 @@ class _ItemText extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(name, style: context.soText.bodyStrong),
+        Text(name, style: context.textTheme.titleMedium),
         if (variant != null) Text(variant, style: context.textTheme.bodySmall),
         const SizedBox(height: SoSpace.s8),
         Row(
@@ -268,7 +270,7 @@ class _ItemText extends StatelessWidget {
             const Spacer(),
             Text(
               '${item.quantity} × ${Formatters.vnd(item.unitPrice)}',
-              style: context.soText.numeral,
+              style: context.soText.money,
             ),
           ],
         ),
@@ -328,7 +330,7 @@ class _ShippingLabelRow extends StatelessWidget {
           Expanded(
             child: Text(
               'In vận đơn PDF',
-              style: context.soText.bodyStrong.copyWith(color: c.muted),
+              style: context.textTheme.titleMedium?.copyWith(color: c.muted),
             ),
           ),
           const SoStatusTag(label: 'Sắp có', status: SoStatus.neutral),

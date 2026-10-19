@@ -63,7 +63,7 @@ void main() {
     expect(_chipCount(tester, 'filter_all'), '7');
     expect(_chipCount(tester, 'filter_pending'), '3');
     expect(find.byType(SoOrderRow), findsNWidgets(7));
-    expect(find.textContaining('HÔM NAY'), findsOneWidget);
+    expect(find.textContaining('Hôm nay'), findsOneWidget);
 
     await _tap(tester, find.byKey(const Key('filter_pending')));
     expect(find.byType(SoOrderRow), findsNWidgets(3));

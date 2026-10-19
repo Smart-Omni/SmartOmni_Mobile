@@ -257,7 +257,7 @@ class _ProductRow extends StatelessWidget {
                       p.name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: context.soText.bodyStrong,
+                      style: context.textTheme.titleMedium,
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -289,7 +289,7 @@ class _ProductRow extends StatelessWidget {
                     Text('từ', style: context.textTheme.bodySmall),
                     Text(
                       Formatters.vnd(p.minPrice),
-                      style: context.soText.numeral,
+                      style: context.soText.money,
                     ),
                   ],
                   const SizedBox(height: SoSpace.s8),

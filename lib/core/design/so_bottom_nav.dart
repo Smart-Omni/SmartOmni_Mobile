@@ -98,7 +98,7 @@ class _NavButton extends StatelessWidget {
               item.label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: context.soText.navLabel.copyWith(
+              style: context.textTheme.labelSmall?.copyWith(
                 color: selected ? c.ink : c.ink2,
               ),
             ),

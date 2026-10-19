@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'so_text.dart';
 import 'so_tokens.dart';
 
-/// Ô chỉ số trên màn Tổng quan: overline + số lớn + ghi chú.
+/// Ô chỉ số trên màn Tổng quan: nhãn footnote + số metricSm + ghi chú.
 class SoStatTile extends StatelessWidget {
   const SoStatTile({
     super.key,
@@ -43,13 +43,15 @@ class SoStatTile extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                label.toUpperCase(),
+                label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: context.soText.overline,
+                style: context.textTheme.bodySmall?.copyWith(
+                  color: context.soColors.ink2,
+                ),
               ),
               const SizedBox(height: SoSpace.s8),
-              Text(value, maxLines: 1, style: context.soText.stat),
+              Text(value, maxLines: 1, style: context.soText.metricSm),
               if (note != null) ...[
                 const SizedBox(height: SoSpace.s4),
                 Text(

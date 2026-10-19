@@ -59,7 +59,7 @@ abstract final class SoTheme {
     const buttonShape = WidgetStatePropertyAll<OutlinedBorder>(
       RoundedRectangleBorder(borderRadius: SoRadius.mdAll),
     );
-    final buttonText = WidgetStatePropertyAll(so.bodyStrong);
+    final buttonText = WidgetStatePropertyAll(text.titleMedium);
     const buttonSize = WidgetStatePropertyAll(Size(64, SoSize.control));
     const buttonPadding = WidgetStatePropertyAll(
       EdgeInsets.symmetric(horizontal: SoSpace.s16),
@@ -197,7 +197,7 @@ abstract final class SoTheme {
         textColor: c.ink,
         tileColor: c.surface,
         minTileHeight: SoSize.touch,
-        titleTextStyle: so.bodyStrong,
+        titleTextStyle: text.titleMedium,
         subtitleTextStyle: text.bodySmall,
         contentPadding: const EdgeInsets.symmetric(horizontal: SoSpace.s16),
       ),
@@ -211,7 +211,7 @@ abstract final class SoTheme {
           borderRadius: SoRadius.mdAll,
         ),
         labelTextStyle: WidgetStateProperty.resolveWith(
-          (s) => so.navLabel.copyWith(
+          (s) => text.labelSmall?.copyWith(
             color: s.contains(WidgetState.selected) ? c.brand : c.ink2,
           ),
         ),

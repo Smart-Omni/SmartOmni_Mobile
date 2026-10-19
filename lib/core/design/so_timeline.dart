@@ -62,7 +62,7 @@ class SoTimeline extends StatelessWidget {
                       children: [
                         Text(
                           steps[i].title,
-                          style: context.soText.bodyStrong.copyWith(
+                          style: context.textTheme.titleMedium?.copyWith(
                             color: steps[i].state == SoStepState.upcoming
                                 ? c.muted
                                 : c.ink,

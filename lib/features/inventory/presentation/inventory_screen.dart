@@ -115,8 +115,10 @@ class _InventoryBody extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'TOÀN KHO · ${items.length} SKU',
-                  style: context.soText.overline,
+                  'Toàn kho · ${items.length} SKU',
+                  style: context.textTheme.bodySmall?.copyWith(
+                    color: context.soColors.ink2,
+                  ),
                 ),
                 const SizedBox(height: SoSpace.s12),
                 SoStockMeter(
@@ -211,7 +213,7 @@ class _StockRow extends StatelessWidget {
                       title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: context.soText.bodyStrong,
+                      style: context.textTheme.titleMedium,
                     ),
                     const SizedBox(height: SoSpace.s4),
                     SoCodeTag(item.skuCode),
@@ -229,7 +231,7 @@ class _StockRow extends StatelessWidget {
                 children: [
                   Text(
                     Formatters.number(item.available),
-                    style: context.soText.numeral.copyWith(
+                    style: context.soText.money.copyWith(
                       color: item.level.numberColor(c),
                     ),
                   ),

@@ -124,7 +124,7 @@ class _MarketplaceRow extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Kết nối sàn', style: context.soText.bodyStrong),
+                    Text('Kết nối sàn', style: context.textTheme.titleMedium),
                     const SizedBox(height: SoSpace.s8),
                     switch (connections) {
                       AsyncData(:final value) => Column(

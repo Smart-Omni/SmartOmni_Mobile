@@ -302,7 +302,10 @@ class _DemoAccountsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(context.l10n.demoAccountsTitle, style: context.soText.overline),
+          Text(
+            context.l10n.demoAccountsTitle,
+            style: context.textTheme.titleMedium,
+          ),
           const SizedBox(height: SoSpace.s4),
           Text(
             context.l10n.demoAccountsHint(MockAccounts.password),

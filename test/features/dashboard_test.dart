@@ -110,7 +110,7 @@ void main() {
     expect(find.text('Shop Demo · Nhân viên'), findsOneWidget);
     expect(find.byKey(const Key('tile_to_ship')), findsOneWidget);
     expect(find.byKey(const Key('tile_revenue_today')), findsNothing);
-    expect(find.textContaining('DOANH THU'), findsNothing);
+    expect(find.textContaining('Doanh thu'), findsNothing);
     expect(find.byType(SoOrderRow), findsNWidgets(3));
 
     await tester.ensureVisible(find.byKey(const Key('pending_see_all')));
@@ -128,7 +128,7 @@ void main() {
     expect(find.byKey(const Key('tile_revenue_today')), findsOneWidget);
     expect(find.byKey(const Key('tile_to_ship')), findsNothing);
     expect(find.text('3,87 tr'), findsWidgets);
-    expect(find.text('DOANH THU THEO KÊNH'), findsOneWidget);
+    expect(find.text('Doanh thu theo kênh'), findsOneWidget);
     expect(find.text('63%'), findsOneWidget); // 2,45 tr / 3,87 tr
     expect(find.byType(SoOrderRow), findsNothing);
 

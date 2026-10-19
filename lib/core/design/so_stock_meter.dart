@@ -124,7 +124,7 @@ class _Legend extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 2),
-        Text(Formatters.number(value), style: context.soText.numeral),
+        Text(Formatters.number(value), style: context.soText.money),
       ],
     );
   }

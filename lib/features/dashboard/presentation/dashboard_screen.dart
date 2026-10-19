@@ -199,9 +199,7 @@ class _GroupHeader extends StatelessWidget {
         height: SoSize.controlSmall,
         child: Row(
           children: [
-            Expanded(
-              child: Text(title.toUpperCase(), style: context.soText.overline),
-            ),
+            Expanded(child: Text(title, style: context.soText.title3)),
             if (actionLabel != null)
               TextButton(
                 key: actionKey,
@@ -311,7 +309,7 @@ class _AiAlerts extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 a.title,
-                                style: context.soText.bodyStrong,
+                                style: context.textTheme.titleMedium,
                               ),
                             ),
                             const SizedBox(width: SoSpace.s8),

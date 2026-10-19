@@ -99,7 +99,9 @@ class SoListRow extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: context.soText.bodyStrong.copyWith(color: fg),
+                        style: context.textTheme.titleMedium?.copyWith(
+                          color: fg,
+                        ),
                       ),
                       if (subtitle != null)
                         Text(subtitle!, style: context.textTheme.bodySmall),

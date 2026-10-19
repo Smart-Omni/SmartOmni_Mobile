@@ -49,7 +49,7 @@ class SoBanner extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: context.soText.bodyStrong),
+                Text(title, style: context.textTheme.titleMedium),
                 if (message != null) ...[
                   const SizedBox(height: 2),
                   Text(message!, style: context.textTheme.bodyMedium),
@@ -297,7 +297,7 @@ class SoSkeletonList extends StatelessWidget {
   }
 }
 
-/// Dải "DỮ LIỆU MẪU" dưới AppBar cho chức năng backend chưa có API.
+/// Dải "Dữ liệu mẫu" dưới AppBar cho chức năng backend chưa có API.
 class SoMockBanner extends StatelessWidget {
   const SoMockBanner({super.key, this.message});
 
@@ -322,7 +322,10 @@ class SoMockBanner extends StatelessWidget {
             padding: const EdgeInsets.only(top: 1),
             child: Text(
               l10n.mockDataLabel,
-              style: context.soText.overline.copyWith(color: c.brand),
+              style: context.textTheme.bodySmall?.copyWith(
+                color: c.brand,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           const SizedBox(width: SoSpace.s8),

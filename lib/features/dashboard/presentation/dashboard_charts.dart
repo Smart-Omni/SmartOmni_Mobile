@@ -46,7 +46,7 @@ class RevenueByChannelCard extends StatelessWidget {
                 Expanded(child: SoChannelTag(platform: platform)),
                 Text(
                   Formatters.vnd(summary.revenueByChannel[platform] ?? 0),
-                  style: context.soText.numeral,
+                  style: context.soText.money,
                 ),
               ],
             ),
@@ -136,7 +136,7 @@ class _Revenue7DaysCardState extends State<Revenue7DaysCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Tổng 7 ngày', style: context.textTheme.bodySmall),
-          Text(Formatters.vnd(total), style: context.soText.numeral),
+          Text(Formatters.vnd(total), style: context.soText.money),
           const SizedBox(height: SoSpace.s16),
           Semantics(
             label: 'Doanh thu 7 ngày: $description',

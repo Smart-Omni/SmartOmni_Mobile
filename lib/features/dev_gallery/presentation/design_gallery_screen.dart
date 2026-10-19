@@ -136,17 +136,20 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
     final t = context.textTheme;
     final so = context.soText;
     final rows = <(String, TextStyle?, String)>[
-      ('display 32', t.headlineMedium, '3,87 tr'),
-      ('title-lg 24', t.titleLarge, 'Việc hôm nay'),
-      ('title-md 18', t.titleMedium, 'Chi tiết đơn'),
-      ('body-lg 16', t.bodyLarge, 'Một tài khoản cho mọi vai trò.'),
-      ('body 15', t.bodyMedium, 'Nhập số đếm được trong kho.'),
-      ('body-strong 15', so.bodyStrong, 'Áo thun cổ tròn'),
-      ('label 13', t.labelLarge, 'Mật khẩu'),
-      ('caption 12', t.bodySmall, 'Cập nhật 09:41'),
+      ('largeTitle 34', t.headlineLarge, 'Đơn hàng'),
+      ('title1 28', t.headlineMedium, 'Tổng quan cửa hàng'),
+      ('title2 22', t.titleLarge, 'Ghi nhận hoàn/trả'),
+      ('title3 20', so.title3, 'Đơn cần xử lý'),
+      ('headline 17', t.titleMedium, 'Áo thun cổ tròn'),
+      ('body 16', t.bodyLarge, 'Một tài khoản cho mọi vai trò.'),
+      ('callout 15', t.bodyMedium, 'Nhập số đếm được trong kho.'),
+      ('subhead 14', t.labelLarge, 'Mật khẩu'),
+      ('footnote 13', t.bodySmall, 'Cập nhật 09:41'),
+      ('caption 12', t.labelSmall, 'Chờ xử lý'),
+      ('metric 34', so.metric, '1.240'),
+      ('metricSm 22', so.metricSm, '3,87 tr'),
+      ('money 16', so.money, '318.000 ₫'),
       ('code 13', so.code, 'SKU-AT-001-M'),
-      ('numeral 15', so.numeral, '318.000 ₫'),
-      ('overline 11', so.overline, 'ĐƠN CẦN XỬ LÝ'),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,7 +160,7 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: so.overline),
+                Text(name, style: t.bodySmall),
                 Text(sample, style: style),
               ],
             ),
@@ -541,7 +544,7 @@ class _Section extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: SoSpace.screen),
-            child: Text(title.toUpperCase(), style: context.soText.overline),
+            child: Text(title, style: context.soText.title3),
           ),
           const SizedBox(height: SoSpace.s8),
           Padding(

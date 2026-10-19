@@ -53,7 +53,7 @@ class ProfileCard extends ConsumerWidget {
                   email,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: context.soText.bodyStrong,
+                  style: context.textTheme.titleMedium,
                 ),
                 Text(
                   [
@@ -126,7 +126,7 @@ class LogoutRow extends ConsumerWidget {
   }
 }
 
-/// Tiêu đề nhóm (overline viết hoa), cách nhóm trước 24.
+/// Tiêu đề nhóm (title3), cách nhóm trước 28.
 class GroupTitle extends StatelessWidget {
   const GroupTitle(this.title, {super.key});
 
@@ -135,6 +135,6 @@ class GroupTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(top: SoSpace.group, bottom: SoSpace.s8),
-    child: Text(title.toUpperCase(), style: context.soText.overline),
+    child: Text(title, style: context.soText.title3),
   );
 }
