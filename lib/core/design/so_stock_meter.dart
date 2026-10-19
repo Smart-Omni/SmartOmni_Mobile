@@ -5,7 +5,7 @@ import '../utils/formatters.dart';
 import 'so_text.dart';
 import 'so_tokens.dart';
 
-/// Thanh tồn kho: phần đang giữ (kraft) + phần có thể bán (brand).
+/// Thanh tồn kho: phần đang giữ chỗ (held) + phần có thể bán (brand).
 ///
 /// Có thể bán = tồn − giữ chỗ (đã tính sẵn trong `InventoryItem.available`).
 class SoStockMeter extends StatelessWidget {
@@ -41,13 +41,13 @@ class SoStockMeter extends StatelessWidget {
       child: SizedBox(
         height: barHeight,
         child: ColoredBox(
-          color: c.surfaceSunken,
+          color: c.fill,
           child: Row(
             children: [
               if (heldPart > 0)
                 Expanded(
                   flex: heldPart,
-                  child: ColoredBox(color: c.kraft),
+                  child: ColoredBox(color: c.held),
                 ),
               if (sellPart > 0)
                 Expanded(
@@ -78,7 +78,7 @@ class SoStockMeter extends StatelessWidget {
               child: _Legend(
                 label: l10n.stockReserved,
                 value: reserved,
-                swatch: c.kraft,
+                swatch: c.held,
               ),
             ),
             Expanded(
@@ -124,7 +124,7 @@ class _Legend extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 2),
-        Text(Formatters.number(value), style: context.soText.numeral),
+        Text(Formatters.number(value), style: context.soText.money),
       ],
     );
   }

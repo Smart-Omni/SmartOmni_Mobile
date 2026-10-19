@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/design/so_glass.dart';
 import '../core/design/so_theme.dart';
 import '../l10n/l10n.dart';
 import 'config/app_config.dart';
@@ -22,6 +23,10 @@ class SmartOmniApp extends ConsumerWidget {
       locale: const Locale('vi'),
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
+      builder: (context, child) => SoGlassScope(
+        enabled: ref.watch(glassEnabledProvider),
+        child: child ?? const SizedBox.shrink(),
+      ),
     );
   }
 }

@@ -47,8 +47,7 @@ Future<_RecordingOrdersRepository> _openOrders(
 }
 
 Future<void> _tap(WidgetTester tester, Finder finder) async {
-  await tester.ensureVisible(finder);
-  await tester.pumpAndSettle();
+  await revealCentered(tester, finder);
   await tester.tap(finder);
   await tester.pumpAndSettle();
 }
@@ -63,7 +62,7 @@ void main() {
     expect(_chipCount(tester, 'filter_all'), '7');
     expect(_chipCount(tester, 'filter_pending'), '3');
     expect(find.byType(SoOrderRow), findsNWidgets(7));
-    expect(find.textContaining('HÔM NAY'), findsOneWidget);
+    expect(find.textContaining('Hôm nay'), findsOneWidget);
 
     await _tap(tester, find.byKey(const Key('filter_pending')));
     expect(find.byType(SoOrderRow), findsNWidgets(3));
@@ -152,6 +151,15 @@ void main() {
 
     await tester.drag(find.byType(ListView).last, const Offset(0, 2000));
     await tester.pumpAndSettle();
+    // Danh sách dựng lười: cuộn tới khi đơn được dựng rồi mới chạm.
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('order_1006')),
+      200,
+      scrollable: find.descendant(
+        of: find.byKey(const Key('orders_list')),
+        matching: find.byType(Scrollable),
+      ),
+    );
     await _tap(tester, find.byKey(const Key('order_1006')));
     await tester.drag(find.byType(ListView).last, const Offset(0, -2000));
     await tester.pumpAndSettle();

@@ -85,86 +85,90 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     final useMock = ref.watch(appConfigProvider).useMock;
     final failure = _failure;
 
-    return Scaffold(
-      appBar: SoAppBar(title: l10n.resetPasswordTitle),
-      bottomNavigationBar: SoActionBar(
-        primary: SoButton(
-          key: const Key('reset_submit'),
-          label: l10n.resetPasswordButton,
-          loading: _busy,
-          onPressed: _save,
+    return SoAmbientBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: SoAppBar(title: l10n.resetPasswordTitle),
+        bottomNavigationBar: SoActionBar(
+          primary: SoButton(
+            key: const Key('reset_submit'),
+            label: l10n.resetPasswordButton,
+            loading: _busy,
+            onPressed: _save,
+          ),
         ),
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(SoSpace.screen),
-          children: [
-            Text(l10n.resetPasswordHint, style: context.textTheme.bodyMedium),
-            const SizedBox(height: SoSpace.s24),
-            if (failure != null &&
-                failure.kind != ResetFailureKind.invalidCode) ...[
-              SoBanner(
-                key: const Key('reset_error'),
-                tone: SoBannerTone.danger,
-                title: failure.kind == ResetFailureKind.expired
-                    ? l10n.resetCodeExpiredTitle
-                    : l10n.resetFailedTitle,
-                message: failure.kind == ResetFailureKind.expired
-                    ? l10n.resetCodeExpiredMessage
-                    : failure.message,
-                actionLabel: failure.kind == ResetFailureKind.expired
-                    ? l10n.resetResendCode
+        body: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(SoSpace.screen),
+            children: [
+              Text(l10n.resetPasswordHint, style: context.textTheme.bodyMedium),
+              const SizedBox(height: SoSpace.s24),
+              if (failure != null &&
+                  failure.kind != ResetFailureKind.invalidCode) ...[
+                SoBanner(
+                  key: const Key('reset_error'),
+                  tone: SoBannerTone.danger,
+                  title: failure.kind == ResetFailureKind.expired
+                      ? l10n.resetCodeExpiredTitle
+                      : l10n.resetFailedTitle,
+                  message: failure.kind == ResetFailureKind.expired
+                      ? l10n.resetCodeExpiredMessage
+                      : failure.message,
+                  actionLabel: failure.kind == ResetFailureKind.expired
+                      ? l10n.resetResendCode
+                      : null,
+                  onAction: _resendCode,
+                ),
+                const SizedBox(height: SoSpace.s16),
+              ],
+              SoTextField(
+                key: const Key('reset_code'),
+                label: l10n.resetToken,
+                controller: _codeCtrl,
+                mono: true,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.oneTimeCode],
+                helper: useMock
+                    ? l10n.resetMockHint(
+                        MockAccounts.resetCode,
+                        MockAccounts.expiredResetCode,
+                      )
                     : null,
-                onAction: _resendCode,
+                errorText: failure?.kind == ResetFailureKind.invalidCode
+                    ? l10n.resetCodeInvalid
+                    : null,
+                errorKey: const Key('reset_code_error'),
+                onChanged: (_) {
+                  if (failure != null) setState(() => _failure = null);
+                },
+                validator: (v) =>
+                    Validators.required(v, field: l10n.resetToken),
               ),
               const SizedBox(height: SoSpace.s16),
+              SoTextField(
+                key: const Key('reset_password'),
+                label: l10n.newPassword,
+                controller: _passwordCtrl,
+                obscureText: true,
+                helper: l10n.newPasswordHelper,
+                autofillHints: const [AutofillHints.newPassword],
+                textInputAction: TextInputAction.next,
+                validator: Validators.newPassword,
+              ),
+              const SizedBox(height: SoSpace.s16),
+              SoTextField(
+                key: const Key('reset_confirm'),
+                label: l10n.confirmPassword,
+                controller: _confirmCtrl,
+                obscureText: true,
+                autofillHints: const [AutofillHints.newPassword],
+                onSubmitted: (_) => _save(),
+                validator: (v) =>
+                    Validators.confirmPassword(v, _passwordCtrl.text),
+              ),
             ],
-            SoTextField(
-              key: const Key('reset_code'),
-              label: l10n.resetToken,
-              controller: _codeCtrl,
-              mono: true,
-              textInputAction: TextInputAction.next,
-              autofillHints: const [AutofillHints.oneTimeCode],
-              helper: useMock
-                  ? l10n.resetMockHint(
-                      MockAccounts.resetCode,
-                      MockAccounts.expiredResetCode,
-                    )
-                  : null,
-              errorText: failure?.kind == ResetFailureKind.invalidCode
-                  ? l10n.resetCodeInvalid
-                  : null,
-              errorKey: const Key('reset_code_error'),
-              onChanged: (_) {
-                if (failure != null) setState(() => _failure = null);
-              },
-              validator: (v) => Validators.required(v, field: l10n.resetToken),
-            ),
-            const SizedBox(height: SoSpace.s16),
-            SoTextField(
-              key: const Key('reset_password'),
-              label: l10n.newPassword,
-              controller: _passwordCtrl,
-              obscureText: true,
-              helper: l10n.newPasswordHelper,
-              autofillHints: const [AutofillHints.newPassword],
-              textInputAction: TextInputAction.next,
-              validator: Validators.newPassword,
-            ),
-            const SizedBox(height: SoSpace.s16),
-            SoTextField(
-              key: const Key('reset_confirm'),
-              label: l10n.confirmPassword,
-              controller: _confirmCtrl,
-              obscureText: true,
-              autofillHints: const [AutofillHints.newPassword],
-              onSubmitted: (_) => _save(),
-              validator: (v) =>
-                  Validators.confirmPassword(v, _passwordCtrl.text),
-            ),
-          ],
+          ),
         ),
       ),
     );

@@ -21,7 +21,7 @@ class SoActionBar extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: c.surface,
-        border: Border(top: BorderSide(color: c.line)),
+        border: Border(top: BorderSide(color: c.fillStrong)),
       ),
       child: SafeArea(
         top: false,

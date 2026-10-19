@@ -51,13 +51,7 @@ class SoBottomSheet extends StatelessWidget {
         decoration: BoxDecoration(
           color: c.surface,
           borderRadius: SoRadius.sheetTop,
-          boxShadow: [
-            BoxShadow(
-              color: c.shadowSheet,
-              offset: const Offset(0, -6),
-              blurRadius: 24,
-            ),
-          ],
+          boxShadow: SoShadow.glass(c.shadowTint),
         ),
         child: SafeArea(
           top: false,
@@ -71,7 +65,7 @@ class SoBottomSheet extends StatelessWidget {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: c.lineControl,
+                    color: c.fillStrong,
                     borderRadius: const BorderRadius.all(Radius.circular(2)),
                   ),
                 ),

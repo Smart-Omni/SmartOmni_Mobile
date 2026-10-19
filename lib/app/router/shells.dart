@@ -17,6 +17,7 @@ class MerchantShell extends StatelessWidget {
     final l10n = context.l10n;
     return _ShellScaffold(
       navigationShell: navigationShell,
+      extendBody: true,
       items: [
         SoNavItem(
           key: const Key('nav_dashboard'),
@@ -70,22 +71,35 @@ class CustomerShell extends StatelessWidget {
 }
 
 class _ShellScaffold extends StatelessWidget {
-  const _ShellScaffold({required this.navigationShell, required this.items});
+  const _ShellScaffold({
+    required this.navigationShell,
+    required this.items,
+    this.extendBody = false,
+  });
 
   final StatefulNavigationShell navigationShell;
   final List<SoNavItem> items;
 
+  /// `true`: nội dung cuộn dưới thanh tab kính. Chỉ bật khi mọi màn trong
+  /// khung đã chừa lề cuối bằng `SoSpace.scrollable` (Merchant đã xong;
+  /// Customer bật ở nhánh `feature/ui-customer-*`).
+  final bool extendBody;
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: navigationShell,
-      bottomNavigationBar: SoBottomNav(
-        items: items,
-        currentIndex: navigationShell.currentIndex,
-        // Bấm lại tab đang mở -> quay về màn đầu của tab đó.
-        onTap: (i) => navigationShell.goBranch(
-          i,
-          initialLocation: i == navigationShell.currentIndex,
+    // AppBar kính của màn trong tab và thanh tab dùng chung một lần chụp nền.
+    return BackdropGroup(
+      child: Scaffold(
+        extendBody: extendBody,
+        body: navigationShell,
+        bottomNavigationBar: SoBottomNav(
+          items: items,
+          currentIndex: navigationShell.currentIndex,
+          // Bấm lại tab đang mở -> quay về màn đầu của tab đó.
+          onTap: (i) => navigationShell.goBranch(
+            i,
+            initialLocation: i == navigationShell.currentIndex,
+          ),
         ),
       ),
     );

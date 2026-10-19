@@ -28,8 +28,8 @@ class SoFilterChip extends StatelessWidget {
       child: Material(
         color: selected ? c.ink : c.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: SoRadius.smAll,
-          side: BorderSide(color: selected ? c.ink : c.line),
+          borderRadius: SoRadius.mdAll,
+          side: BorderSide(color: selected ? c.ink : c.fillStrong),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -50,7 +50,7 @@ class SoFilterChip extends StatelessWidget {
                   Text(
                     '$count',
                     style: context.soText.code.copyWith(
-                      color: selected ? c.line : c.muted,
+                      color: selected ? c.fillStrong : c.muted,
                     ),
                   ),
                 ],

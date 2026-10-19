@@ -5,7 +5,8 @@ import 'so_tags.dart';
 import 'so_text.dart';
 import 'so_tokens.dart';
 
-/// Nhóm danh sách: thẻ trắng bo 12, viền line, các hàng ngăn bằng đường chia.
+/// Nhóm danh sách: thẻ trắng squircle bo 22, bóng thẻ, các hàng ngăn bằng
+/// đường chia.
 class SoListGroup extends StatelessWidget {
   const SoListGroup({super.key, required this.children});
 
@@ -16,11 +17,7 @@ class SoListGroup extends StatelessWidget {
     final c = context.soColors;
     return Container(
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: SoRadius.mdAll,
-        border: Border.all(color: c.line),
-      ),
+      decoration: SoShape.card(c),
       child: Column(
         children: [
           for (var i = 0; i < children.length; i++) ...[
@@ -99,7 +96,9 @@ class SoListRow extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: context.soText.bodyStrong.copyWith(color: fg),
+                        style: context.textTheme.titleMedium?.copyWith(
+                          color: fg,
+                        ),
                       ),
                       if (subtitle != null)
                         Text(subtitle!, style: context.textTheme.bodySmall),

@@ -21,9 +21,22 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
   String _chip = 'all';
   bool _hidden = false;
 
+  /// Công tắc kính chỉ cho màn này: bọc màn bằng [SoGlassScope] riêng, không
+  /// đổi `glassEnabledProvider` của cả app.
+  bool _glass = true;
+
   @override
   Widget build(BuildContext context) {
+    return SoGlassScope(
+      enabled: _glass,
+      child: BackdropGroup(child: _scaffold(context)),
+    );
+  }
+
+  Widget _scaffold(BuildContext context) {
     return Scaffold(
+      extendBody: true,
+      extendBodyBehindAppBar: true,
       appBar: SoAppBar(
         title: context.l10n.devGalleryTitle,
         subtitle: 'lib/core/design',
@@ -48,34 +61,81 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
           SoNavItem(icon: LucideIcons.ellipsis, label: context.l10n.navMore),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: SoSpace.s40),
-        children: [
-          const SoMockBanner(message: 'Mọi số liệu ở màn này là ví dụ.'),
-          _Section(title: 'Logo', child: _logos()),
-          _Section(title: 'Màu', child: _swatches(context)),
-          _Section(title: 'Chữ', child: _typography(context)),
-          _Section(title: 'Nút', child: _buttons()),
-          _Section(title: 'Ô nhập', child: _fields()),
-          _Section(title: 'Chip & segmented', child: _chips()),
-          _Section(title: 'Nhãn', child: _tags()),
-          _Section(title: 'Ô chỉ số', child: _stats()),
-          _Section(title: 'Tồn kho', child: _stock()),
-          _Section(title: 'Hàng đơn', padded: false, child: _orders()),
-          _Section(title: 'Danh sách', child: _listRows()),
-          _Section(title: 'Banner', child: _banners()),
-          _Section(title: 'Toast & sheet', child: _overlays(context)),
-          _Section(title: 'Rỗng & lỗi', padded: false, child: _empty()),
-          const _Section(
-            title: 'Skeleton',
-            padded: false,
-            child: SoSkeletonList(count: 2),
-          ),
-          _Section(title: 'Tiến trình', child: _timeline()),
-        ],
+      body: SoAmbientBackground(
+        child: ListView(
+          padding: SoSpace.scrollable(context),
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(
+                SoSpace.screen,
+                SoSpace.s8,
+                SoSpace.screen,
+                0,
+              ),
+              child: SoMockBanner(message: 'Mọi số liệu ở màn này là ví dụ.'),
+            ),
+            _Section(title: 'Kính', child: _glassDemo()),
+            _Section(title: 'Logo', child: _logos()),
+            _Section(title: 'Màu', child: _swatches(context)),
+            _Section(title: 'Chữ', child: _typography(context)),
+            _Section(title: 'Nút', child: _buttons()),
+            _Section(title: 'Ô nhập', child: _fields()),
+            _Section(title: 'Chip & segmented', child: _chips()),
+            _Section(title: 'Nhãn', child: _tags()),
+            _Section(title: 'Ô chỉ số', child: _stats()),
+            _Section(title: 'Tồn kho', child: _stock()),
+            _Section(title: 'Hàng đơn', padded: false, child: _orders()),
+            _Section(title: 'Danh sách', child: _listRows()),
+            _Section(title: 'Banner', child: _banners()),
+            _Section(title: 'Toast & sheet', child: _overlays(context)),
+            _Section(title: 'Rỗng & lỗi', padded: false, child: _empty()),
+            const _Section(
+              title: 'Skeleton',
+              padded: false,
+              child: SoSkeletonList(count: 2),
+            ),
+            _Section(title: 'Tiến trình', child: _timeline()),
+          ],
+        ),
       ),
     );
   }
+
+  /// Công tắc kính + 3 độ dày kính trên nền loang. Tắt: kính vẽ nền surface
+  /// đặc, giống khi máy bật tương phản cao.
+  Widget _glassDemo() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      SoListGroup(
+        children: [
+          SoListRow(
+            title: 'Hiệu ứng kính',
+            subtitle: 'Tắt để xem bản dự phòng nền trắng đặc.',
+            trailing: Switch(
+              key: const Key('gallery_glass_toggle'),
+              value: _glass,
+              onChanged: (v) => setState(() => _glass = v),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: SoSpace.cardGap),
+      Row(
+        children: [
+          for (final (i, level) in SoGlassLevel.values.indexed) ...[
+            if (i > 0) const SizedBox(width: SoSpace.s8),
+            Expanded(
+              child: SoGlass(
+                level: level,
+                padding: SoSpace.card,
+                child: Text(level.name, style: context.textTheme.titleMedium),
+              ),
+            ),
+          ],
+        ],
+      ),
+    ],
+  );
 
   Widget _logos() => const Wrap(
     spacing: SoSpace.s24,
@@ -89,18 +149,20 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
     final swatches = <(String, Color)>[
       ('ground', c.ground),
       ('surface', c.surface),
-      ('surfaceSunken', c.surfaceSunken),
-      ('line', c.line),
-      ('lineControl', c.lineControl),
+      ('fill', c.fill),
+      ('fillStrong', c.fillStrong),
+      ('glassThin', c.glassThin),
+      ('glassRegular', c.glassRegular),
+      ('glassThick', c.glassThick),
       ('ink', c.ink),
       ('ink2', c.ink2),
       ('muted', c.muted),
       ('brand', c.brand),
       ('brandPress', c.brandPress),
       ('brandTint', c.brandTint),
-      ('kraft', c.kraft),
-      ('kraftTint', c.kraftTint),
-      ('kraftInk', c.kraftInk),
+      ('held', c.held),
+      ('info', c.info),
+      ('infoTint', c.infoTint),
       ('success', c.success),
       ('successTint', c.successTint),
       ('warning', c.warning),
@@ -134,17 +196,20 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
     final t = context.textTheme;
     final so = context.soText;
     final rows = <(String, TextStyle?, String)>[
-      ('display 32', t.headlineMedium, '3,87 tr'),
-      ('title-lg 24', t.titleLarge, 'Việc hôm nay'),
-      ('title-md 18', t.titleMedium, 'Chi tiết đơn'),
-      ('body-lg 16', t.bodyLarge, 'Một tài khoản cho mọi vai trò.'),
-      ('body 15', t.bodyMedium, 'Nhập số đếm được trong kho.'),
-      ('body-strong 15', so.bodyStrong, 'Áo thun cổ tròn'),
-      ('label 13', t.labelLarge, 'Mật khẩu'),
-      ('caption 12', t.bodySmall, 'Cập nhật 09:41'),
+      ('largeTitle 34', t.headlineLarge, 'Đơn hàng'),
+      ('title1 28', t.headlineMedium, 'Tổng quan cửa hàng'),
+      ('title2 22', t.titleLarge, 'Ghi nhận hoàn/trả'),
+      ('title3 20', so.title3, 'Đơn cần xử lý'),
+      ('headline 17', t.titleMedium, 'Áo thun cổ tròn'),
+      ('body 16', t.bodyLarge, 'Một tài khoản cho mọi vai trò.'),
+      ('callout 15', t.bodyMedium, 'Nhập số đếm được trong kho.'),
+      ('subhead 14', t.labelLarge, 'Mật khẩu'),
+      ('footnote 13', t.bodySmall, 'Cập nhật 09:41'),
+      ('caption 12', t.labelSmall, 'Chờ xử lý'),
+      ('metric 34', so.metric, '1.240'),
+      ('metricSm 22', so.metricSm, '3,87 tr'),
+      ('money 16', so.money, '318.000 ₫'),
       ('code 13', so.code, 'SKU-AT-001-M'),
-      ('numeral 15', so.numeral, '318.000 ₫'),
-      ('overline 11', so.overline, 'ĐƠN CẦN XỬ LÝ'),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -155,7 +220,7 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: so.overline),
+                Text(name, style: t.bodySmall),
                 Text(sample, style: style),
               ],
             ),
@@ -270,7 +335,7 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
     crossAxisAlignment: WrapCrossAlignment.center,
     children: [
       const SoStatusTag(label: 'Chờ xử lý', status: SoStatus.warning),
-      const SoStatusTag(label: 'Chờ giao', status: SoStatus.kraft),
+      const SoStatusTag(label: 'Chờ giao', status: SoStatus.brand),
       const SoStatusTag(label: 'Đang giao', status: SoStatus.info),
       const SoStatusTag(label: 'Hoàn tất', status: SoStatus.success),
       const SoStatusTag(label: 'Đã hủy', status: SoStatus.neutral),
@@ -351,7 +416,7 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
         amount: 1250000,
         productSummary: 'Quần jean ống suông',
         statusLabel: 'Chờ giao',
-        status: SoStatus.kraft,
+        status: SoStatus.brand,
         meta: 'Khách mẫu B · 08:15',
         onTap: () {},
       ),
@@ -539,7 +604,7 @@ class _Section extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: SoSpace.screen),
-            child: Text(title.toUpperCase(), style: context.soText.overline),
+            child: Text(title, style: context.soText.title3),
           ),
           const SizedBox(height: SoSpace.s8),
           Padding(
@@ -576,8 +641,8 @@ class _Swatch extends StatelessWidget {
           height: 40,
           decoration: BoxDecoration(
             color: color,
-            borderRadius: SoRadius.xsAll,
-            border: Border.all(color: c.line),
+            borderRadius: SoRadius.smAll,
+            border: Border.all(color: c.fillStrong),
           ),
         ),
         const SizedBox(height: SoSpace.s4),

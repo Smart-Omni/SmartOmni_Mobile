@@ -138,8 +138,7 @@ void main() {
 
     await tester.tap(find.text('Thêm'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const Key('logout_tile')));
-    await tester.pumpAndSettle();
+    await revealCentered(tester, find.byKey(const Key('logout_tile')));
     await tester.tap(find.byKey(const Key('logout_tile')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('logout_confirm')));

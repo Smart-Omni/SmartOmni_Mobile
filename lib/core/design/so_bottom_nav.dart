@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'so_glass.dart';
 import 'so_text.dart';
 import 'so_tokens.dart';
 
@@ -11,7 +12,12 @@ class SoNavItem {
   final Key? key;
 }
 
-/// Thanh điều hướng dưới cao 64. Mục đang chọn có ô 56×28 nền brandTint.
+/// Thanh tab kính nổi (docs/DESIGN.md bản 2, mục 5): capsule kính regular
+/// cao 64, cách mép trái/phải 16 và mép dưới 12 (cộng safe area). Mục đang
+/// chọn: viên brandTint sau icon, icon + chữ màu brand; mục khác màu ink2.
+///
+/// Scaffold chứa thanh này đặt `extendBody: true` để nội dung cuộn dưới kính;
+/// danh sách chừa chỗ ở cuối bằng `SoSpace.scrollable`.
 class SoBottomNav extends StatelessWidget {
   const SoBottomNav({
     super.key,
@@ -26,14 +32,17 @@ class SoBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.soColors;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: c.surface,
-        border: Border(top: BorderSide(color: c.line)),
+    final bottom = MediaQuery.paddingOf(context).bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        SoSpace.s16,
+        0,
+        SoSpace.s16,
+        SoSpace.s12 + bottom,
       ),
-      child: SafeArea(
-        top: false,
+      child: SoGlass(
+        borderRadius: SoRadius.capsuleAll,
+        padding: const EdgeInsets.symmetric(horizontal: SoSpace.s4),
         child: SizedBox(
           height: SoSize.bottomNav,
           child: Row(
@@ -76,31 +85,32 @@ class _NavButton extends StatelessWidget {
       button: true,
       label: item.label,
       excludeSemantics: true,
-      child: InkResponse(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        containedInkWell: true,
-        highlightShape: BoxShape.rectangle,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 56,
-              height: 28,
+            AnimatedContainer(
+              duration: SoMotion.normal,
+              curve: SoMotion.curve,
+              width: 52,
+              height: 30,
               alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: selected ? c.brandTint : null,
-                borderRadius: SoRadius.smAll,
+              decoration: ShapeDecoration(
+                color: selected
+                    ? c.brandTint
+                    : c.brandTint.withValues(alpha: 0),
+                shape: SoShape.squircle(SoRadius.capsuleAll),
               ),
-              child: Icon(item.icon, size: SoSize.icon, color: fg),
+              child: Icon(item.icon, size: SoSize.iconNav, color: fg),
             ),
-            const SizedBox(height: SoSpace.s4),
+            const SizedBox(height: 2),
             Text(
               item.label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: context.soText.navLabel.copyWith(
-                color: selected ? c.ink : c.ink2,
-              ),
+              style: context.textTheme.labelSmall?.copyWith(color: fg),
             ),
           ],
         ),

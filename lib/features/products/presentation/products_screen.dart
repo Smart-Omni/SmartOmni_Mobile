@@ -52,6 +52,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
     final activeCount = products.where((p) => p.active).length;
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: SoAppBar.root(
         title: 'Sản phẩm',
         actions: [
@@ -71,92 +72,123 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
             onPressed: () => context.push(Routes.merchantProductCreate),
           ),
         ],
-      ),
-      body: Column(
-        children: [
-          const SoMockBanner(
-            message: 'Danh sách sản phẩm là dữ liệu mẫu, backend chưa có API.',
-          ),
-          ColoredBox(
-            color: context.soColors.surface,
-            child: Padding(
-              padding: const EdgeInsets.all(SoSpace.screen),
-              child: Column(
-                children: [
-                  if (_searching) ...[
-                    TextField(
-                      key: const Key('products_search_field'),
-                      controller: _searchCtrl,
-                      autofocus: true,
-                      onChanged: (_) => setState(() {}),
-                      style: context.textTheme.bodyMedium,
-                      decoration: const InputDecoration(
-                        hintText: 'Tên sản phẩm hoặc mã SKU',
-                        prefixIcon: Icon(
-                          LucideIcons.search,
-                          size: SoSize.iconSmall,
-                        ),
-                        constraints: BoxConstraints(minHeight: SoSize.control),
+        bottom: _StickyBar(
+          searching: _searching,
+          child: Column(
+            children: [
+              if (_searching) ...[
+                SizedBox(
+                  height: SoSize.input,
+                  child: TextField(
+                    key: const Key('products_search_field'),
+                    controller: _searchCtrl,
+                    autofocus: true,
+                    onChanged: (_) => setState(() {}),
+                    style: context.textTheme.bodyMedium,
+                    decoration: const InputDecoration(
+                      hintText: 'Tên sản phẩm hoặc mã SKU',
+                      prefixIcon: Icon(
+                        LucideIcons.search,
+                        size: SoSize.iconSmall,
                       ),
+                      constraints: BoxConstraints(minHeight: SoSize.control),
                     ),
-                    const SizedBox(height: SoSpace.s12),
-                  ],
-                  SoSegmented<bool>(
-                    key: const Key('products_segmented'),
-                    selected: _showHidden,
-                    onChanged: (v) => setState(() => _showHidden = v),
-                    segments: [
-                      SoSegment(value: false, label: 'Đang bán · $activeCount'),
-                      SoSegment(
-                        value: true,
-                        label: 'Đã ẩn · ${products.length - activeCount}',
-                      ),
-                    ],
+                  ),
+                ),
+                const SizedBox(height: SoSpace.s8),
+              ],
+              SoSegmented<bool>(
+                key: const Key('products_segmented'),
+                selected: _showHidden,
+                onChanged: (v) => setState(() => _showHidden = v),
+                segments: [
+                  SoSegment(value: false, label: 'Đang bán · $activeCount'),
+                  SoSegment(
+                    value: true,
+                    label: 'Đã ẩn · ${products.length - activeCount}',
                   ),
                 ],
               ),
+            ],
+          ),
+        ),
+      ),
+      body: SoAmbientBackground(
+        child: switch (async) {
+          AsyncData(:final value) => RefreshIndicator(
+            edgeOffset: MediaQuery.paddingOf(context).top,
+            onRefresh: () async {
+              ref
+                ..invalidate(productsListProvider)
+                ..invalidate(inventoryListProvider);
+              await ref.read(productsListProvider.future);
+            },
+            child: _ProductList(
+              products: value
+                  .where((p) => p.active != _showHidden)
+                  .where(_matches)
+                  .toList(),
+              stock: stock,
+              searching: _searchCtrl.text.trim().isNotEmpty,
+              showHidden: _showHidden,
             ),
           ),
-          Divider(color: context.soColors.line),
-          Expanded(
-            child: switch (async) {
-              AsyncData(:final value) => RefreshIndicator(
-                onRefresh: () async {
-                  ref
-                    ..invalidate(productsListProvider)
-                    ..invalidate(inventoryListProvider);
-                  await ref.read(productsListProvider.future);
-                },
-                child: _ProductList(
-                  products: value
-                      .where((p) => p.active != _showHidden)
-                      .where(_matches)
-                      .toList(),
-                  stock: stock,
-                  searching: _searchCtrl.text.trim().isNotEmpty,
-                  showHidden: _showHidden,
-                ),
+          AsyncError(:final error) => ListView(
+            padding: SoSpace.scrollable(context),
+            children: [
+              SoEmptyState.error(
+                title: 'Không tải được sản phẩm',
+                message: AsyncValueView.errorMessage(error),
+                onAction: () => ref.invalidate(productsListProvider),
               ),
-              AsyncError(:final error) => ListView(
-                children: [
-                  SoEmptyState.error(
-                    title: 'Không tải được sản phẩm',
-                    message: AsyncValueView.errorMessage(error),
-                    onAction: () => ref.invalidate(productsListProvider),
-                  ),
-                ],
-              ),
-              _ => const SingleChildScrollView(
-                physics: NeverScrollableScrollPhysics(),
-                child: SoSkeletonList(count: 5),
-              ),
-            },
+            ],
           ),
-        ],
+          _ => SingleChildScrollView(
+            physics: const NeverScrollableScrollPhysics(),
+            padding: SoSpace.scrollable(context),
+            child: const SoSkeletonList(count: 5),
+          ),
+        },
       ),
     );
   }
 }
+
+/// Phần dính dưới AppBar (chung tấm kính): ô tìm (khi bật) + segmented.
+class _StickyBar extends StatelessWidget implements PreferredSizeWidget {
+  const _StickyBar({required this.searching, required this.child});
+
+  final bool searching;
+  final Widget child;
+
+  @override
+  Size get preferredSize => Size.fromHeight(
+    SoSpace.s8 +
+        (searching ? SoSize.input + SoSpace.s8 : 0) +
+        // SoSegmented: viên 36 + rãnh 4 mỗi bên.
+        SoSize.controlSmall +
+        SoSpace.s8 +
+        SoSpace.s12,
+  );
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(
+      SoSpace.screen,
+      SoSpace.s8,
+      SoSpace.screen,
+      SoSpace.s12,
+    ),
+    child: child,
+  );
+}
+
+const _mockBanner = Padding(
+  padding: EdgeInsets.fromLTRB(SoSpace.screen, SoSpace.s8, SoSpace.screen, 0),
+  child: SoMockBanner(
+    message: 'Danh sách sản phẩm là dữ liệu mẫu, backend chưa có API.',
+  ),
+);
 
 class _ProductList extends StatelessWidget {
   const _ProductList({
@@ -175,7 +207,9 @@ class _ProductList extends StatelessWidget {
   Widget build(BuildContext context) {
     if (products.isEmpty) {
       return ListView(
+        padding: SoSpace.scrollable(context),
         children: [
+          _mockBanner,
           if (searching)
             const SoEmptyState(
               icon: LucideIcons.searchX,
@@ -198,14 +232,18 @@ class _ProductList extends StatelessWidget {
         ],
       );
     }
+    // Mục 0 là viên "Dữ liệu mẫu", sản phẩm bắt đầu từ mục 1.
     return ListView.separated(
-      padding: const EdgeInsets.only(bottom: SoSpace.s24),
-      itemCount: products.length,
-      separatorBuilder: (_, _) => const Divider(),
-      itemBuilder: (_, i) => _ProductRow(
-        product: products[i],
-        level: productStockLevel(products[i], stock),
-      ),
+      padding: SoSpace.scrollable(context),
+      itemCount: products.length + 1,
+      separatorBuilder: (_, i) =>
+          i == 0 ? const SizedBox(height: SoSpace.s12) : const Divider(),
+      itemBuilder: (_, i) => i == 0
+          ? _mockBanner
+          : _ProductRow(
+              product: products[i - 1],
+              level: productStockLevel(products[i - 1], stock),
+            ),
     );
   }
 }
@@ -239,8 +277,8 @@ class _ProductRow extends StatelessWidget {
                 width: 56,
                 height: 70,
                 decoration: BoxDecoration(
-                  color: c.surfaceSunken,
-                  borderRadius: SoRadius.smAll,
+                  color: c.fill,
+                  borderRadius: SoRadius.mdAll,
                 ),
                 child: Icon(
                   LucideIcons.image,
@@ -257,7 +295,7 @@ class _ProductRow extends StatelessWidget {
                       p.name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: context.soText.bodyStrong,
+                      style: context.textTheme.titleMedium,
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -289,7 +327,7 @@ class _ProductRow extends StatelessWidget {
                     Text('từ', style: context.textTheme.bodySmall),
                     Text(
                       Formatters.vnd(p.minPrice),
-                      style: context.soText.numeral,
+                      style: context.soText.money,
                     ),
                   ],
                   const SizedBox(height: SoSpace.s8),

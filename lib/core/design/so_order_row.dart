@@ -58,7 +58,7 @@ class SoOrderRow extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: SoSpace.s12),
-                  Text(Formatters.vnd(amount), style: context.soText.numeral),
+                  Text(Formatters.vnd(amount), style: context.soText.money),
                 ],
               ),
               const SizedBox(height: SoSpace.s8),

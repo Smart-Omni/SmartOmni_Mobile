@@ -10,7 +10,7 @@ class SoSegment<T> {
   final String label;
 }
 
-/// Nút chuyển đổi: rãnh surfaceSunken, mục đang chọn nền trắng viền line.
+/// Nút chuyển đổi: rãnh fill, mục đang chọn nền trắng.
 class SoSegmented<T> extends StatelessWidget {
   const SoSegmented({
     super.key,
@@ -28,10 +28,7 @@ class SoSegmented<T> extends StatelessWidget {
     final c = context.soColors;
     return Container(
       padding: const EdgeInsets.all(SoSpace.s4),
-      decoration: BoxDecoration(
-        color: c.surfaceSunken,
-        borderRadius: SoRadius.smAll,
-      ),
+      decoration: BoxDecoration(color: c.fill, borderRadius: SoRadius.mdAll),
       child: Row(
         children: [
           for (final s in segments)
@@ -49,8 +46,8 @@ class SoSegmented<T> extends StatelessWidget {
                     decoration: s.value == selected
                         ? BoxDecoration(
                             color: c.surface,
-                            borderRadius: SoRadius.xsAll,
-                            border: Border.all(color: c.line),
+                            borderRadius: SoRadius.smAll,
+                            border: Border.all(color: c.fillStrong),
                           )
                         : null,
                     child: Text(

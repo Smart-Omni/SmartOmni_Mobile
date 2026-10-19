@@ -110,11 +110,16 @@ class _StockSheetState extends ConsumerState<StockSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(title, style: context.soText.bodyStrong),
+            Text(title, style: context.textTheme.titleMedium),
             const SizedBox(height: SoSpace.s8),
             Row(children: [Flexible(child: SoCodeTag(item.skuCode))]),
             const SizedBox(height: SoSpace.s16),
-            Text('HIỆN TẠI', style: context.soText.overline),
+            Text(
+              'Hiện tại',
+              style: context.textTheme.bodySmall?.copyWith(
+                color: context.soColors.ink2,
+              ),
+            ),
             const SizedBox(height: SoSpace.s8),
             SoStockMeter(
               onHand: item.quantityOnHand,

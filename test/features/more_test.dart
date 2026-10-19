@@ -33,8 +33,8 @@ void main() {
     expect(find.text('staff@demo.vn'), findsOneWidget);
     expect(find.text('Nhân viên · Cửa hàng #1'), findsOneWidget);
     expect(find.text('TENANT-1'), findsOneWidget);
-    expect(find.text('CÔNG CỤ'), findsOneWidget);
-    expect(find.text('QUẢN TRỊ CỬA HÀNG'), findsNothing);
+    expect(find.text('Công cụ'), findsOneWidget);
+    expect(find.text('Quản trị cửa hàng'), findsNothing);
     expect(find.byKey(const Key('menu_marketplace')), findsNothing);
 
     await tapVisible(tester, find.byKey(const Key('menu_ai')));
@@ -46,7 +46,7 @@ void main() {
   ) async {
     await _openMore(tester, 'admin@demo.vn');
 
-    expect(find.text('QUẢN TRỊ CỬA HÀNG'), findsOneWidget);
+    expect(find.text('Quản trị cửa hàng'), findsOneWidget);
     expect(_tag(tester, 'connection_shopee'), 'Đã kết nối');
     expect(_tag(tester, 'connection_tiktokShop'), 'Chưa kết nối');
 

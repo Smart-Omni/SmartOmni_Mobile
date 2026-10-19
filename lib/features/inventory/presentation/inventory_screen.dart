@@ -32,44 +32,39 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   Widget build(BuildContext context) {
     final async = ref.watch(inventoryListProvider);
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: const SoAppBar.root(title: 'Tồn kho'),
-      body: Column(
-        children: [
-          const SoMockBanner(
-            message:
-                'Danh sách tồn kho là dữ liệu mẫu. Lưu số tồn gọi API thật '
-                'khi tắt chế độ mock.',
-          ),
-          Expanded(
-            child: switch (async) {
-              AsyncData(:final value) => RefreshIndicator(
-                onRefresh: () async {
-                  ref.invalidate(inventoryListProvider);
-                  await ref.read(inventoryListProvider.future);
-                },
-                child: _InventoryBody(
-                  items: value,
-                  filter: _filter,
-                  onFilter: (f) => setState(() => _filter = f),
-                  onTap: _adjust,
-                ),
-              ),
-              AsyncError(:final error) => ListView(
-                children: [
-                  SoEmptyState.error(
-                    title: 'Không tải được tồn kho',
-                    message: AsyncValueView.errorMessage(error),
-                    onAction: () => ref.invalidate(inventoryListProvider),
-                  ),
-                ],
-              ),
-              _ => const SingleChildScrollView(
-                physics: NeverScrollableScrollPhysics(),
-                child: SoSkeletonList(count: 6),
-              ),
+      body: SoAmbientBackground(
+        child: switch (async) {
+          AsyncData(:final value) => RefreshIndicator(
+            edgeOffset: MediaQuery.paddingOf(context).top,
+            onRefresh: () async {
+              ref.invalidate(inventoryListProvider);
+              await ref.read(inventoryListProvider.future);
             },
+            child: _InventoryBody(
+              items: value,
+              filter: _filter,
+              onFilter: (f) => setState(() => _filter = f),
+              onTap: _adjust,
+            ),
           ),
-        ],
+          AsyncError(:final error) => ListView(
+            padding: SoSpace.scrollable(context),
+            children: [
+              SoEmptyState.error(
+                title: 'Không tải được tồn kho',
+                message: AsyncValueView.errorMessage(error),
+                onAction: () => ref.invalidate(inventoryListProvider),
+              ),
+            ],
+          ),
+          _ => SingleChildScrollView(
+            physics: const NeverScrollableScrollPhysics(),
+            padding: SoSpace.scrollable(context),
+            child: const SoSkeletonList(count: 6),
+          ),
+        },
       ),
     );
   }
@@ -95,8 +90,21 @@ class _InventoryBody extends StatelessWidget {
     final visible = items.where(filter.matches).toList();
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: SoSpace.s24),
+      padding: SoSpace.scrollable(context),
       children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(
+            SoSpace.screen,
+            SoSpace.s8,
+            SoSpace.screen,
+            0,
+          ),
+          child: SoMockBanner(
+            message:
+                'Danh sách tồn kho là dữ liệu mẫu. Lưu số tồn gọi API thật '
+                'khi tắt chế độ mock.',
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(
             SoSpace.screen,
@@ -106,17 +114,15 @@ class _InventoryBody extends StatelessWidget {
           ),
           child: Container(
             padding: const EdgeInsets.all(SoSpace.s16),
-            decoration: BoxDecoration(
-              color: c.surface,
-              borderRadius: SoRadius.mdAll,
-              border: Border.all(color: c.line),
-            ),
+            decoration: SoShape.card(c),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'TOÀN KHO · ${items.length} SKU',
-                  style: context.soText.overline,
+                  'Toàn kho · ${items.length} SKU',
+                  style: context.textTheme.bodySmall?.copyWith(
+                    color: context.soColors.ink2,
+                  ),
                 ),
                 const SizedBox(height: SoSpace.s12),
                 SoStockMeter(
@@ -164,7 +170,9 @@ class _InventoryBody extends StatelessWidget {
         else
           DecoratedBox(
             decoration: BoxDecoration(
-              border: Border.symmetric(horizontal: BorderSide(color: c.line)),
+              border: Border.symmetric(
+                horizontal: BorderSide(color: c.fillStrong),
+              ),
             ),
             child: Column(
               children: [
@@ -209,7 +217,7 @@ class _StockRow extends StatelessWidget {
                       title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: context.soText.bodyStrong,
+                      style: context.textTheme.titleMedium,
                     ),
                     const SizedBox(height: SoSpace.s4),
                     SoCodeTag(item.skuCode),
@@ -227,7 +235,7 @@ class _StockRow extends StatelessWidget {
                 children: [
                   Text(
                     Formatters.number(item.available),
-                    style: context.soText.numeral.copyWith(
+                    style: context.soText.money.copyWith(
                       color: item.level.numberColor(c),
                     ),
                   ),

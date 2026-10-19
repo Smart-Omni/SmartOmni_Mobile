@@ -6,6 +6,7 @@
 library;
 
 export 'so_action_bar.dart';
+export 'so_ambient_background.dart';
 export 'so_app_bar.dart';
 export 'so_bottom_nav.dart';
 export 'so_bottom_sheet.dart';
@@ -13,6 +14,7 @@ export 'so_button.dart';
 export 'so_colors.dart';
 export 'so_feedback.dart';
 export 'so_filter_chip.dart';
+export 'so_glass.dart';
 export 'so_list.dart';
 export 'so_logo.dart';
 export 'so_order_row.dart';

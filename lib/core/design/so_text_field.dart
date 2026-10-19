@@ -62,7 +62,7 @@ class SoTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.soColors;
     final textStyle = mono
-        ? context.soText.numeral
+        ? context.soText.code.copyWith(fontSize: 16, height: 22 / 16)
         : context.textTheme.bodyMedium;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -101,8 +101,8 @@ class SoTextField extends StatelessWidget {
                   ),
             prefixIcon: prefix,
             suffixIcon: suffix,
-            fillColor: enabled ? c.surface : c.surfaceSunken,
-            constraints: const BoxConstraints(minHeight: SoSize.control),
+            fillColor: enabled ? c.surface : c.fill,
+            constraints: const BoxConstraints(minHeight: SoSize.input),
           ),
         ),
       ],

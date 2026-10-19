@@ -16,11 +16,7 @@ class DashboardCard extends StatelessWidget {
     final c = context.soColors;
     return Container(
       padding: const EdgeInsets.all(SoSpace.s16),
-      decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: SoRadius.mdAll,
-        border: Border.all(color: c.line),
-      ),
+      decoration: SoShape.card(c),
       child: child,
     );
   }
@@ -46,7 +42,7 @@ class RevenueByChannelCard extends StatelessWidget {
                 Expanded(child: SoChannelTag(platform: platform)),
                 Text(
                   Formatters.vnd(summary.revenueByChannel[platform] ?? 0),
-                  style: context.soText.numeral,
+                  style: context.soText.money,
                 ),
               ],
             ),
@@ -55,11 +51,11 @@ class RevenueByChannelCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: ClipRRect(
-                    borderRadius: SoRadius.xsAll,
+                    borderRadius: SoRadius.smAll,
                     child: SizedBox(
                       height: 8,
                       child: ColoredBox(
-                        color: c.surfaceSunken,
+                        color: c.fill,
                         child: FractionallySizedBox(
                           alignment: Alignment.centerLeft,
                           widthFactor: summary.channelShare(platform),
@@ -136,7 +132,7 @@ class _Revenue7DaysCardState extends State<Revenue7DaysCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Tổng 7 ngày', style: context.textTheme.bodySmall),
-          Text(Formatters.vnd(total), style: context.soText.numeral),
+          Text(Formatters.vnd(total), style: context.soText.money),
           const SizedBox(height: SoSpace.s16),
           Semantics(
             label: 'Doanh thu 7 ngày: $description',
@@ -223,14 +219,14 @@ class _Column extends StatelessWidget {
                       ? Border.all(color: c.brand)
                       : null,
                   borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(SoRadius.xs),
+                    top: Radius.circular(SoRadius.sm),
                   ),
                 ),
               ),
             ),
           ),
         ),
-        Divider(height: 1, color: c.line),
+        Divider(height: 1, color: c.fillStrong),
         SizedBox(
           height: labelHeight + 4,
           child: Align(

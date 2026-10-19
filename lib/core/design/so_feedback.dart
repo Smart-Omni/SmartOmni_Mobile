@@ -39,7 +39,7 @@ class SoBanner extends StatelessWidget {
     };
     return Container(
       padding: const EdgeInsets.all(SoSpace.s12),
-      decoration: BoxDecoration(color: bg, borderRadius: SoRadius.smAll),
+      decoration: BoxDecoration(color: bg, borderRadius: SoRadius.mdAll),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -49,7 +49,7 @@ class SoBanner extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: context.soText.bodyStrong),
+                Text(title, style: context.textTheme.titleMedium),
                 if (message != null) ...[
                   const SizedBox(height: 2),
                   Text(message!, style: context.textTheme.bodyMedium),
@@ -107,14 +107,8 @@ class SoToast extends StatelessWidget {
       padding: const EdgeInsets.only(left: SoSpace.s16, right: SoSpace.s4),
       decoration: BoxDecoration(
         color: c.ink,
-        borderRadius: SoRadius.smAll,
-        boxShadow: [
-          BoxShadow(
-            color: c.shadowToast,
-            offset: const Offset(0, 2),
-            blurRadius: 8,
-          ),
-        ],
+        borderRadius: SoRadius.mdAll,
+        boxShadow: SoShadow.glass(c.shadowTint),
       ),
       child: Row(
         children: [
@@ -213,8 +207,8 @@ class SoEmptyState extends StatelessWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: isError ? c.dangerTint : c.surfaceSunken,
-              borderRadius: SoRadius.smAll,
+              color: isError ? c.dangerTint : c.fill,
+              borderRadius: SoRadius.mdAll,
             ),
             child: Icon(icon, color: isError ? c.danger : c.ink2),
           ),
@@ -243,7 +237,7 @@ class SoSkeleton extends StatelessWidget {
     super.key,
     this.width,
     required this.height,
-    this.radius = SoRadius.xs,
+    this.radius = SoRadius.sm,
   });
 
   final double? width;
@@ -256,7 +250,7 @@ class SoSkeleton extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: context.soColors.surfaceSunken,
+        color: context.soColors.fill,
         borderRadius: BorderRadius.circular(radius),
       ),
     );
@@ -279,7 +273,7 @@ class SoSkeletonList extends StatelessWidget {
             padding: SoSpace.card,
             decoration: BoxDecoration(
               color: c.surface,
-              border: Border(bottom: BorderSide(color: c.line)),
+              border: Border(bottom: BorderSide(color: c.fillStrong)),
             ),
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -303,7 +297,8 @@ class SoSkeletonList extends StatelessWidget {
   }
 }
 
-/// Dải "DỮ LIỆU MẪU" dưới AppBar cho chức năng backend chưa có API.
+/// Viên "Dữ liệu mẫu" dưới AppBar (đầu danh sách) cho chức năng backend chưa
+/// có API.
 class SoMockBanner extends StatelessWidget {
   const SoMockBanner({super.key, this.message});
 
@@ -316,9 +311,12 @@ class SoMockBanner extends StatelessWidget {
     final l10n = context.l10n;
     return Container(
       width: double.infinity,
-      color: c.brandTint,
+      decoration: ShapeDecoration(
+        color: c.brandTint,
+        shape: SoShape.squircle(SoRadius.capsuleAll),
+      ),
       padding: const EdgeInsets.symmetric(
-        horizontal: SoSpace.screen,
+        horizontal: SoSpace.s16,
         vertical: SoSpace.s8,
       ),
       child: Row(
@@ -328,7 +326,10 @@ class SoMockBanner extends StatelessWidget {
             padding: const EdgeInsets.only(top: 1),
             child: Text(
               l10n.mockDataLabel,
-              style: context.soText.overline.copyWith(color: c.brand),
+              style: context.textTheme.bodySmall?.copyWith(
+                color: c.brand,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           const SizedBox(width: SoSpace.s8),
