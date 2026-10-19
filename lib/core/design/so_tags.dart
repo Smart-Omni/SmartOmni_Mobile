@@ -58,7 +58,8 @@ class SoStatusTag extends StatelessWidget {
   }
 }
 
-/// Nhãn hạng khách hàng, chữ caption 600.
+/// Nhãn hạng khách hàng: capsule cao 24 (bản lớn 32), chữ caption 600, màu
+/// theo hạng (DESIGN.md mục 2). Không viền.
 class SoTierBadge extends StatelessWidget {
   const SoTierBadge({super.key, required this.tier, this.large = false});
 
@@ -82,12 +83,9 @@ class SoTierBadge extends StatelessWidget {
         horizontal: large ? SoSpace.s12 : SoSpace.s8,
       ),
       alignment: Alignment.center,
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: bg,
-        borderRadius: SoRadius.smAll,
-        border: tier == LoyaltyTier.standard
-            ? Border.all(color: c.fillStrong)
-            : null,
+        shape: SoShape.squircle(SoRadius.capsuleAll),
       ),
       child: Text(
         tier.label,
@@ -167,7 +165,8 @@ class SoCodeTag extends StatelessWidget {
   }
 }
 
-/// Nhãn "AI" cho nội dung do AI gợi ý.
+/// Nhãn "AI" cho nội dung do AI gợi ý: capsule nền brandTint, chữ caption
+/// 600 màu brand.
 class SoAiLabel extends StatelessWidget {
   const SoAiLabel({super.key});
 
@@ -175,10 +174,10 @@ class SoAiLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.soColors;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.symmetric(horizontal: SoSpace.s8, vertical: 2),
+      decoration: ShapeDecoration(
         color: c.brandTint,
-        borderRadius: SoRadius.smAll,
+        shape: SoShape.squircle(SoRadius.capsuleAll),
       ),
       child: Text(
         'AI',

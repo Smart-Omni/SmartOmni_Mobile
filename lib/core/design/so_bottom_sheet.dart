@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'so_glass.dart';
 import 'so_text.dart';
 import 'so_tokens.dart';
 
@@ -19,7 +20,8 @@ Future<T?> showSoBottomSheet<T>({
   );
 }
 
-/// Sheet thao tác nhanh: tay kéo, tiêu đề, nội dung, thanh nút dưới
+/// Sheet thao tác nhanh trên kính dày, bo trên 28: tay kéo, tiêu đề
+/// title2, nội dung, thanh nút dưới
 /// (nút phụ chiếm 1 phần, nút chính 2 phần).
 class SoBottomSheet extends StatelessWidget {
   const SoBottomSheet({
@@ -47,12 +49,9 @@ class SoBottomSheet extends StatelessWidget {
 
     return Padding(
       padding: EdgeInsets.only(bottom: insets),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: c.surface,
-          borderRadius: SoRadius.sheetTop,
-          boxShadow: SoShadow.glass(c.shadowTint),
-        ),
+      child: SoGlass(
+        level: SoGlassLevel.thick,
+        borderRadius: SoRadius.sheetTop,
         child: SafeArea(
           top: false,
           child: Column(
@@ -63,10 +62,10 @@ class SoBottomSheet extends StatelessWidget {
               Center(
                 child: Container(
                   width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
+                  height: 5,
+                  decoration: ShapeDecoration(
                     color: c.fillStrong,
-                    borderRadius: const BorderRadius.all(Radius.circular(2)),
+                    shape: SoShape.squircle(SoRadius.capsuleAll),
                   ),
                 ),
               ),
@@ -77,7 +76,7 @@ class SoBottomSheet extends StatelessWidget {
                   SoSpace.s16,
                   SoSpace.s12,
                 ),
-                child: Text(title, style: context.textTheme.titleMedium),
+                child: Text(title, style: context.textTheme.titleLarge),
               ),
               Flexible(
                 child: SingleChildScrollView(
