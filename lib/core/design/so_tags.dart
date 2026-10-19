@@ -141,7 +141,8 @@ class SoChannelTag extends StatelessWidget {
   }
 }
 
-/// Mã đơn / mã SKU: khung viền 1px ink, chữ mono 12, như in trên tem.
+/// Mã đơn / mã SKU / email demo: nền `fill`, bo squircle `sm` 10, chữ
+/// `code` (JetBrains Mono 13), không viền.
 class SoCodeTag extends StatelessWidget {
   const SoCodeTag(this.code, {super.key});
 
@@ -151,16 +152,16 @@ class SoCodeTag extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.soColors;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        borderRadius: SoRadius.smAll,
-        border: Border.all(color: c.ink),
+      padding: const EdgeInsets.symmetric(horizontal: SoSpace.s8, vertical: 3),
+      decoration: ShapeDecoration(
+        color: c.fill,
+        shape: SoShape.squircle(SoRadius.smAll),
       ),
       child: Text(
         code,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: context.soText.code.copyWith(fontSize: 12, height: 16 / 12),
+        style: context.soText.code.copyWith(color: c.ink),
       ),
     );
   }
