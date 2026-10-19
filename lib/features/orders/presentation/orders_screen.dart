@@ -136,7 +136,7 @@ class _FilterBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget> chips;
 
   static const double _searchHeight = SoSpace.s8 + SoSize.input;
-  static const double _chipsHeight = SoSize.controlSmall + SoSpace.s12 * 2;
+  static const double _chipsHeight = SoSize.chip + SoSpace.s12 * 2;
 
   @override
   Size get preferredSize =>
