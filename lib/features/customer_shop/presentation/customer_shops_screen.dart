@@ -12,21 +12,23 @@ import '../../../core/utils/input_formatters.dart';
 import '../domain/customer_shop.dart';
 import 'customer_shop_providers.dart';
 
+/// Mở sheet "Thêm cửa hàng" (C-00, C-40). Tham gia xong: cửa hàng mới thành
+/// cửa hàng đang xem, về C-10 kèm toast.
+Future<void> showAddShopSheet(BuildContext context) async {
+  final joined = await showSoBottomSheet<CustomerShop>(
+    context: context,
+    builder: (_) => const _AddShopSheet(),
+  );
+  if (joined == null || !context.mounted) return;
+  // Toast đi qua ScaffoldMessenger nên vẫn hiện ở C-10 sau khi chuyển màn.
+  showSoToast(context, 'Đã tham gia ${joined.name}');
+  context.go(Routes.customerShop);
+}
+
 /// C-00 Cửa hàng của bạn (DESIGN.md mục 8b): danh sách cửa hàng đã tham
 /// gia, chạm để đổi cửa hàng đang xem; "Thêm cửa hàng" mở sheet nhập mã.
 class CustomerShopsScreen extends ConsumerWidget {
   const CustomerShopsScreen({super.key});
-
-  Future<void> _add(BuildContext context) async {
-    final joined = await showSoBottomSheet<CustomerShop>(
-      context: context,
-      builder: (_) => const _AddShopSheet(),
-    );
-    if (joined == null || !context.mounted) return;
-    // Toast đi qua ScaffoldMessenger nên vẫn hiện ở C-10 sau khi chuyển màn.
-    showSoToast(context, 'Đã tham gia ${joined.name}');
-    context.go(Routes.customerShop);
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -56,7 +58,7 @@ class CustomerShopsScreen extends ConsumerWidget {
                         message:
                             'Nhập mã cửa hàng để xem sản phẩm và tích điểm.',
                         actionLabel: 'Thêm cửa hàng',
-                        onAction: () => _add(context),
+                        onAction: () => showAddShopSheet(context),
                       )
                     else ...[
                       for (final (i, shop) in shops.indexed) ...[
@@ -78,7 +80,7 @@ class CustomerShopsScreen extends ConsumerWidget {
                         label: 'Thêm cửa hàng',
                         icon: LucideIcons.plus,
                         expand: true,
-                        onPressed: () => _add(context),
+                        onPressed: () => showAddShopSheet(context),
                       ),
                     ],
                   ],
