@@ -52,7 +52,7 @@ C-40 (`customer_account_screen.dart`) đã dùng design system một phần; rà
 - [x] Nhánh 1: M-31 · M-32 · M-51 (PR #17, xong 20/10/2026). Kèm `SoScaffold` + `SoAppBar` dạng sliver cho mọi màn Merchant, A-03, A-04, C-40
 - [x] Nhánh 1b `feature/ui-marketplace`: T-10 (danh sách sàn + sheet App Key; OAuth để sau), xong 20/10/2026. Danh sách, ngắt kết nối, công tắc tự nhập chạy mock; kết nối App Key gọi API thật
 - [x] Nhánh 2: mục 8b DESIGN.md — viết xong 20/10/2026 cho **mọi màn còn lại** (kể cả M-22, M-60/61, T-10…T-50, C-12) từ mockup glass 41 màn
-- [ ] Nhánh 3: C-00 · SoShopSwitcher · C-10 · C-11
+- [x] Nhánh 3: C-00 · SoShopSwitcher · C-10 · C-11, xong 20/10/2026. Nhiều cửa hàng chạy mock (`CustomerShopRepository`, `currentShopProvider`); quét QR mã cửa hàng để sau (nút báo "sắp có")
 - [ ] Nhánh 4: C-20 · C-30 · C-40
 - [ ] Nhánh 5: A-05 (+ OTP)
 

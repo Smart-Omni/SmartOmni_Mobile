@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:smartomni_mobile/core/design/design.dart';
+import 'package:smartomni_mobile/features/auth/data/auth_mock_repository.dart';
 import 'package:smartomni_mobile/features/customer_shop/presentation/customer_shops_screen.dart';
 
 import '../helpers/test_app.dart';
@@ -106,5 +108,33 @@ void main() {
     await tester.pumpAndSettle();
     await _typeCode(tester, 'bepxinh');
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Đăng xuất rồi đăng nhập lại: không giữ cửa hàng đã chọn', (
+    tester,
+  ) async {
+    await _openShops(tester);
+    await tester.tap(find.byKey(const Key('shop_2')));
+    await tester.pumpAndSettle();
+    expect(_switcherName(tester), 'Hoa Mộc Cosmetics');
+
+    await tester.tap(find.byIcon(LucideIcons.user));
+    await tester.pumpAndSettle();
+    await tapVisible(tester, find.byKey(const Key('logout_tile')));
+    await tester.tap(find.byKey(const Key('logout_confirm')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('login_email')),
+      'customer@demo.vn',
+    );
+    await tester.enterText(
+      find.byKey(const Key('login_password')),
+      MockAccounts.password,
+    );
+    await tester.tap(find.byKey(const Key('login_submit')));
+    await tester.pumpAndSettle();
+
+    expect(_switcherName(tester), 'Shop Demo');
   });
 }

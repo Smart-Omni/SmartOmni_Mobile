@@ -1,13 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartomni_mobile/core/network/api_exception.dart';
 import 'package:smartomni_mobile/core/utils/mock_delay.dart';
+import 'package:smartomni_mobile/features/auth/presentation/auth_controller.dart';
 import 'package:smartomni_mobile/features/customer_shop/data/customer_shop_mock_repository.dart';
 import 'package:smartomni_mobile/features/customer_shop/domain/customer_shop.dart';
 import 'package:smartomni_mobile/features/customer_shop/presentation/customer_shop_providers.dart';
 import 'package:smartomni_mobile/features/loyalty/domain/loyalty_rules.dart';
 import 'package:smartomni_mobile/features/storefront/data/storefront_mock_repository.dart';
 import 'package:smartomni_mobile/features/storefront/presentation/storefront_screens.dart';
+
+/// Provider cửa hàng đọc theo phiên đăng nhập; test thuần không dựng auth.
+ProviderContainer _container([List<Override> overrides = const []]) =>
+    ProviderContainer(
+      overrides: [currentSessionProvider.overrideWithValue(null), ...overrides],
+    );
 
 Matcher _apiError(ApiErrorType type) =>
     throwsA(isA<ApiException>().having((e) => e.type, 'type', type));
@@ -72,7 +80,7 @@ void main() {
     late ProviderContainer container;
 
     setUp(() {
-      container = ProviderContainer();
+      container = _container();
       addTearDown(container.dispose);
     });
 
@@ -92,9 +100,9 @@ void main() {
     );
 
     test('chưa tham gia cửa hàng nào thì null, sản phẩm rỗng', () async {
-      final empty = ProviderContainer(
-        overrides: [myShopsProvider.overrideWith((ref) async => const [])],
-      );
+      final empty = _container([
+        myShopsProvider.overrideWith((ref) async => const []),
+      ]);
       addTearDown(empty.dispose);
       expect(await empty.read(currentShopProvider.future), isNull);
       expect(await empty.read(storefrontProductsProvider.future), isEmpty);
