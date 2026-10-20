@@ -1,3 +1,5 @@
+import 'input_formatters.dart';
+
 /// Hàm kiểm tra dữ liệu form. Trả về `null` nếu hợp lệ, ngược lại trả thông báo lỗi.
 ///
 /// Quy tắc khớp với validation của backend (LoginRequest, ResetPasswordRequest).
@@ -36,11 +38,12 @@ class Validators {
     return null;
   }
 
-  static String? positiveInt(String? value, {String field = 'Số lượng'}) {
+  /// Giá VND đã định dạng bằng `VndInputFormatter` ("159.000"), phải > 0.
+  static String? positiveVnd(String? value, {String field = 'Giá'}) {
     final empty = required(value, field: field);
     if (empty != null) return empty;
-    final n = int.tryParse(value!.trim());
-    if (n == null || n <= 0) return '$field phải là số nguyên dương';
+    final n = VndInputFormatter.parse(value!);
+    if (n == null || n <= 0) return '$field phải lớn hơn 0';
     return null;
   }
 

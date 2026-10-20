@@ -11,7 +11,8 @@ import 'so_tokens.dart';
 ///   `footnote`. Khi nội dung cuộn, tiêu đề lớn thu lại, thanh còn 52 với
 ///   tiêu đề `headline` ở giữa.
 /// - Màn con ([SoAppBar.new]): nút back tròn 36 nền `fill` + tiêu đề
-///   `headline` (+ dòng phụ mono, vd. mã đơn).
+///   `headline` (+ dòng phụ mono, vd. mã đơn). [close]: nút đóng (X) thay
+///   cho nút back, dùng cho màn tạo mới (vd. M-32).
 ///
 /// Ở đầu trang thanh trong suốt; khi nội dung cuộn xuống dưới thì chuyển
 /// sang kính mỏng. Để nội dung chạy được dưới kính, Scaffold đặt
@@ -26,6 +27,7 @@ class SoAppBar extends StatefulWidget implements PreferredSizeWidget {
     this.actions = const [],
     this.onBack,
     this.bottom,
+    this.close = false,
   }) : isRoot = false;
 
   const SoAppBar.root({
@@ -35,7 +37,8 @@ class SoAppBar extends StatefulWidget implements PreferredSizeWidget {
     this.actions = const [],
     this.bottom,
   }) : isRoot = true,
-       onBack = null;
+       onBack = null,
+       close = false;
 
   final String title;
 
@@ -44,6 +47,9 @@ class SoAppBar extends StatefulWidget implements PreferredSizeWidget {
   final String? subtitle;
   final List<Widget> actions;
   final bool isRoot;
+
+  /// Màn con: nút đóng (X) thay cho nút back.
+  final bool close;
 
   /// Mặc định: `Navigator.maybePop`.
   final VoidCallback? onBack;
@@ -138,6 +144,7 @@ class _SoAppBarState extends State<SoAppBar> {
               title: widget.title,
               subtitle: widget.isRoot ? null : widget.subtitle,
               isRoot: widget.isRoot,
+              close: widget.close,
               titleOpacity: smallTitleOpacity,
               actions: widget.actions,
               onBack: widget.onBack,
@@ -186,6 +193,7 @@ class _Toolbar extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.isRoot,
+    required this.close,
     required this.titleOpacity,
     required this.actions,
     required this.onBack,
@@ -194,6 +202,7 @@ class _Toolbar extends StatelessWidget {
   final String title;
   final String? subtitle;
   final bool isRoot;
+  final bool close;
   final double titleOpacity;
   final List<Widget> actions;
   final VoidCallback? onBack;
@@ -238,7 +247,9 @@ class _Toolbar extends StatelessWidget {
           : Padding(
               padding: const EdgeInsets.only(left: SoSpace.s4),
               child: IconButton(
-                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                tooltip: close
+                    ? MaterialLocalizations.of(context).closeButtonTooltip
+                    : MaterialLocalizations.of(context).backButtonTooltip,
                 style: IconButton.styleFrom(
                   backgroundColor: c.fill,
                   foregroundColor: c.ink,
@@ -246,8 +257,8 @@ class _Toolbar extends StatelessWidget {
                   minimumSize: const Size.square(SoSize.controlSmall),
                   shape: SoShape.squircle(SoRadius.capsuleAll),
                 ),
-                icon: const Icon(
-                  LucideIcons.chevronLeft,
+                icon: Icon(
+                  close ? LucideIcons.x : LucideIcons.chevronLeft,
                   size: SoSize.iconSmall,
                 ),
                 onPressed: onBack ?? () => Navigator.of(context).maybePop(),
