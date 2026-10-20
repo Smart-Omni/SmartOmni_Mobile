@@ -38,7 +38,8 @@ void main() {
     expect(find.byKey(const Key('menu_marketplace')), findsNothing);
 
     await tapVisible(tester, find.byKey(const Key('menu_ai')));
-    expect(find.byType(AiInsightsScreen), findsOneWidget);
+    expect(find.byType(SkuForecastScreen), findsOneWidget);
+    expect(find.text('Chọn SKU'), findsWidgets);
   });
 
   testWidgets('Admin: Kết nối sàn hiện trạng thái 2 sàn, mở được T-10', (

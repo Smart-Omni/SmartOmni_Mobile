@@ -89,9 +89,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: Routes.merchantAi,
-        builder: (context, _) => AiInsightsScreen(
-          onOpenSku: (skuId) => context.push(Routes.merchantAiForecast(skuId)),
-        ),
+        builder: (_, _) => const SkuForecastScreen(),
       ),
       GoRoute(
         path: '/m/ai/:skuId',

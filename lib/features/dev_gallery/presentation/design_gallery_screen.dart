@@ -426,8 +426,8 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
     children: [
       SoListRow(
         icon: LucideIcons.chartLine,
-        title: 'AI dự báo & gợi ý',
-        subtitle: 'Dự báo nhu cầu theo SKU',
+        title: 'Dự báo nhu cầu',
+        subtitle: 'Dự kiến bán 7 ngày tới theo SKU',
         onTap: () {},
       ),
       const SoListRow(
