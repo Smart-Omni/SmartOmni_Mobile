@@ -11,6 +11,7 @@ import '../../account/presentation/account_widgets.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../marketplace/domain/marketplace_connection.dart';
 import '../../marketplace/presentation/marketplace_providers.dart';
+import '../../marketplace/presentation/marketplace_screen.dart';
 
 /// M-50 tab "Thêm" của Merchant: hồ sơ, Công cụ, Quản trị cửa hàng (chỉ
 /// Tenant Admin), Đăng xuất.
@@ -90,15 +91,6 @@ class MerchantMoreScreen extends ConsumerWidget {
   }
 }
 
-extension ConnectionStatusUi on ConnectionStatus? {
-  /// `null` = sàn chưa có kết nối nào.
-  (String, SoStatus) get tag => switch (this) {
-    ConnectionStatus.connected => ('Đã kết nối', SoStatus.success),
-    ConnectionStatus.error => ('Lỗi kết nối', SoStatus.danger),
-    ConnectionStatus.disconnected || null => ('Chưa kết nối', SoStatus.neutral),
-  };
-}
-
 /// "Kết nối sàn" kèm trạng thái của 2 sàn.
 class _MarketplaceRow extends ConsumerWidget {
   const _MarketplaceRow();
@@ -136,10 +128,7 @@ class _MarketplaceRow extends ConsumerWidget {
                               ),
                               child: _PlatformStatus(
                                 platform: platform,
-                                status: value
-                                    .where((x) => x.platform == platform)
-                                    .firstOrNull
-                                    ?.status,
+                                status: connectionFor(value, platform)?.status,
                               ),
                             ),
                         ],
