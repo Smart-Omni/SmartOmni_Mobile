@@ -38,6 +38,7 @@ class Routes {
   // Customer - màn hình con
   static String customerProduct(int id) => '/c/product/$id';
   static const customerShops = '/c/shops';
+  static const customerClaimResult = '/c/claim-result';
 
   // Chỉ có ở bản dev (flavor dev)
   static const devPrefix = '/dev/';

@@ -102,7 +102,7 @@ void main() {
       'customer@demo.vn',
       overrides: [myShopsProvider.overrideWith((ref) async => const [])],
     );
-    expect(find.byKey(const Key('storefront_no_shop')), findsOneWidget);
+    expect(find.byKey(const Key('no_shop')), findsOneWidget);
     expect(find.byKey(const Key('shop_switcher')), findsNothing);
     expect(find.text('Thêm cửa hàng'), findsOneWidget);
   });

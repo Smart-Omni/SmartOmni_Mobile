@@ -112,4 +112,64 @@ void main() {
     final banner = tester.getRect(find.byType(SoMockBanner));
     expect(banner.top, greaterThanOrEqualTo(_top + SoSize.appBar));
   });
+
+  // Khung tab Customer bật extendBody: cuộn hết thì mục cuối của cả 4 tab
+  // nằm trên thanh tab nổi (cách 16) và bấm được.
+  for (final (tab, last) in [
+    (
+      'Sản phẩm',
+      find.byWidgetPredicate(
+        (w) =>
+            w.key is ValueKey<String> &&
+            (w.key! as ValueKey<String>).value.startsWith(
+              'storefront_product_',
+            ),
+      ),
+    ),
+    // Số điểm của hàng lịch sử cuối (hàng là Padding, không nhận chạm).
+    (
+      'Điểm & hạng',
+      find.descendant(
+        of: find.byKey(const Key('history_240815SHOP09')),
+        matching: find.text('+100'),
+      ),
+    ),
+    (
+      'Claim đơn',
+      find.text('Đơn chưa được claim ở cửa hàng này.', findRichText: true),
+    ),
+    ('Tài khoản', find.byKey(const Key('logout_tile'))),
+  ]) {
+    testWidgets('Customer · $tab: cuộn hết không bị thanh tab che', (
+      tester,
+    ) async {
+      _usePhone(tester);
+      await loginAs(tester, 'customer@demo.vn');
+      if (tab != 'Sản phẩm') {
+        await tester.tap(find.text(tab));
+        await tester.pumpAndSettle();
+      }
+
+      final position = tester
+          .state<ScrollableState>(
+            find
+                .ancestor(
+                  // Finder bỏ qua các tab đang ẩn (offstage).
+                  of: find.byType(SoAppBar),
+                  matching: find.byType(Scrollable),
+                )
+                .first,
+          )
+          .position;
+      position.jumpTo(position.maxScrollExtent);
+      await tester.pumpAndSettle();
+
+      final item = last.last;
+      expect(item.hitTestable(), findsOneWidget);
+      expect(
+        tester.getRect(item).bottom,
+        lessThanOrEqualTo(_tabBarTop - SoSpace.s16),
+      );
+    });
+  }
 }
