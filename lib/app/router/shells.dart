@@ -81,7 +81,7 @@ class _ShellScaffold extends StatelessWidget {
   final List<SoNavItem> items;
 
   /// `true`: nội dung cuộn dưới thanh tab kính. Chỉ bật khi mọi màn trong
-  /// khung đã chừa lề cuối bằng `SoSpace.scrollable` (Merchant đã xong;
+  /// khung dùng `SoScaffold` (tự chừa lề cuối; Merchant đã xong;
   /// Customer bật ở nhánh `feature/ui-customer-*`).
   final bool extendBody;
 
