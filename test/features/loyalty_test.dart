@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartomni_mobile/core/models/platform.dart';
-import 'package:smartomni_mobile/core/network/api_exception.dart';
 import 'package:smartomni_mobile/core/utils/mock_delay.dart';
 import 'package:smartomni_mobile/features/customer_shop/data/customer_shop_mock_repository.dart';
 import 'package:smartomni_mobile/features/loyalty/data/loyalty_mock_repository.dart';
+import 'package:smartomni_mobile/features/loyalty/domain/loyalty_repository.dart';
 import 'package:smartomni_mobile/features/loyalty/domain/loyalty_rules.dart';
 
 void main() {
@@ -86,44 +86,109 @@ void main() {
   });
 
   group('LoyaltyMockRepository.claimOrder', () {
-    test('claim hợp lệ cộng điểm và không cho claim lần 2', () async {
-      final repo = LoyaltyMockRepository();
-      final before = (await repo.getSummary(1)).totalPoints;
+    // Đồng hồ cố định để ngày trong lỗi xác định được.
+    final now = DateTime(2026, 10, 20, 10, 30);
+    LoyaltyMockRepository repo() => LoyaltyMockRepository(clock: () => now);
 
-      final points = await repo.claimOrder(
-        tenantId: 1,
-        platform: Platform.shopee,
-        orderCode: '240920shop01',
-      );
-      expect(points, 520);
-      expect((await repo.getSummary(1)).totalPoints, before + 520);
+    Future<ClaimResult> claim(
+      LoyaltyMockRepository r,
+      String code, {
+      int tenantId = 1,
+      Platform platform = Platform.shopee,
+    }) => r.claimOrder(tenantId: tenantId, platform: platform, orderCode: code);
 
-      expect(
-        () => repo.claimOrder(
-          tenantId: 1,
-          platform: Platform.shopee,
-          orderCode: '240920SHOP01',
+    Matcher failure(ClaimEligibility kind) =>
+        throwsA(isA<ClaimFailure>().having((f) => f.kind, 'kind', kind));
+
+    test(
+      'claim hợp lệ: điểm cũ → mới, lên hạng; không cho claim lần 2',
+      () async {
+        final r = repo();
+        final result = await claim(r, '240920shop01');
+        expect(result.orderCode, '240920SHOP01');
+        expect(result.amountPaid, 520000);
+        expect(result.points, 520);
+        expect(result.pointsBefore, 620);
+        expect(result.pointsAfter, 1140);
+        expect(result.tierBefore, LoyaltyTier.silver);
+        expect(result.tierAfter, LoyaltyTier.platinum);
+        expect(result.tieredUp, isTrue);
+        expect((await r.getSummary(1)).totalPoints, 1140);
+
+        await expectLater(
+          claim(r, '240920SHOP01'),
+          throwsA(
+            isA<ClaimFailure>()
+                .having((f) => f.kind, 'kind', ClaimEligibility.alreadyClaimed)
+                .having((f) => f.claimedAt, 'claimedAt', now),
+          ),
+        );
+      },
+    );
+
+    test('chưa đủ 15 ngày: kèm ngày hoàn tất và ngày được claim', () async {
+      await expectLater(
+        claim(repo(), '241008SHOP02'),
+        throwsA(
+          isA<ClaimFailure>()
+              .having((f) => f.kind, 'kind', ClaimEligibility.tooEarly)
+              .having(
+                (f) => f.claimableFrom!.difference(f.completedAt!),
+                'chờ',
+                LoyaltyRules.claimWaitingPeriod,
+              ),
         ),
-        throwsA(isA<ApiException>()),
       );
     });
 
-    test('sai sàn -> không tìm thấy', () async {
-      final repo = LoyaltyMockRepository();
+    test('chưa hoàn tất, sai sàn, cửa hàng khác', () {
+      final r = repo();
       expect(
-        () => repo.claimOrder(
-          tenantId: 1,
-          platform: Platform.tiktokShop,
-          orderCode: '240920SHOP01',
-        ),
+        () => claim(r, '241012SHOP03'),
+        failure(ClaimEligibility.notCompleted),
+      );
+      expect(
+        () => claim(r, '240920SHOP01', platform: Platform.tiktokShop),
+        failure(ClaimEligibility.notFound),
+      );
+      expect(
+        () => claim(r, '240920SHOP01', tenantId: 2),
+        failure(ClaimEligibility.notFound),
+      );
+    });
+
+    test('sai 5 lần liên tiếp thì tạm khóa 30 phút', () async {
+      final r = repo();
+      for (var i = 0; i < 5; i++) {
+        await expectLater(
+          claim(r, 'SAI$i'),
+          failure(ClaimEligibility.notFound),
+        );
+      }
+      await expectLater(
+        claim(r, '240920SHOP01'),
         throwsA(
-          isA<ApiException>().having(
-            (e) => e.message,
-            'message',
-            ClaimEligibility.notFound.message,
-          ),
+          isA<ClaimFailure>()
+              .having((f) => f.kind, 'kind', ClaimEligibility.tooManyAttempts)
+              .having(
+                (f) => f.retryAfter,
+                'retryAfter',
+                const Duration(minutes: 30),
+              ),
         ),
       );
+    });
+
+    test('claim hợp lệ đặt lại bộ đếm lần sai', () async {
+      final r = repo();
+      for (var i = 0; i < 4; i++) {
+        await expectLater(
+          claim(r, 'SAI$i'),
+          failure(ClaimEligibility.notFound),
+        );
+      }
+      await claim(r, '240920SHOP01');
+      await expectLater(claim(r, 'SAI9'), failure(ClaimEligibility.notFound));
     });
   });
 
@@ -163,22 +228,5 @@ void main() {
         expect(await repo.getVouchers(2), isEmpty);
       },
     );
-
-    test('đơn của Shop Demo claim ở cửa hàng khác thì không tìm thấy', () {
-      expect(
-        () => LoyaltyMockRepository().claimOrder(
-          tenantId: 2,
-          platform: Platform.shopee,
-          orderCode: '240920SHOP01',
-        ),
-        throwsA(
-          isA<ApiException>().having(
-            (e) => e.message,
-            'message',
-            ClaimEligibility.notFound.message,
-          ),
-        ),
-      );
-    });
   });
 }

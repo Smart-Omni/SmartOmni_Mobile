@@ -13,6 +13,7 @@ import '../../features/dashboard/presentation/dashboard_screen.dart';
 import '../../features/dev_gallery/presentation/design_gallery_screen.dart';
 import '../../features/inventory/presentation/inventory_screen.dart';
 import '../../features/loyalty/presentation/claim_order_screen.dart';
+import '../../features/loyalty/presentation/claim_result_screen.dart';
 import '../../features/loyalty/presentation/loyalty_screen.dart';
 import '../../features/marketplace/presentation/marketplace_screen.dart';
 import '../../features/merchant_more/presentation/merchant_more_screen.dart';
@@ -111,6 +112,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           _branch(Routes.customerClaim, const ClaimOrderScreen()),
           _branch(Routes.customerAccount, const CustomerAccountScreen()),
         ],
+      ),
+      GoRoute(
+        path: Routes.customerClaimResult,
+        builder: (_, state) =>
+            ClaimResultScreen(outcome: state.extra as ClaimOutcome?),
       ),
       GoRoute(
         path: Routes.customerShops,

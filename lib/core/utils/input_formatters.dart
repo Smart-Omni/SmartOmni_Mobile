@@ -37,6 +37,9 @@ final skuCodeFormatters = _upperCode(RegExp(r'[A-Za-z0-9-]'));
 /// Mã cửa hàng: chỉ chữ không dấu và số, viết hoa (vd. "shop demo" → "SHOPDEMO").
 final shopCodeFormatters = _upperCode(RegExp(r'[A-Za-z0-9]'));
 
+/// Mã đơn trên sàn: như mã cửa hàng (vd. "240920shop01" → "240920SHOP01").
+final orderCodeFormatters = shopCodeFormatters;
+
 List<TextInputFormatter> _upperCode(RegExp allowed) => [
   FilteringTextInputFormatter.allow(allowed),
   TextInputFormatter.withFunction(

@@ -98,7 +98,10 @@ enum ClaimEligibility {
   notCompleted('Đơn chưa được sàn xác nhận hoàn tất'),
   tooEarly('Đơn chưa đủ 15 ngày kể từ khi hoàn tất'),
   alreadyClaimed('Đơn này đã được claim'),
-  notFound('Không tìm thấy đơn trong shop đã chọn');
+  notFound('Không tìm thấy đơn trong shop đã chọn'),
+
+  /// Thử sai quá nhiều lần, tạm khóa claim (backend quyết định ngưỡng).
+  tooManyAttempts('Thử sai quá nhiều lần');
 
   const ClaimEligibility(this.message);
 

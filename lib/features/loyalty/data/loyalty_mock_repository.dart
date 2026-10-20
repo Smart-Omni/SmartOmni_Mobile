@@ -1,6 +1,5 @@
 import '../../../core/mock/mock_data.dart';
 import '../../../core/models/platform.dart';
-import '../../../core/network/api_exception.dart';
 import '../../../core/utils/mock_delay.dart';
 import '../domain/loyalty_repository.dart';
 import '../domain/loyalty_rules.dart';
@@ -58,20 +57,25 @@ class LoyaltyMockRepository implements LoyaltyRepository {
   final Map<int, List<PointEntry>> _history = {};
   final Map<int, List<CustomerVoucher>> _vouchers = {};
 
-  /// Mã đơn đã claim. Mỗi đơn chỉ claim 1 lần trong một cửa hàng.
-  Set<String> _claimed(int tenantId) => {
-    for (final e in _history[tenantId] ?? const <PointEntry>[]) e.orderCode,
-  };
+  /// Khóa claim sau [_maxFailures] lần sai liên tiếp, trong [_lockFor].
+  /// shortcut: ngưỡng thật do backend quyết định (REQUIREMENTS CUS-5).
+  static const _maxFailures = 5;
+  static const _lockFor = Duration(minutes: 30);
+  final Map<int, int> _failures = {};
+  final Map<int, DateTime> _lockedUntil = {};
 
   @override
   Future<LoyaltySummary> getSummary(int tenantId) async {
     await MockDelay.short();
     final history = _history[tenantId] ?? const <PointEntry>[];
     return LoyaltySummary(
-      totalPoints: history.fold<int>(0, (s, e) => s + e.points),
+      totalPoints: _total(tenantId),
       history: List.unmodifiable(history.reversed),
     );
   }
+
+  int _total(int tenantId) => (_history[tenantId] ?? const <PointEntry>[])
+      .fold<int>(0, (s, e) => s + e.points);
 
   @override
   Future<List<CustomerVoucher>> getVouchers(int tenantId) async {
@@ -80,43 +84,72 @@ class LoyaltyMockRepository implements LoyaltyRepository {
   }
 
   @override
-  Future<int> claimOrder({
+  Future<ClaimResult> claimOrder({
     required int tenantId,
     required Platform platform,
     required String orderCode,
   }) async {
     await MockDelay.short();
+    final now = _clock();
+    final lockedUntil = _lockedUntil[tenantId];
+    if (lockedUntil != null && now.isBefore(lockedUntil)) {
+      throw ClaimFailure(
+        ClaimEligibility.tooManyAttempts,
+        retryAfter: lockedUntil.difference(now),
+      );
+    }
+
     final code = orderCode.trim().toUpperCase();
     final match = tenantId != 1
         ? null
         : MockData.claimableOrders
               .where((o) => o.$1.toUpperCase() == code && o.$2 == platform)
               .firstOrNull;
+    final claimed = (_history[tenantId] ?? const <PointEntry>[])
+        .where((e) => e.orderCode == code)
+        .firstOrNull;
 
     final eligibility = match == null
         ? ClaimEligibility.notFound
         : LoyaltyRules.checkEligibility(
             completedAt: match.$4,
-            alreadyClaimed: _claimed(tenantId).contains(code),
-            now: _clock(),
+            alreadyClaimed: claimed != null,
+            now: now,
           );
 
     if (eligibility != ClaimEligibility.eligible) {
-      throw ApiException(
-        type: ApiErrorType.validation,
-        message: eligibility.message,
+      final failures = (_failures[tenantId] ?? 0) + 1;
+      _failures[tenantId] = failures;
+      // Đủ số lần sai: khóa và đếm lại từ đầu sau khi hết khóa.
+      if (failures >= _maxFailures) {
+        _lockedUntil[tenantId] = now.add(_lockFor);
+        _failures.remove(tenantId);
+      }
+      throw ClaimFailure(
+        eligibility,
+        completedAt: match?.$4,
+        claimedAt: claimed?.claimedAt,
       );
     }
 
+    _failures.remove(tenantId);
+    final before = _total(tenantId);
     final points = LoyaltyRules.pointsForAmount(match!.$3);
     (_history[tenantId] ??= []).add(
       PointEntry(
         orderCode: code,
         platform: platform,
         points: points,
-        claimedAt: _clock(),
+        claimedAt: now,
       ),
     );
-    return points;
+    return ClaimResult(
+      orderCode: code,
+      platform: platform,
+      amountPaid: match.$3,
+      points: points,
+      pointsBefore: before,
+      claimedAt: now,
+    );
   }
 }
