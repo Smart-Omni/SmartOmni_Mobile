@@ -4,7 +4,7 @@ Tài liệu này là **nguồn chuẩn khi code giao diện**. Nếu skill, plug
 
 - **Bản 2 (Glass)**, viết ngày 19/10/2026, thay cho bản 1 (phong cách kho vận, duyệt ngày 14/10/2026). Luồng, mã màn và nội dung từng màn **giữ nguyên**, chỉ đổi ngôn ngữ hình ảnh: chữ, màu, vật liệu kính, bo góc, bố cục.
 - Trạng thái: **bản nháp**, chốt khi người dùng duyệt mockup glass (A-02, M-10 Admin, M-20, C-20). Số đo có thể chỉnh nhẹ sau khi duyệt; khi chỉnh thì sửa ở đây trước rồi mới code.
-- Mockup bản 2 (4 màn mẫu A-02, M-10 Admin, M-20, C-20): https://claude.ai/artifact/WE5CeBwvbjgsRvMcrewpCQ. Mockup bản 1 (chỉ để xem nội dung, **không** lấy phong cách): đợt 1 https://claude.ai/artifact/4JxPGaPHdtxGM7VrQxTnEw · đợt 2 https://claude.ai/artifact/5jYxMTRbbvn9wTmy663nWC
+- Mockup bản 2 (đủ 41 màn, chốt 20/10/2026): https://claude.ai/artifact/WE5CeBwvbjgsRvMcrewpCQ. Mockup bản 1 (chỉ để xem nội dung, **không** lấy phong cách): đợt 1 https://claude.ai/artifact/4JxPGaPHdtxGM7VrQxTnEw · đợt 2 https://claude.ai/artifact/5jYxMTRbbvn9wTmy663nWC
 - Logo: `assets/brand/` (SVG một màu xanh dầu, giữ nguyên).
 
 ## 1. Ý tưởng
@@ -219,7 +219,48 @@ Nội dung, thứ tự và chữ của mỗi màn giữ nguyên. Cách vẽ theo
 | M-40 sheet | "Đặt lại số tồn": tên + CodeTag; StockMeter hiện tại; ô số mono có nút −/+; help "Nhập số đếm được trong kho, không phải số cộng thêm. Sau khi lưu: có thể bán N"; Banner info đồng bộ sàn; nút Hủy / Lưu số tồn. |
 | M-50 | Thẻ hồ sơ (ô chữ cái brand, email, vai trò · cửa hàng, CodeTag tenant). Nhóm "Công cụ". Nhóm "Quản trị cửa hàng" (chỉ Admin): Kết nối sàn (trạng thái 2 sàn) + các mục "Sắp có". Đăng xuất chữ danger. |
 
-Đặc tả các màn Customer (mục 8b) viết sau, theo nhánh 2 của `docs/UI_UPGRADE_PLAN.md`, dựa trên mockup đợt 2 và vẽ lại theo bản 2.
+Bổ sung ngày 20/10: A-02 có thêm dòng "Khách mua hàng chưa có tài khoản? **Đăng ký**" dưới nút Đăng nhập, dẫn tới A-05.
+
+## 8b. Các màn còn lại (mockup glass 20/10/2026)
+
+Mockup đầy đủ 41 màn: https://claude.ai/artifact/WE5CeBwvbjgsRvMcrewpCQ (6 hàng theo luồng). Bảng dưới là **nội dung chốt**; chỉ làm đúng những gì ghi ở đây, không thêm tính năng ngoài `docs/USER_FLOWS.md`. Màn chưa có API hiện `SoMockBanner`.
+
+**Quy ước chung:** màn con dùng AppBar con (nút back tròn + tiêu đề `headline`, dòng phụ mono nếu có mã); nút chính ở thanh hành động kính dưới đáy; sheet dùng `SoBottomSheet` kính dày.
+
+| Mã | Nội dung chính |
+|---|---|
+| A-01 | Logo trong ô kính bo tròn giữa màn + chữ "SmartOmni"; dưới đáy thanh tải mảnh + "Đang kiểm tra phiên đăng nhập…". |
+| A-03 | Banner info sau khi gửi: "Nếu email tồn tại, hướng dẫn đã được gửi. Mã có hiệu lực 30 phút." (không tiết lộ email có tồn tại). |
+| A-04 | Banner danger mã hết hạn ghi **30 phút**. |
+| M-22 | AppBar con "In vận đơn" + mã đơn. Thẻ trắng xem trước tem PDF do sàn tạo. Thanh dưới: **Chia sẻ PDF** + **In**. Không chọn khổ giấy. |
+| M-31 | Như bản đã code (thẻ đầu, nhóm SKU kèm nhãn tồn và lối vào AI, nhóm liên kết sàn + nút chép). |
+| M-32 | AppBar con "Sản phẩm mới" (nút đóng). Thẻ 1: Tên*, Mô tả. Nhóm "SKU" (nhãn "Nhiều SKU, ảnh, link sàn · Sắp có"): Mã SKU* (mono), Phân loại, Giá bán*. Thanh dưới: Hủy / **Lưu sản phẩm**. **Không** có ảnh, tồn ban đầu, công tắc sàn. |
+| M-50 | Thẻ hồ sơ. Nhóm "Công cụ": Hộp thư CSKH (số chưa đọc), Dự báo nhu cầu (nhãn AI). Nhóm "Quản trị cửa hàng" (chỉ Admin): Kết nối sàn (trạng thái 2 sàn), Nhân viên, Phát voucher, Gói dịch vụ, Yêu cầu hỗ trợ. Đăng xuất (chữ danger). |
+| M-51 | AppBar con "Dự báo nhu cầu" + nhãn AI. Thẻ chọn SKU ("Đổi SKU"). Thẻ kính: **Dự kiến bán 7 ngày** và **Nên nhập thêm** (metricSm), "Có thể bán hiện tại". Nhóm "Theo ngày": 7 hàng ngày + số cái. Chú thích "Dự báo chỉ để tham khảo". Không có biểu đồ (để sau). |
+| M-60 | Màn con từ M-50 (không có thanh tab). Chip: Tất cả / Khiếu nại / Chưa trả lời / theo sàn. Hàng: chấm chưa đọc, tên khách, giờ, tin cuối (đậm nếu chưa đọc), kênh + nhãn (Khiếu nại danger, Chưa trả lời neutral, Cần kiểm tra warning, Đã giải quyết success). |
+| M-61 khiếu nại | AppBar: tên khách + kênh, nút "Đã giải quyết". Banner danger khóa (hạn phản hồi). Thẻ đơn liên quan (mã, trạng thái, sản phẩm) + "Đổi". Tin nhắn: khách trái (thẻ trắng), shop phải (brand); trạng thái tin: "Đã gửi" / "Chưa rõ đã gửi chưa · đối soát trước khi gửi lại". Ô soạn kính + nút ảnh + gửi. |
+| M-61 thường | Như trên, không banner. Chưa gắn đơn: thẻ viền nét đứt + nút "Tìm đơn". Nội dung không hỗ trợ: "Không xem được nội dung này". **Không** có trả lời nhanh. |
+| M-61 sheet | "Gắn đơn vào hội thoại": ô mã đơn (mono), danh sách `SoOrderRow` cùng sàn, chọn một → Hủy / Gắn đơn. |
+| T-10 | Hai thẻ sàn: tên shop, trạng thái, Shop ID, đồng bộ gần nhất, công tắc "Tự nhập sản phẩm & đơn", nút "Ngắt kết nối". Thẻ lỗi: banner danger + **Kết nối lại**. Hàng "Nâng cao: nhập App Key". |
+| T-10 OAuth | Sheet: 3 bước, danh sách quyền sẽ được đọc (Đơn hàng, Sản phẩm, Tồn kho, Tin nhắn), công tắc tự nhập, nút "Mở TikTok Shop", link "Nhập App Key thủ công". Chỉ dùng khi backend có OAuth. |
+| T-10 xong | Thẻ kính: dấu tích, "Đã kết nối …", Shop ID, tiến độ nhập sản phẩm (x / y), nút Xong. |
+| T-10 App Key | Sheet: chọn sàn (segmented), App Key (mono), App Secret (ẩn/hiện), công tắc tự nhập, Hủy / Kết nối. |
+| T-20 | Danh sách: chủ cửa hàng (bạn) + Staff (tên, email, trạng thái Đang hoạt động / Đã khóa). Chạm để vô hiệu hóa / kích hoạt lại. Thanh dưới: **Thêm nhân viên** (email + mật khẩu tạm). |
+| T-30 | Thẻ form: Phát cho (chip hạng có số khách + "Chọn từng khách"), Sàn (segmented), Giá trị giảm, Đơn tối thiểu, Hạn dùng; ghi chú "chỉ gửi email khi sàn xác nhận tạo thành công". Nhóm "Đợt phát gần đây" với trạng thái Đang tạo / Thành công / Lỗi / Chưa rõ · đối soát. Thanh dưới: "Phát cho N khách …" (chống bấm lặp). |
+| T-40 | Thẻ kính gói hiện tại (tên gói, hạn) + mức đã dùng: Số SKU, Kết nối sàn, Dung lượng ảnh (thanh capsule). Nhóm "Hóa đơn" (mã mono, số tiền, Đã/Chưa thanh toán). Hai nút: Đổi gói / Thanh toán. Tên gói, giá, hạn mức chờ backend. |
+| T-50 | Segmented "Chưa xong / Đã giải quyết". Hàng ticket: mã mono, thời gian, tiêu đề, dòng cuối; nhãn Mở / Đang xử lý / Đã giải quyết. Thanh dưới: **Tạo yêu cầu** (tiêu đề, mô tả). |
+| A-05 | AppBar con "Tạo tài khoản khách". Thẻ 1: Mã cửa hàng (mono) + nút quét QR, kết quả "Đã tìm thấy" (logo tròn + tên). Thẻ 2: Họ tên, Email, SĐT, Mật khẩu (≥ 8). Ô đồng ý điều khoản. Thanh dưới: **Tạo tài khoản** + "Đã có tài khoản? Đăng nhập". |
+| A-05 OTP | 6 ô số (mono), "Gửi lại sau 00:45", lỗi "Mã không đúng. Bạn còn N lần thử.", thẻ kính "Bạn sẽ tham gia Shop Demo · Standard". Nút **Xác minh** → C-10. |
+| C-00 | Màn con "Cửa hàng của bạn": danh sách cửa hàng (logo tròn, tên, hạng, điểm), mục đang xem viền brand + nhãn "Đang xem"; nút phụ "Thêm cửa hàng". |
+| C-00 sheet | "Thêm cửa hàng": mã (mono) + quét QR, thẻ kết quả, lỗi dưới ô; Hủy / Tham gia cửa hàng. |
+| SoShopSwitcher | Viên kính mỏng trên đầu C-10/C-20/C-30: logo tròn 32 + tên cửa hàng + mũi tên xuống → C-00. |
+| C-10 | Đầu màn: SoShopSwitcher, nút "Hỏi AI" (viên, icon chat) → C-12. Tiêu đề lớn "Sản phẩm". Lưới 2 cột thẻ sản phẩm (ảnh 4:5, tên, giá "từ", kênh). Không FAB, không tìm kiếm/lọc (để sau). |
+| C-11 | Ảnh lớn tràn trên + nút back kính; thẻ trắng bo trên 28: tên, khoảng giá, ghi chú giá sàn, chip phân loại, mô tả, banner info điểm dự kiến. Thanh dưới: Mua trên Shopee (primary) / Mua trên TikTok Shop (secondary), chỉ hiện sàn có URL. |
+| C-12 | AppBar con "Trợ lý <cửa hàng>" + dòng phụ "Tư vấn sản phẩm · không đặt hàng" + nhãn AI. Bong bóng chat, thẻ sản phẩm bấm được → C-11, câu trả lời dự phòng nền warningTint. Ô soạn kính. Không có câu hỏi gợi ý. |
+| C-20 | Như mockup 4 màn mẫu (thẻ hạng kính, voucher, lịch sử điểm). |
+| C-30 | SoShopSwitcher, tiêu đề lớn "Claim đơn", thẻ form: Sàn (segmented), Mã đơn (mono) + quét, help; nút **Claim điểm**. Nhóm "Điều kiện" 3 bước. |
+| C-30 kết quả | Thẻ kính thành công: +điểm, mã đơn, đã thanh toán, điểm cũ → mới, lên hạng (nếu có); Claim đơn khác / Xem hạng. Lỗi dạng banner: chưa đủ 15 ngày (kèm ngày được claim), đã claim, không tìm thấy, chưa hoàn tất, thử sai quá nhiều lần. |
+| C-40 | Thẻ hồ sơ; nhóm "Cửa hàng đã tham gia" (+ Thêm); nhóm "Cài đặt": Sửa thông tin, Đổi mật khẩu (Sắp có), Điều khoản; Đăng xuất. |
 
 ## 9. Giọng văn
 
