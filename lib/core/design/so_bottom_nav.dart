@@ -17,7 +17,7 @@ class SoNavItem {
 /// chọn: viên brandTint sau icon, icon + chữ màu brand; mục khác màu ink2.
 ///
 /// Scaffold chứa thanh này đặt `extendBody: true` để nội dung cuộn dưới kính;
-/// danh sách chừa chỗ ở cuối bằng `SoSpace.scrollable`.
+/// màn trong khung dùng `SoScaffold` để tự chừa chỗ ở cuối.
 class SoBottomNav extends StatelessWidget {
   const SoBottomNav({
     super.key,

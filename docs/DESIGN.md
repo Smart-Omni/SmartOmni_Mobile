@@ -156,6 +156,7 @@ Giữ nguyên tên và tham số của bản 1 để màn hình không phải s�
 | `SoStockMeter` | Thanh capsule cao 8: phần giữ chỗ `held` + phần có thể bán brand trên rãnh `fill`; chú giải 3 cột số `money` |
 | `SoOrderRow` | Hàng trong nhóm thẻ trắng: dòng 1 [kênh + mã đơn · giá `money`]; dòng 2 [sản phẩm (cắt …) · StatusTag]; dòng 3 [khách · giờ `footnote` muted]. Giữa các hàng là đường chia `fillStrong` thụt vào 16 |
 | `SoAppBar` | Màn gốc: tiêu đề lớn `largeTitle` + dòng phụ `footnote`, khi cuộn thu thành thanh kính mỏng 52 với tiêu đề `headline` ở giữa. Màn con: nút back tròn 36 nền `fill` + tiêu đề `headline` |
+| `SoScaffold` | Khung mọi màn: `SoAmbientBackground` + `CustomScrollView`, `SoAppBar` ghim ở đầu (sliver), nội dung luôn bắt đầu dưới thanh. Tự chừa lề cuối: trên thanh tab = 64 + 12 + vùng an toàn + 16; trên `SoActionBar` = 16. Màn mới **không** tự dựng Scaffold/ListView |
 | `SoBottomNav` | Thanh kính regular **nổi**, capsule, cách mép trái/phải 16 và mép dưới 12 (cộng thêm safe area). 5 mục (Merchant) hoặc 4 mục (Customer). Mục đang chọn: viên `brandTint` phía sau icon, icon + chữ màu brand; mục khác màu ink2 |
 | `SoBottomSheet` | Kính thick, bo trên `xl`, tay kéo 36×5 `fillStrong`, tiêu đề `title2`. Nút dưới: phụ 1 phần + chính 2 phần. Phía sau là scrim có làm mờ |
 | `SoBanner` | Thẻ bo `lg` nền `*Tint`: icon + tiêu đề `headline` + mô tả `callout` ink + liên kết hành động màu trạng thái |

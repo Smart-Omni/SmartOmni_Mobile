@@ -1,6 +1,6 @@
 # Kế hoạch nâng cấp giao diện (đang làm)
 
-Cập nhật: 19/10/2026. Nguồn chuẩn giao diện vẫn là `docs/DESIGN.md` (bản 2 Glass); file này chỉ nói **làm gì, theo thứ tự nào**.
+Cập nhật: 20/10/2026. Nguồn chuẩn giao diện vẫn là `docs/DESIGN.md` (bản 2 Glass); file này chỉ nói **làm gì, theo thứ tự nào**.
 
 ## Hiện trạng
 
@@ -49,7 +49,8 @@ C-40 (`customer_account_screen.dart`) đã dùng design system một phần; rà
 
 - [x] DESIGN.md bản 2 Glass + mockup 4 màn (A-02, M-10 Admin, M-20, C-20), duyệt 19/10/2026
 - [x] Nhánh 0: nền móng Glass (PR #14, xong 20/10/2026; sửa tiếp ở `fix/glass-followups`: đồng hồ dữ liệu mẫu, thẻ nhóm ngày M-20)
-- [ ] Nhánh 1: M-31 · M-32 · M-51 · T-10
+- [x] Nhánh 1: M-31 · M-32 · M-51 (PR #17, xong 20/10/2026). Kèm `SoScaffold` + `SoAppBar` dạng sliver cho mọi màn Merchant, A-03, A-04, C-40
+- [ ] Nhánh 1b `feature/ui-marketplace`: T-10 (danh sách sàn + sheet App Key; OAuth để sau)
 - [x] Nhánh 2: mục 8b DESIGN.md — viết xong 20/10/2026 cho **mọi màn còn lại** (kể cả M-22, M-60/61, T-10…T-50, C-12) từ mockup glass 41 màn
 - [ ] Nhánh 3: C-00 · SoShopSwitcher · C-10 · C-11
 - [ ] Nhánh 4: C-20 · C-30 · C-40
