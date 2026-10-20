@@ -9,8 +9,8 @@ import '../../../core/design/design.dart';
 import '../../../core/models/platform.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../core/widgets/state_views.dart';
 import '../../customer_shop/presentation/customer_shop_providers.dart';
+import '../../loyalty/domain/loyalty_rules.dart';
 import '../../products/domain/product.dart';
 import '../data/storefront_mock_repository.dart';
 import '../domain/storefront_repository.dart';
@@ -315,6 +315,10 @@ class _GridSkeleton extends StatelessWidget {
   }
 }
 
+/// C-11 Chi tiết sản phẩm cho khách (DESIGN.md mục 8b): ảnh lớn tràn trên +
+/// nút back kính; thẻ trắng bo trên 28 (tên, khoảng giá, ghi chú giá sàn,
+/// phân loại, mô tả, banner điểm dự kiến); thanh dưới chỉ có nút của sàn có
+/// URL (Shopee chính, TikTok Shop phụ).
 class StorefrontProductScreen extends ConsumerWidget {
   const StorefrontProductScreen({super.key, required this.productId});
 
@@ -326,60 +330,309 @@ class StorefrontProductScreen extends ConsumerWidget {
       mode: LaunchMode.externalApplication,
     );
     if (!ok && context.mounted) {
-      showInfoSnackBar(context, 'Không mở được liên kết');
+      showSoToast(context, 'Không mở được liên kết');
     }
+  }
+
+  /// Nút mua: Shopee là nút chính, TikTok Shop là nút phụ; chỉ sàn có URL.
+  Widget? _buyBar(BuildContext context, Product p) {
+    final shopee = p.marketplaceUrls[Platform.shopee];
+    final tiktok = p.marketplaceUrls[Platform.tiktokShop];
+    if (shopee == null && tiktok == null) return null;
+    Widget button(Platform platform, String url, {required bool primary}) {
+      final label = 'Mua trên ${platform.label}';
+      final key = Key('buy_${platform.name}');
+      void onPressed() => _open(context, url);
+      return primary
+          ? SoButton(key: key, label: label, onPressed: onPressed)
+          : SoButton.secondary(key: key, label: label, onPressed: onPressed);
+    }
+
+    return SoActionBar(
+      stacked: true,
+      primary: shopee != null
+          ? button(Platform.shopee, shopee, primary: true)
+          : button(Platform.tiktokShop, tiktok!, primary: true),
+      secondary: shopee != null && tiktok != null
+          ? button(Platform.tiktokShop, tiktok, primary: false)
+          : null,
+    );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      appBar: AppBar(),
-      body: AsyncValueView(
-        value: ref.watch(storefrontProductProvider(productId)),
-        onRetry: () => ref.invalidate(storefrontProductProvider(productId)),
-        data: (p) => ListView(
-          padding: const EdgeInsets.all(16),
+    final async = ref.watch(storefrontProductProvider(productId));
+    final product = async.value;
+    final shopName = ref.watch(currentShopProvider).value?.name;
+
+    return SoAmbientBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        bottomNavigationBar: product == null ? null : _buyBar(context, product),
+        body: Stack(
           children: [
-            AspectRatio(
-              aspectRatio: 1.4,
-              child: Container(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                alignment: Alignment.center,
-                child: const Icon(Icons.image_outlined, size: 64),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(p.name, style: Theme.of(context).textTheme.titleLarge),
-            Text('Từ ${Formatters.vnd(p.minPrice)}'),
-            if (p.description != null) ...[
-              const SizedBox(height: 12),
-              Text(p.description!),
-            ],
-            const SizedBox(height: 16),
-            Text('Phân loại', style: Theme.of(context).textTheme.titleMedium),
-            Wrap(
-              spacing: 8,
-              children: [
-                for (final s in p.skus)
-                  Chip(label: Text(s.variantName ?? s.skuCode)),
+            CustomScrollView(
+              physics: product != null || async.hasError
+                  ? const AlwaysScrollableScrollPhysics()
+                  : const NeverScrollableScrollPhysics(),
+              slivers: [
+                if (product != null)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _ImageAndSheet(
+                      child: _Details(product: product, shopName: shopName),
+                    ),
+                  )
+                else if (async.hasError)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _ImageAndSheet(
+                      child: SoEmptyState.error(
+                        title: 'Không tải được sản phẩm',
+                        message: switch (async.error) {
+                          final ApiException e => e.message,
+                          _ => null,
+                        },
+                        onAction: () => ref.invalidate(
+                          storefrontProductProvider(productId),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _ImageAndSheet(skeleton: true, child: _Skeleton()),
+                  ),
               ],
             ),
-            const SizedBox(height: 24),
-            if (p.marketplaceUrls.isEmpty)
-              const Text('Sản phẩm chưa mở bán trên sàn.'),
-            for (final platform in Platform.values)
-              if (p.marketplaceUrls[platform] case final url?)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: FilledButton.icon(
-                    onPressed: () => _open(context, url),
-                    icon: const Icon(Icons.open_in_new),
-                    label: Text('Mua trên ${platform.label}'),
-                  ),
-                ),
+            const _GlassBackButton(),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Ảnh 4:5 tràn hết bề ngang phía trên (cả dưới thanh trạng thái) và thẻ
+/// trắng bo trên 28 trồi lên đè đáy ảnh 28, kéo dài tới cuối màn.
+class _ImageAndSheet extends StatelessWidget {
+  const _ImageAndSheet({required this.child, this.skeleton = false});
+
+  final Widget child;
+  final bool skeleton;
+
+  static const _overlap = 28.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.soColors;
+    // Ảnh tràn hết bề ngang màn. Không dùng LayoutBuilder: SliverFillRemaining
+    // cần đo chiều cao tự nhiên, LayoutBuilder không hỗ trợ.
+    final imageHeight = MediaQuery.sizeOf(context).width * 5 / 4;
+    return Stack(
+      children: [
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          height: imageHeight,
+          // Chưa có ảnh sản phẩm thật: ô fill + icon.
+          child: ColoredBox(
+            color: c.fill,
+            child: skeleton
+                ? null
+                : Icon(
+                    LucideIcons.image,
+                    size: 48,
+                    color: c.muted,
+                    semanticLabel: 'Chưa có ảnh sản phẩm',
+                  ),
+          ),
+        ),
+        Positioned(
+          top: imageHeight - _overlap,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: DecoratedBox(
+            decoration: ShapeDecoration(
+              color: c.surface,
+              shape: const RoundedSuperellipseBorder(
+                borderRadius: SoRadius.sheetTop,
+              ),
+            ),
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            SoSpace.screen,
+            imageHeight - _overlap + SoSpace.s24,
+            SoSpace.screen,
+            SoSpace.s24,
+          ),
+          child: child,
+        ),
+      ],
+    );
+  }
+}
+
+/// Nội dung thẻ trắng.
+class _Details extends StatelessWidget {
+  const _Details({required this.product, required this.shopName});
+
+  final Product product;
+  final String? shopName;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.soColors;
+    final p = product;
+    final min = p.minPrice;
+    final max = p.maxPrice;
+    final variants = [for (final s in p.skus) ?s.variantName];
+    final points = min == null ? null : LoyaltyRules.pointsForAmount(min);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(p.name, style: context.textTheme.titleLarge),
+        if (min != null && max != null) ...[
+          const SizedBox(height: SoSpace.s8),
+          Text(
+            min == max
+                ? Formatters.vnd(min)
+                : '${Formatters.number(min)} – ${Formatters.vnd(max)}',
+            key: const Key('product_price'),
+            style: context.soText.metricSm,
+          ),
+          const SizedBox(height: SoSpace.s4),
+          Text(
+            'Giá tham khảo, giá trên sàn có thể khác.',
+            style: context.textTheme.bodySmall?.copyWith(color: c.ink2),
+          ),
+        ],
+        if (variants.isNotEmpty) ...[
+          const SizedBox(height: SoSpace.s20),
+          Text(
+            'Phân loại',
+            style: context.textTheme.labelLarge?.copyWith(color: c.ink2),
+          ),
+          const SizedBox(height: SoSpace.s8),
+          Wrap(
+            spacing: SoSpace.s8,
+            runSpacing: SoSpace.s8,
+            children: [for (final v in variants) _VariantChip(v)],
+          ),
+        ],
+        if (p.description case final description?) ...[
+          const SizedBox(height: SoSpace.s20),
+          Text(description, style: context.textTheme.bodyLarge),
+        ],
+        if (points != null && shopName != null) ...[
+          const SizedBox(height: SoSpace.s20),
+          SoBanner(
+            key: const Key('product_points'),
+            tone: SoBannerTone.info,
+            title: 'Tích khoảng $points điểm tại $shopName',
+            message:
+                'Mua trên sàn, sau khi đơn hoàn tất 15 ngày thì claim đơn để '
+                'nhận điểm.',
+          ),
+        ],
+        if (p.marketplaceUrls.isEmpty) ...[
+          const SizedBox(height: SoSpace.s20),
+          Text(
+            'Sản phẩm chưa mở bán trên sàn.',
+            key: const Key('product_not_on_sale'),
+            style: context.textTheme.bodyMedium?.copyWith(color: c.ink2),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Chip phân loại chỉ để xem: capsule nền fill, chữ subhead ink2.
+class _VariantChip extends StatelessWidget {
+  const _VariantChip(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.soColors;
+    return Container(
+      constraints: const BoxConstraints(minHeight: SoSize.chip),
+      padding: const EdgeInsets.symmetric(horizontal: SoSpace.s12),
+      alignment: Alignment.center,
+      decoration: ShapeDecoration(
+        color: c.fill,
+        shape: SoShape.squircle(SoRadius.capsuleAll),
+      ),
+      child: Text(
+        label,
+        style: context.textTheme.labelLarge?.copyWith(color: c.ink2),
+      ),
+    );
+  }
+}
+
+/// Nút back tròn kính mỏng 36 nổi trên ảnh, dưới vùng an toàn, cách mép 16;
+/// vùng chạm 48 (IconButton tự đệm 6 mỗi bên).
+class _GlassBackButton extends StatelessWidget {
+  const _GlassBackButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.soColors;
+    final insets = MediaQuery.paddingOf(context);
+    return Positioned(
+      top: insets.top + SoSpace.s8 - 6,
+      left: insets.left + SoSpace.s16 - 6,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          const SoGlass(
+            level: SoGlassLevel.thin,
+            borderRadius: SoRadius.capsuleAll,
+            child: SizedBox.square(dimension: SoSize.controlSmall),
+          ),
+          IconButton(
+            key: const Key('product_back'),
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+            style: IconButton.styleFrom(
+              foregroundColor: c.ink,
+              fixedSize: const Size.square(SoSize.controlSmall),
+              minimumSize: const Size.square(SoSize.controlSmall),
+            ),
+            icon: const Icon(LucideIcons.chevronLeft, size: SoSize.iconSmall),
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Skeleton nội dung thẻ trắng.
+class _Skeleton extends StatelessWidget {
+  const _Skeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SoSkeleton(width: 220, height: 24),
+        SizedBox(height: SoSpace.s12),
+        SoSkeleton(width: 160, height: 24),
+        SizedBox(height: SoSpace.s20),
+        SoSkeleton(height: 14),
+        SizedBox(height: SoSpace.s8),
+        SoSkeleton(height: 14),
+      ],
     );
   }
 }

@@ -141,4 +141,125 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
+
+  group('C-11', () {
+    const both = Product(
+      id: 1,
+      name: 'Áo thun cổ tròn',
+      description: 'Cotton 100%.',
+      skus: [
+        Sku(id: 11, skuCode: 'AT-M', variantName: 'Size M', basePrice: 159000),
+        Sku(id: 12, skuCode: 'AT-L', variantName: 'Size L', basePrice: 189000),
+        Sku(id: 13, skuCode: 'AT-NOI-BO', basePrice: 169000),
+      ],
+      marketplaceUrls: {
+        Platform.shopee: 'https://shopee.vn/a',
+        Platform.tiktokShop: 'https://shop.tiktok.com/a',
+      },
+    );
+
+    Future<void> openProduct(
+      WidgetTester tester,
+      Future<Product> Function() load, {
+      bool narrow = false,
+    }) async {
+      if (narrow) {
+        useNarrowPhone(tester);
+        tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      }
+      await loginAs(
+        tester,
+        'customer@demo.vn',
+        tallView: !narrow,
+        overrides: [
+          storefrontProductsProvider.overrideWith((ref) async => [both]),
+          storefrontProductProvider.overrideWith((ref, id) => load()),
+        ],
+      );
+      await tester.tap(find.byKey(const Key('storefront_product_1')));
+      await tester.pumpAndSettle();
+      expect(find.byType(StorefrontProductScreen), findsOneWidget);
+    }
+
+    SoButtonVariant variant(WidgetTester tester, String key) =>
+        tester.widget<SoButton>(find.byKey(Key(key))).variant;
+
+    testWidgets('khoảng giá, ghi chú giá, phân loại, điểm, 2 nút mua', (
+      tester,
+    ) async {
+      await openProduct(tester, () async => both);
+
+      expect(find.text('Áo thun cổ tròn'), findsOneWidget);
+      expect(find.text('159.000 – 189.000 ₫'), findsOneWidget);
+      expect(
+        find.text('Giá tham khảo, giá trên sàn có thể khác.'),
+        findsOneWidget,
+      );
+      expect(find.text('Size M'), findsOneWidget);
+      expect(find.text('Size L'), findsOneWidget);
+      // SKU không có tên phân loại: không hiện mã nội bộ.
+      expect(find.text('AT-NOI-BO'), findsNothing);
+      expect(find.text('Cotton 100%.'), findsOneWidget);
+      expect(find.text('Tích khoảng 159 điểm tại Shop Demo'), findsOneWidget);
+
+      expect(variant(tester, 'buy_shopee'), SoButtonVariant.primary);
+      expect(variant(tester, 'buy_tiktokShop'), SoButtonVariant.secondary);
+      expect(find.text('Mua trên TikTok Shop'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('product_back')));
+      await tester.pumpAndSettle();
+      expect(find.byType(StorefrontProductScreen), findsNothing);
+    });
+
+    testWidgets('chỉ một sàn có URL thì chỉ một nút chính', (tester) async {
+      await openProduct(
+        tester,
+        () async => const Product(
+          id: 1,
+          name: 'Túi tote',
+          skus: [_sku],
+          marketplaceUrls: {Platform.tiktokShop: 'https://shop.tiktok.com/t'},
+        ),
+      );
+      expect(find.text('159.000 ₫'), findsOneWidget);
+      expect(variant(tester, 'buy_tiktokShop'), SoButtonVariant.primary);
+      expect(find.byKey(const Key('buy_shopee')), findsNothing);
+    });
+
+    testWidgets('chưa mở bán trên sàn nào thì không có thanh mua', (
+      tester,
+    ) async {
+      await openProduct(
+        tester,
+        () async => const Product(id: 1, name: 'Kem', skus: [_sku]),
+      );
+      expect(find.byKey(const Key('product_not_on_sale')), findsOneWidget);
+      expect(find.byType(SoActionBar), findsNothing);
+    });
+
+    testWidgets('lỗi thì có Thử lại và vẫn có nút back', (tester) async {
+      await openProduct(
+        tester,
+        () async => throw const ApiException(
+          type: ApiErrorType.notFound,
+          message: 'Sản phẩm không tồn tại',
+        ),
+      );
+      expect(find.text('Không tải được sản phẩm'), findsOneWidget);
+      expect(find.text('Thử lại'), findsOneWidget);
+      expect(find.byKey(const Key('product_back')), findsOneWidget);
+    });
+
+    testWidgets('vừa bề rộng 360dp, chữ phóng 1.3', (tester) async {
+      await openProduct(tester, () async => both, narrow: true);
+      expect(tester.takeException(), isNull);
+      await tester.drag(
+        find.byType(CustomScrollView).last,
+        const Offset(0, -1500),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+  });
 }
