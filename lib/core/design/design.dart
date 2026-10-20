@@ -20,6 +20,7 @@ export 'so_logo.dart';
 export 'so_order_row.dart';
 export 'so_scaffold.dart';
 export 'so_segmented.dart';
+export 'so_shop_switcher.dart';
 export 'so_stat_tile.dart';
 export 'so_stock_meter.dart';
 export 'so_tags.dart';

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/router/routes.dart';
+import '../../../core/design/design.dart';
 import '../../../core/models/platform.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/utils/formatters.dart';
@@ -49,8 +50,19 @@ class StorefrontScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Tạm: SoShopSwitcher thay tiêu đề AppBar cũ để mở C-00; bước 3 dựng lại
+    // C-10 bằng SoScaffold theo DESIGN.md mục 8b.
+    final shop = ref.watch(currentShopProvider).value;
     return Scaffold(
-      appBar: AppBar(title: const Text('Sản phẩm')),
+      appBar: AppBar(
+        title: shop == null
+            ? const Text('Sản phẩm')
+            : SoShopSwitcher(
+                key: const Key('shop_switcher'),
+                name: shop.name,
+                onTap: () => context.push(Routes.customerShops),
+              ),
+      ),
       floatingActionButton: FloatingActionButton(
         tooltip: 'Hỏi trợ lý AI',
         onPressed: () => showInfoSnackBar(
