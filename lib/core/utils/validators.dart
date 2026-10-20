@@ -30,6 +30,18 @@ class Validators {
     return null;
   }
 
+  static final _phoneRegex = RegExp(r'^0\d{9}$');
+
+  /// Số điện thoại Việt Nam: 10 số, bắt đầu bằng 0.
+  static String? phone(String? value) {
+    final empty = required(value, field: 'Số điện thoại');
+    if (empty != null) return empty;
+    if (!_phoneRegex.hasMatch(value!.trim())) {
+      return 'Số điện thoại gồm 10 số, bắt đầu bằng 0';
+    }
+    return null;
+  }
+
   /// Ô "Nhập lại mật khẩu" phải giống [password].
   static String? confirmPassword(String? value, String password) {
     final empty = required(value, field: 'Mật khẩu');

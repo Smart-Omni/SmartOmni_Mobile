@@ -3,6 +3,7 @@ import '../../../core/auth/session.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/utils/mock_delay.dart';
 import '../domain/auth_repository.dart';
+import 'mock_account_store.dart';
 
 /// Tài khoản demo cho chế độ mock. Mật khẩu chung: [MockAccounts.password].
 class MockAccounts {
@@ -35,15 +36,41 @@ class MockAccounts {
 
   /// Mã đặt lại mật khẩu đã hết hạn.
   static const expiredResetCode = '000000';
+
+  /// Mã OTP xác minh email khi đăng ký (A-05).
+  static const otp = '123456';
+}
+
+/// Phiên mock: JWT không ký, hạn 24 giờ, giống token backend trả về.
+Session mockSession({
+  required int userId,
+  required String role,
+  required int? tenantId,
+  required String email,
+  required DateTime now,
+}) {
+  final exp = now.add(const Duration(hours: 24));
+  final token = JwtDecoder.buildUnsigned({
+    'sub': '$userId',
+    'role': role,
+    'tenantId': ?tenantId,
+    'email': email,
+    'exp': exp.millisecondsSinceEpoch ~/ 1000,
+  });
+  return Session.fromToken(token)!;
 }
 
 /// Giả lập Auth Service. Thông điệp lỗi chép đúng như backend (không dấu)
 /// để phần phân loại lỗi (`LoginFailure.fromApi`) chạy giống khi có API thật.
 class AuthMockRepository implements AuthRepository {
-  AuthMockRepository({DateTime Function()? clock})
-    : _now = clock ?? DateTime.now;
+  AuthMockRepository({DateTime Function()? clock, MockAccountStore? store})
+    : _now = clock ?? DateTime.now,
+      _store = store ?? MockAccountStore();
 
   final DateTime Function() _now;
+
+  /// Tài khoản khách đăng ký mới (A-05), đăng nhập bằng mật khẩu riêng.
+  final MockAccountStore _store;
   final _failedAttempts = <String, int>{};
   final _lockedUntil = <String, DateTime>{};
 
@@ -60,7 +87,12 @@ class AuthMockRepository implements AuthRepository {
   }) async {
     await MockDelay.short();
     final key = email.trim().toLowerCase();
-    final account = MockAccounts.accounts[key];
+    final registered = _store.find(key);
+    final account =
+        MockAccounts.accounts[key] ??
+        (registered == null
+            ? null
+            : (registered.userId, 'CUSTOMER', registered.tenantId));
     // Giống backend: không tiết lộ email có tồn tại hay không.
     if (account == null) throw _invalid;
 
@@ -81,7 +113,7 @@ class AuthMockRepository implements AuthRepository {
         statusCode: 403,
       );
     }
-    if (password != MockAccounts.password) {
+    if (password != (registered?.password ?? MockAccounts.password)) {
       final count = (_failedAttempts[key] ?? 0) + 1;
       _failedAttempts[key] = count;
       if (count >= MockAccounts.maxFailedAttempts) {
@@ -103,15 +135,13 @@ class AuthMockRepository implements AuthRepository {
     _failedAttempts.remove(key);
     _lockedUntil.remove(key);
     final (userId, role, tenantId) = account;
-    final exp = _now().add(const Duration(hours: 24));
-    final token = JwtDecoder.buildUnsigned({
-      'sub': '$userId',
-      'role': role,
-      'tenantId': ?tenantId,
-      'email': email,
-      'exp': exp.millisecondsSinceEpoch ~/ 1000,
-    });
-    return Session.fromToken(token)!;
+    return mockSession(
+      userId: userId,
+      role: role,
+      tenantId: tenantId,
+      email: email,
+      now: _now(),
+    );
   }
 
   @override

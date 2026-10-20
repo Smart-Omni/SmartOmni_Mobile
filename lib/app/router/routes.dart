@@ -13,6 +13,8 @@ class Routes {
   static const login = '/login';
   static const forgotPassword = '/forgot-password';
   static const resetPassword = '/reset-password';
+  static const register = '/register';
+  static const registerVerify = '/register/verify';
 
   // Merchant - các tab (nằm trong bottom navigation)
   static const merchantDashboard = '/m/dashboard';
@@ -68,6 +70,8 @@ String? resolveRedirect(
     Routes.login,
     Routes.forgotPassword,
     Routes.resetPassword,
+    Routes.register,
+    Routes.registerVerify,
   ];
 
   if (location.startsWith(Routes.devPrefix)) {

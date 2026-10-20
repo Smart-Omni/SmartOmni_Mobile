@@ -7,6 +7,8 @@
   "password": "Mật khẩu",
   "loginButton": "Đăng nhập",
   "forgotPassword": "Quên mật khẩu?",
+  "loginNoAccount": "Khách mua hàng chưa có tài khoản?",
+  "loginRegister": "Đăng ký",
   "forgotPasswordTitle": "Quên mật khẩu",
   "forgotPasswordHint": "Nhập email bạn dùng để đăng nhập. Mã đặt lại mật khẩu sẽ được gửi tới email này.",
   "sendResetLink": "Gửi mã đặt lại",

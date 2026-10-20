@@ -218,6 +218,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 loading: _submitting,
                                 onPressed: _locked ? null : _submit,
                               ),
+                              const SizedBox(height: SoSpace.s8),
+                              Wrap(
+                                alignment: WrapAlignment.center,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  Text(
+                                    l10n.loginNoAccount,
+                                    style: context.textTheme.bodyMedium
+                                        ?.copyWith(
+                                          color: context.soColors.ink2,
+                                        ),
+                                  ),
+                                  TextButton(
+                                    key: const Key('login_register'),
+                                    onPressed: () =>
+                                        context.push(Routes.register),
+                                    child: Text(l10n.loginRegister),
+                                  ),
+                                ],
+                              ),
                               if (failure?.kind ==
                                   LoginFailureKind.superAdmin) ...[
                                 const SizedBox(height: SoSpace.s12),

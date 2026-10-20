@@ -9,8 +9,9 @@ import '../domain/loyalty_repository.dart';
 /// Khi có API: tạo `LoyaltyRemoteRepository` và chọn theo `appConfigProvider`
 /// giống các feature khác. Tạo lại theo từng phiên đăng nhập (như cửa hàng).
 final loyaltyRepositoryProvider = Provider<LoyaltyRepository>((ref) {
-  ref.watch(currentSessionProvider);
-  return LoyaltyMockRepository();
+  final session = ref.watch(currentSessionProvider);
+  final registered = ref.read(mockAccountStoreProvider).find(session?.email);
+  return LoyaltyMockRepository(demoData: registered == null);
 });
 
 /// Điểm và lịch sử của khách tại cửa hàng đang xem.

@@ -3,16 +3,28 @@ import '../../../core/utils/mock_delay.dart';
 import '../domain/customer_shop.dart';
 
 /// Mock: khách demo đã tham gia 2 cửa hàng; còn 1 mã ("BEPXINH") để thử
-/// tham gia thêm.
+/// tham gia thêm. Tài khoản đăng ký mới ([joinedCodes]) chỉ có cửa hàng đã
+/// chọn khi đăng ký, 0 điểm.
 class CustomerShopMockRepository implements CustomerShopRepository {
-  final List<CustomerShop> _joined = [
-    const CustomerShop(
-      tenantId: 1,
-      code: 'SHOPDEMO',
-      name: 'Shop Demo',
-      points: 620,
-    ),
-    const CustomerShop(
+  CustomerShopMockRepository({List<String>? joinedCodes})
+    : _joined = joinedCodes == null
+          ? [..._demoJoined]
+          : [
+              for (final s in all)
+                if (joinedCodes.contains(s.code))
+                  CustomerShop(
+                    tenantId: s.tenantId,
+                    code: s.code,
+                    name: s.name,
+                    points: 0,
+                  ),
+            ];
+
+  final List<CustomerShop> _joined;
+
+  static const _demoJoined = [
+    CustomerShop(tenantId: 1, code: 'SHOPDEMO', name: 'Shop Demo', points: 620),
+    CustomerShop(
       tenantId: 2,
       code: 'HOAMOC',
       name: 'Hoa Mộc Cosmetics',
@@ -21,7 +33,7 @@ class CustomerShopMockRepository implements CustomerShopRepository {
   ];
 
   /// Mọi cửa hàng có trên hệ thống (xem trước được bằng mã).
-  static const _all = [
+  static const all = [
     ShopPreview(tenantId: 1, code: 'SHOPDEMO', name: 'Shop Demo'),
     ShopPreview(tenantId: 2, code: 'HOAMOC', name: 'Hoa Mộc Cosmetics'),
     ShopPreview(tenantId: 3, code: 'BEPXINH', name: 'Bếp Xinh'),
@@ -37,7 +49,7 @@ class CustomerShopMockRepository implements CustomerShopRepository {
   Future<ShopPreview> previewShop(String code) async {
     await MockDelay.short();
     final c = normalizeShopCode(code);
-    return _all.firstWhere(
+    return all.firstWhere(
       (s) => s.code == c,
       orElse: () => throw const ApiException(
         type: ApiErrorType.notFound,

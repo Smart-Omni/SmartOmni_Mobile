@@ -9,8 +9,12 @@ import '../domain/customer_shop.dart';
 /// khoản, là phiên mới), để danh sách cửa hàng và mọi provider đọc theo nó
 /// không mang sang tài khoản khác trên cùng máy.
 final customerShopRepositoryProvider = Provider<CustomerShopRepository>((ref) {
-  ref.watch(currentSessionProvider);
-  return CustomerShopMockRepository();
+  final session = ref.watch(currentSessionProvider);
+  // Tài khoản vừa đăng ký (A-05): chỉ có cửa hàng đã chọn khi đăng ký.
+  final registered = ref.read(mockAccountStoreProvider).find(session?.email);
+  return CustomerShopMockRepository(
+    joinedCodes: registered == null ? null : [registered.shopCode],
+  );
 });
 
 /// Các cửa hàng khách đã tham gia.
