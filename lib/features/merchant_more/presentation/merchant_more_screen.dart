@@ -20,79 +20,72 @@ class MerchantMoreScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isAdmin = ref.watch(currentRoleProvider) == UserRole.tenantAdmin;
-    return Scaffold(
-      extendBodyBehindAppBar: true,
+    return SoScaffold(
       appBar: const SoAppBar.root(title: 'Thêm'),
-      body: SoAmbientBackground(
-        child: ListView(
-          padding: SoSpace.scrollable(
-            context,
-            const EdgeInsets.fromLTRB(
-              SoSpace.screen,
-              SoSpace.s8,
-              SoSpace.screen,
-              SoSpace.s8,
-            ),
-          ),
-          children: [
-            const ProfileCard(),
-            const GroupTitle('Công cụ'),
-            SoListGroup(
-              children: [
-                SoListRow(
-                  key: const Key('menu_ai'),
-                  icon: LucideIcons.chartLine,
-                  title: 'AI dự báo & gợi ý',
-                  subtitle: 'Dự báo nhu cầu theo SKU',
-                  trailing: const SoAiLabel(),
-                  onTap: () => context.push(Routes.merchantAi),
-                ),
-                const SoListRow(
-                  icon: LucideIcons.messagesSquare,
-                  title: 'Hộp thư CSKH',
-                  subtitle: 'Tin nhắn Shopee và TikTok Shop',
-                  comingSoon: true,
-                ),
-                const SoListRow(
-                  icon: LucideIcons.undo2,
-                  title: 'Danh sách hoàn/trả',
-                  comingSoon: true,
-                ),
-              ],
-            ),
-            if (isAdmin) ...[
-              const GroupTitle('Quản trị cửa hàng'),
-              const SoListGroup(
+      slivers: [
+        SliverPadding(
+          padding: SoSpace.page,
+          sliver: SliverList.list(
+            children: [
+              const ProfileCard(),
+              const GroupTitle('Công cụ'),
+              SoListGroup(
                 children: [
-                  _MarketplaceRow(),
                   SoListRow(
-                    icon: LucideIcons.users,
-                    title: 'Quản lý nhân viên',
+                    key: const Key('menu_ai'),
+                    icon: LucideIcons.chartLine,
+                    title: 'Dự báo nhu cầu',
+                    subtitle: 'Dự kiến bán 7 ngày tới theo SKU',
+                    trailing: const SoAiLabel(),
+                    onTap: () => context.push(Routes.merchantAi),
+                  ),
+                  const SoListRow(
+                    icon: LucideIcons.messagesSquare,
+                    title: 'Hộp thư CSKH',
+                    subtitle: 'Tin nhắn Shopee và TikTok Shop',
                     comingSoon: true,
                   ),
-                  SoListRow(
-                    icon: LucideIcons.ticket,
-                    title: 'Phát voucher cho khách',
-                    comingSoon: true,
-                  ),
-                  SoListRow(
-                    icon: LucideIcons.badgeCheck,
-                    title: 'Gói dịch vụ',
-                    comingSoon: true,
-                  ),
-                  SoListRow(
-                    icon: LucideIcons.lifeBuoy,
-                    title: 'Yêu cầu hỗ trợ',
+                  const SoListRow(
+                    icon: LucideIcons.undo2,
+                    title: 'Danh sách hoàn/trả',
                     comingSoon: true,
                   ),
                 ],
               ),
+              if (isAdmin) ...[
+                const GroupTitle('Quản trị cửa hàng'),
+                const SoListGroup(
+                  children: [
+                    _MarketplaceRow(),
+                    SoListRow(
+                      icon: LucideIcons.users,
+                      title: 'Quản lý nhân viên',
+                      comingSoon: true,
+                    ),
+                    SoListRow(
+                      icon: LucideIcons.ticket,
+                      title: 'Phát voucher cho khách',
+                      comingSoon: true,
+                    ),
+                    SoListRow(
+                      icon: LucideIcons.badgeCheck,
+                      title: 'Gói dịch vụ',
+                      comingSoon: true,
+                    ),
+                    SoListRow(
+                      icon: LucideIcons.lifeBuoy,
+                      title: 'Yêu cầu hỗ trợ',
+                      comingSoon: true,
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: SoSpace.group),
+              const SoListGroup(children: [LogoutRow()]),
             ],
-            const SizedBox(height: SoSpace.group),
-            const SoListGroup(children: [LogoutRow()]),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }

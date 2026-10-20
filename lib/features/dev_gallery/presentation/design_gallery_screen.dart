@@ -34,13 +34,10 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
   }
 
   Widget _scaffold(BuildContext context) {
+    // Giống khung có thanh tab: Scaffold ngoài giữ thanh tab nổi
+    // (extendBody), SoScaffold bên trong chừa đáy theo thanh đó.
     return Scaffold(
       extendBody: true,
-      extendBodyBehindAppBar: true,
-      appBar: SoAppBar(
-        title: context.l10n.devGalleryTitle,
-        subtitle: 'lib/core/design',
-      ),
       bottomNavigationBar: SoBottomNav(
         currentIndex: _navIndex,
         onTap: (i) => setState(() => _navIndex = i),
@@ -61,41 +58,46 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
           SoNavItem(icon: LucideIcons.ellipsis, label: context.l10n.navMore),
         ],
       ),
-      body: SoAmbientBackground(
-        child: ListView(
-          padding: SoSpace.scrollable(context),
-          children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(
-                SoSpace.screen,
-                SoSpace.s8,
-                SoSpace.screen,
-                0,
-              ),
-              child: SoMockBanner(message: 'Mọi số liệu ở màn này là ví dụ.'),
-            ),
-            _Section(title: 'Kính', child: _glassDemo()),
-            _Section(title: 'Logo', child: _logos()),
-            _Section(title: 'Màu', child: _swatches(context)),
-            _Section(title: 'Chữ', child: _typography(context)),
-            _Section(title: 'Nút', child: _buttons()),
-            _Section(title: 'Ô nhập', child: _fields()),
-            _Section(title: 'Chip & segmented', child: _chips()),
-            _Section(title: 'Nhãn', child: _tags()),
-            _Section(title: 'Ô chỉ số', child: _stats()),
-            _Section(title: 'Tồn kho', child: _stock()),
-            _Section(title: 'Hàng đơn', padded: false, child: _orders()),
-            _Section(title: 'Danh sách', child: _listRows()),
-            _Section(title: 'Banner', child: _banners()),
-            _Section(title: 'Toast & sheet', child: _overlays(context)),
-            _Section(title: 'Rỗng & lỗi', padded: false, child: _empty()),
-            const _Section(
-              title: 'Skeleton',
-              child: SoListGroup(children: [SoSkeletonList(count: 2)]),
-            ),
-            _Section(title: 'Tiến trình', child: _timeline()),
-          ],
+      body: SoScaffold(
+        appBar: SoAppBar(
+          title: context.l10n.devGalleryTitle,
+          subtitle: 'lib/core/design',
         ),
+        slivers: [
+          SliverList.list(
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(
+                  SoSpace.screen,
+                  SoSpace.s8,
+                  SoSpace.screen,
+                  0,
+                ),
+                child: SoMockBanner(message: 'Mọi số liệu ở màn này là ví dụ.'),
+              ),
+              _Section(title: 'Kính', child: _glassDemo()),
+              _Section(title: 'Logo', child: _logos()),
+              _Section(title: 'Màu', child: _swatches(context)),
+              _Section(title: 'Chữ', child: _typography(context)),
+              _Section(title: 'Nút', child: _buttons()),
+              _Section(title: 'Ô nhập', child: _fields()),
+              _Section(title: 'Chip & segmented', child: _chips()),
+              _Section(title: 'Nhãn', child: _tags()),
+              _Section(title: 'Ô chỉ số', child: _stats()),
+              _Section(title: 'Tồn kho', child: _stock()),
+              _Section(title: 'Hàng đơn', padded: false, child: _orders()),
+              _Section(title: 'Danh sách', child: _listRows()),
+              _Section(title: 'Banner', child: _banners()),
+              _Section(title: 'Toast & sheet', child: _overlays(context)),
+              _Section(title: 'Rỗng & lỗi', padded: false, child: _empty()),
+              const _Section(
+                title: 'Skeleton',
+                child: SoListGroup(children: [SoSkeletonList(count: 2)]),
+              ),
+              _Section(title: 'Tiến trình', child: _timeline()),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -426,8 +428,8 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
     children: [
       SoListRow(
         icon: LucideIcons.chartLine,
-        title: 'AI dự báo & gợi ý',
-        subtitle: 'Dự báo nhu cầu theo SKU',
+        title: 'Dự báo nhu cầu',
+        subtitle: 'Dự kiến bán 7 ngày tới theo SKU',
         onTap: () {},
       ),
       const SoListRow(

@@ -52,11 +52,11 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return SoAmbientBackground(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
+    return Form(
+      key: _formKey,
+      child: SoScaffold(
         appBar: SoAppBar(title: l10n.forgotPasswordTitle),
-        bottomNavigationBar: SoActionBar(
+        bottomBar: SoActionBar(
           primary: SoButton(
             key: const Key('forgot_submit'),
             label: _sent ? l10n.resetResendCode : l10n.sendResetLink,
@@ -64,41 +64,46 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             onPressed: _send,
           ),
         ),
-        body: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.all(SoSpace.screen),
-            children: [
-              Text(
-                l10n.forgotPasswordHint,
-                style: context.textTheme.bodyMedium,
+        slivers: [
+          // Form: dựng hết các ô một lần để validate() thấy mọi ô.
+          SliverPadding(
+            padding: SoSpace.page,
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    l10n.forgotPasswordHint,
+                    style: context.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: SoSpace.s24),
+                  SoTextField(
+                    key: const Key('forgot_email'),
+                    label: l10n.email,
+                    controller: _emailCtrl,
+                    hint: 'ten@cuahang.vn',
+                    keyboardType: TextInputType.emailAddress,
+                    autofillHints: const [AutofillHints.email],
+                    textInputAction: TextInputAction.send,
+                    validator: Validators.email,
+                    onSubmitted: (_) => _send(),
+                  ),
+                  if (_sent) ...[
+                    const SizedBox(height: SoSpace.s24),
+                    SoBanner(
+                      key: const Key('forgot_sent'),
+                      tone: SoBannerTone.info,
+                      title: l10n.resetSentTitle,
+                      message: l10n.resetLinkSent,
+                      actionLabel: l10n.resetHaveCode,
+                      onAction: () => context.push(Routes.resetPassword),
+                    ),
+                  ],
+                ],
               ),
-              const SizedBox(height: SoSpace.s24),
-              SoTextField(
-                key: const Key('forgot_email'),
-                label: l10n.email,
-                controller: _emailCtrl,
-                hint: 'ten@cuahang.vn',
-                keyboardType: TextInputType.emailAddress,
-                autofillHints: const [AutofillHints.email],
-                textInputAction: TextInputAction.send,
-                validator: Validators.email,
-                onSubmitted: (_) => _send(),
-              ),
-              if (_sent) ...[
-                const SizedBox(height: SoSpace.s24),
-                SoBanner(
-                  key: const Key('forgot_sent'),
-                  tone: SoBannerTone.info,
-                  title: l10n.resetSentTitle,
-                  message: l10n.resetLinkSent,
-                  actionLabel: l10n.resetHaveCode,
-                  onAction: () => context.push(Routes.resetPassword),
-                ),
-              ],
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

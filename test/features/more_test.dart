@@ -38,7 +38,8 @@ void main() {
     expect(find.byKey(const Key('menu_marketplace')), findsNothing);
 
     await tapVisible(tester, find.byKey(const Key('menu_ai')));
-    expect(find.byType(AiInsightsScreen), findsOneWidget);
+    expect(find.byType(SkuForecastScreen), findsOneWidget);
+    expect(find.text('Chọn SKU'), findsWidgets);
   });
 
   testWidgets('Admin: Kết nối sàn hiện trạng thái 2 sàn, mở được T-10', (
@@ -74,7 +75,10 @@ void main() {
     await loginAs(tester, 'admin@demo.vn');
     await tester.tap(find.byKey(const Key('nav_more')));
     await tester.pumpAndSettle();
-    await tester.drag(find.byType(ListView).last, const Offset(0, -2000));
+    await tester.drag(
+      find.byType(CustomScrollView).last,
+      const Offset(0, -2000),
+    );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });

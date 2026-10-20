@@ -31,49 +31,38 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(inventoryListProvider);
-    return Scaffold(
-      extendBodyBehindAppBar: true,
+    return SoScaffold(
       appBar: const SoAppBar.root(title: 'Tồn kho'),
-      body: SoAmbientBackground(
-        child: switch (async) {
-          AsyncData(:final value) => RefreshIndicator(
-            edgeOffset: MediaQuery.paddingOf(context).top,
-            onRefresh: () async {
+      onRefresh: async.hasValue
+          ? () async {
               ref.invalidate(inventoryListProvider);
               await ref.read(inventoryListProvider.future);
-            },
-            child: _InventoryBody(
-              items: value,
-              filter: _filter,
-              onFilter: (f) => setState(() => _filter = f),
-              onTap: _adjust,
+            }
+          : null,
+      scrollable: !async.isLoading || async.hasValue,
+      slivers: [
+        switch (async) {
+          AsyncData(:final value) => _InventoryBody(
+            items: value,
+            filter: _filter,
+            onFilter: (f) => setState(() => _filter = f),
+            onTap: _adjust,
+          ),
+          AsyncError(:final error) => SliverToBoxAdapter(
+            child: SoEmptyState.error(
+              title: 'Không tải được tồn kho',
+              message: AsyncValueView.errorMessage(error),
+              onAction: () => ref.invalidate(inventoryListProvider),
             ),
           ),
-          AsyncError(:final error) => ListView(
-            padding: SoSpace.scrollable(context),
-            children: [
-              SoEmptyState.error(
-                title: 'Không tải được tồn kho',
-                message: AsyncValueView.errorMessage(error),
-                onAction: () => ref.invalidate(inventoryListProvider),
-              ),
-            ],
-          ),
-          _ => SingleChildScrollView(
-            physics: const NeverScrollableScrollPhysics(),
-            padding: SoSpace.scrollable(
-              context,
-              const EdgeInsets.fromLTRB(
-                SoSpace.screen,
-                SoSpace.s8,
-                SoSpace.screen,
-                0,
-              ),
+          _ => const SliverPadding(
+            padding: SoSpace.page,
+            sliver: SliverToBoxAdapter(
+              child: SoListGroup(children: [SoSkeletonList(count: 6)]),
             ),
-            child: const SoListGroup(children: [SoSkeletonList(count: 6)]),
           ),
         },
-      ),
+      ],
     );
   }
 }
@@ -97,8 +86,7 @@ class _InventoryBody extends StatelessWidget {
     final totals = inventoryTotals(items);
     final visible = items.where(filter.matches).toList();
 
-    return ListView(
-      padding: SoSpace.scrollable(context),
+    return SliverList.list(
       children: [
         const Padding(
           padding: EdgeInsets.fromLTRB(
@@ -176,16 +164,15 @@ class _InventoryBody extends StatelessWidget {
                 : 'Mọi SKU đều còn đủ hàng.',
           )
         else
-          DecoratedBox(
-            decoration: BoxDecoration(
-              border: Border.symmetric(
-                horizontal: BorderSide(color: c.fillStrong),
-              ),
-            ),
+          // Một thẻ trắng bo lg cách lề 16; đường chia thụt vào 16 (như M-20).
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: SoSpace.screen),
+            clipBehavior: Clip.antiAlias,
+            decoration: SoShape.card(c),
             child: Column(
               children: [
                 for (final (i, item) in visible.indexed) ...[
-                  if (i > 0) const Divider(),
+                  if (i > 0) const Divider(indent: SoSpace.s16),
                   _StockRow(item: item, onTap: () => onTap(item)),
                 ],
               ],

@@ -155,23 +155,34 @@ void main() {
     addTearDown(tester.view.reset);
 
     await _openOrders(tester, tallView: false);
-    await tester.drag(find.byType(ListView).last, const Offset(0, -2000));
+    await tester.drag(
+      find.byType(CustomScrollView).last,
+      const Offset(0, -2000),
+    );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
 
-    await tester.drag(find.byType(ListView).last, const Offset(0, 2000));
+    await tester.drag(
+      find.byType(CustomScrollView).last,
+      const Offset(0, 2000),
+    );
     await tester.pumpAndSettle();
     // Danh sách dựng lười: cuộn tới khi đơn được dựng rồi mới chạm.
     await tester.scrollUntilVisible(
       find.byKey(const Key('order_1006')),
       200,
-      scrollable: find.descendant(
-        of: find.byKey(const Key('orders_list')),
-        matching: find.byType(Scrollable),
-      ),
+      scrollable: find
+          .ancestor(
+            of: find.byKey(const Key('orders_list')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await _tap(tester, find.byKey(const Key('order_1006')));
-    await tester.drag(find.byType(ListView).last, const Offset(0, -2000));
+    await tester.drag(
+      find.byType(CustomScrollView).last,
+      const Offset(0, -2000),
+    );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
 

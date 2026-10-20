@@ -51,8 +51,16 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
     final products = async.value ?? const <Product>[];
     final activeCount = products.where((p) => p.active).length;
 
-    return Scaffold(
-      extendBodyBehindAppBar: true,
+    return SoScaffold(
+      onRefresh: async.hasValue
+          ? () async {
+              ref
+                ..invalidate(productsListProvider)
+                ..invalidate(inventoryListProvider);
+              await ref.read(productsListProvider.future);
+            }
+          : null,
+      scrollable: !async.isLoading || async.hasValue,
       appBar: SoAppBar.root(
         title: 'Sản phẩm',
         actions: [
@@ -113,51 +121,32 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
           ),
         ),
       ),
-      body: SoAmbientBackground(
-        child: switch (async) {
-          AsyncData(:final value) => RefreshIndicator(
-            edgeOffset: MediaQuery.paddingOf(context).top,
-            onRefresh: () async {
-              ref
-                ..invalidate(productsListProvider)
-                ..invalidate(inventoryListProvider);
-              await ref.read(productsListProvider.future);
-            },
-            child: _ProductList(
-              products: value
-                  .where((p) => p.active != _showHidden)
-                  .where(_matches)
-                  .toList(),
-              stock: stock,
-              searching: _searchCtrl.text.trim().isNotEmpty,
-              showHidden: _showHidden,
+      slivers: [
+        switch (async) {
+          AsyncData(:final value) => _ProductList(
+            products: value
+                .where((p) => p.active != _showHidden)
+                .where(_matches)
+                .toList(),
+            stock: stock,
+            searching: _searchCtrl.text.trim().isNotEmpty,
+            showHidden: _showHidden,
+          ),
+          AsyncError(:final error) => SliverToBoxAdapter(
+            child: SoEmptyState.error(
+              title: 'Không tải được sản phẩm',
+              message: AsyncValueView.errorMessage(error),
+              onAction: () => ref.invalidate(productsListProvider),
             ),
           ),
-          AsyncError(:final error) => ListView(
-            padding: SoSpace.scrollable(context),
-            children: [
-              SoEmptyState.error(
-                title: 'Không tải được sản phẩm',
-                message: AsyncValueView.errorMessage(error),
-                onAction: () => ref.invalidate(productsListProvider),
-              ),
-            ],
-          ),
-          _ => SingleChildScrollView(
-            physics: const NeverScrollableScrollPhysics(),
-            padding: SoSpace.scrollable(
-              context,
-              const EdgeInsets.fromLTRB(
-                SoSpace.screen,
-                SoSpace.s8,
-                SoSpace.screen,
-                0,
-              ),
+          _ => const SliverPadding(
+            padding: SoSpace.page,
+            sliver: SliverToBoxAdapter(
+              child: SoListGroup(children: [SoSkeletonList(count: 5)]),
             ),
-            child: const SoListGroup(children: [SoSkeletonList(count: 5)]),
           ),
         },
-      ),
+      ],
     );
   }
 }
@@ -214,8 +203,7 @@ class _ProductList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (products.isEmpty) {
-      return ListView(
-        padding: SoSpace.scrollable(context),
+      return SliverList.list(
         children: [
           _mockBanner,
           if (searching)
@@ -240,18 +228,25 @@ class _ProductList extends StatelessWidget {
         ],
       );
     }
-    // Mục 0 là viên "Dữ liệu mẫu", sản phẩm bắt đầu từ mục 1.
-    return ListView.separated(
-      padding: SoSpace.scrollable(context),
-      itemCount: products.length + 1,
-      separatorBuilder: (_, i) =>
-          i == 0 ? const SizedBox(height: SoSpace.s12) : const Divider(),
-      itemBuilder: (_, i) => i == 0
-          ? _mockBanner
-          : _ProductRow(
-              product: products[i - 1],
-              level: productStockLevel(products[i - 1], stock),
-            ),
+    return SliverList.list(
+      children: [
+        _mockBanner,
+        const SizedBox(height: SoSpace.s12),
+        // Một thẻ trắng bo lg cách lề 16; đường chia thụt vào 16 (như M-20).
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: SoSpace.screen),
+          clipBehavior: Clip.antiAlias,
+          decoration: SoShape.card(context.soColors),
+          child: Column(
+            children: [
+              for (final (i, p) in products.indexed) ...[
+                if (i > 0) const Divider(indent: SoSpace.s16),
+                _ProductRow(product: p, level: productStockLevel(p, stock)),
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
