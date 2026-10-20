@@ -22,6 +22,19 @@ void main() {
       expect(resolveRedirect(s, Routes.login), isNull);
       expect(resolveRedirect(s, Routes.forgotPassword), isNull);
       expect(resolveRedirect(s, Routes.resetPassword), isNull);
+      expect(resolveRedirect(s, Routes.register), isNull);
+      expect(resolveRedirect(s, Routes.registerVerify), isNull);
+    });
+
+    test('đã đăng nhập thì không vào lại trang đăng ký', () {
+      expect(
+        resolveRedirect(_as(UserRole.customer), Routes.register),
+        Routes.customerShop,
+      );
+      expect(
+        resolveRedirect(_as(UserRole.customer), Routes.registerVerify),
+        Routes.customerShop,
+      );
     });
 
     test('đăng nhập xong vào trang chủ theo role', () {

@@ -7,6 +7,8 @@
   "password": "Password",
   "loginButton": "Sign in",
   "forgotPassword": "Forgot password?",
+  "loginNoAccount": "Shopper without an account?",
+  "loginRegister": "Sign up",
   "forgotPasswordTitle": "Forgot password",
   "forgotPasswordHint": "Enter the email you sign in with. We will send a reset code to this email.",
   "sendResetLink": "Send reset code",

@@ -7,6 +7,8 @@ import '../../features/ai_insights/presentation/ai_screens.dart';
 import '../../features/auth/presentation/auth_controller.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/presentation/register_otp_screen.dart';
+import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/reset_password_screen.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
@@ -60,6 +62,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.resetPassword,
         builder: (_, _) => const ResetPasswordScreen(),
+      ),
+      GoRoute(path: Routes.register, builder: (_, _) => const RegisterScreen()),
+      GoRoute(
+        path: Routes.registerVerify,
+        builder: (_, state) =>
+            RegisterOtpScreen(args: state.extra as RegisterOtpArgs?),
       ),
 
       // ------------------------------------------------ Merchant (Staff + Admin)

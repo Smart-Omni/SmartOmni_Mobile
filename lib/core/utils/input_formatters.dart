@@ -40,6 +40,12 @@ final shopCodeFormatters = _upperCode(RegExp(r'[A-Za-z0-9]'));
 /// Mã đơn trên sàn: như mã cửa hàng (vd. "240920shop01" → "240920SHOP01").
 final orderCodeFormatters = shopCodeFormatters;
 
+/// Số điện thoại: chỉ chữ số, tối đa 10.
+final phoneFormatters = <TextInputFormatter>[
+  FilteringTextInputFormatter.digitsOnly,
+  LengthLimitingTextInputFormatter(10),
+];
+
 List<TextInputFormatter> _upperCode(RegExp allowed) => [
   FilteringTextInputFormatter.allow(allowed),
   TextInputFormatter.withFunction(

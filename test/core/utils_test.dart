@@ -16,6 +16,13 @@ void main() {
       expect(Validators.newPassword('12345678'), isNull);
     });
 
+    test('số điện thoại: 10 số, bắt đầu bằng 0', () {
+      expect(Validators.phone(''), isNotNull);
+      expect(Validators.phone('901234567'), isNotNull);
+      expect(Validators.phone('1901234567'), isNotNull);
+      expect(Validators.phone('0901234567'), isNull);
+    });
+
     test('số lượng tồn không âm', () {
       expect(Validators.nonNegativeInt('-1'), isNotNull);
       expect(Validators.nonNegativeInt('abc'), isNotNull);

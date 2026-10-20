@@ -8,8 +8,10 @@ import '../domain/loyalty_rules.dart';
 /// voucher; Hoa Mộc (2) 120 điểm; cửa hàng khác chưa có gì. Đơn claim được
 /// (`MockData.claimableOrders`) thuộc Shop Demo.
 class LoyaltyMockRepository implements LoyaltyRepository {
-  LoyaltyMockRepository({DateTime Function()? clock})
+  /// [demoData] = false cho tài khoản đăng ký mới: chưa có điểm, voucher.
+  LoyaltyMockRepository({DateTime Function()? clock, bool demoData = true})
     : _clock = clock ?? DateTime.now {
+    if (!demoData) return;
     final now = _clock();
     _history.addAll({
       1: [

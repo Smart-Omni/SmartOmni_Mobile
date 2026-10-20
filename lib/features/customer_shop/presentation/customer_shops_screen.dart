@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,9 +6,9 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../app/router/routes.dart';
 import '../../../core/design/design.dart';
 import '../../../core/network/api_exception.dart';
-import '../../../core/utils/input_formatters.dart';
 import '../domain/customer_shop.dart';
 import 'customer_shop_providers.dart';
+import 'shop_code_lookup.dart';
 
 /// Mở sheet "Thêm cửa hàng" (C-00, C-40). Tham gia xong: cửa hàng mới thành
 /// cửa hàng đang xem, về C-10 kèm toast.
@@ -199,56 +197,9 @@ class _AddShopSheet extends ConsumerStatefulWidget {
 }
 
 class _AddShopSheetState extends ConsumerState<_AddShopSheet> {
-  static const _debounce = Duration(milliseconds: 500);
-
-  final _code = TextEditingController();
-  Timer? _timer;
   ShopPreview? _preview;
-  String? _error;
-  bool _looking = false;
+  String? _joinError;
   bool _joining = false;
-  bool _qrTapped = false;
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _code.dispose();
-    super.dispose();
-  }
-
-  void _onChanged(String _) {
-    _timer?.cancel();
-    setState(() {
-      _preview = null;
-      _error = null;
-    });
-    if (_code.text.isNotEmpty) _timer = Timer(_debounce, _lookup);
-  }
-
-  Future<void> _lookup() async {
-    _timer?.cancel();
-    final code = normalizeShopCode(_code.text);
-    if (code.isEmpty) return;
-    final joined = ref.read(myShopsProvider).value ?? const [];
-    if (hasJoined(joined, code)) {
-      setState(() => _error = 'Bạn đã tham gia cửa hàng này.');
-      return;
-    }
-    setState(() => _looking = true);
-    try {
-      final preview = await ref
-          .read(customerShopRepositoryProvider)
-          .previewShop(code);
-      // Bỏ kết quả cũ nếu khách đã gõ mã khác trong lúc chờ.
-      if (!mounted || normalizeShopCode(_code.text) != code) return;
-      setState(() => _preview = preview);
-    } catch (e) {
-      if (!mounted || normalizeShopCode(_code.text) != code) return;
-      setState(() => _error = _message(e));
-    } finally {
-      if (mounted) setState(() => _looking = false);
-    }
-  }
 
   Future<void> _join() async {
     final preview = _preview;
@@ -262,18 +213,20 @@ class _AddShopSheetState extends ConsumerState<_AddShopSheet> {
       ref.read(selectedShopIdProvider.notifier).select(shop.tenantId);
       if (mounted) Navigator.pop(context, shop);
     } catch (e) {
-      if (mounted) setState(() => _error = _message(e));
+      if (mounted) {
+        setState(
+          () => _joinError = e is ApiException
+              ? e.message
+              : 'Kiểm tra kết nối mạng rồi thử lại.',
+        );
+      }
     } finally {
       if (mounted) setState(() => _joining = false);
     }
   }
 
-  String _message(Object e) =>
-      e is ApiException ? e.message : 'Kiểm tra kết nối mạng rồi thử lại.';
-
   @override
   Widget build(BuildContext context) {
-    final preview = _preview;
     return SoBottomSheet(
       title: 'Thêm cửa hàng',
       secondary: SoButton.secondary(
@@ -285,85 +238,17 @@ class _AddShopSheetState extends ConsumerState<_AddShopSheet> {
         key: const Key('add_shop_join'),
         label: 'Tham gia cửa hàng',
         loading: _joining,
-        onPressed: preview == null ? null : _join,
+        onPressed: _preview == null ? null : _join,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SoTextField(
-            key: const Key('add_shop_code'),
-            label: 'Mã cửa hàng',
-            controller: _code,
-            hint: 'Vd: SHOPDEMO',
-            mono: true,
-            inputFormatters: shopCodeFormatters,
-            textInputAction: TextInputAction.search,
-            onChanged: _onChanged,
-            onSubmitted: (_) => _lookup(),
-            errorText: _error,
-            errorKey: const Key('add_shop_error'),
-            // Toast trong sheet bị lớp phủ che, nên báo ngay dưới ô.
-            helper: _qrTapped
-                ? 'Quét mã QR sắp có, hãy nhập mã cửa hàng.'
-                : null,
-            suffix: IconButton(
-              key: const Key('add_shop_qr'),
-              tooltip: 'Quét mã QR',
-              icon: Icon(LucideIcons.scanLine, color: context.soColors.ink2),
-              // Dòng lỗi che mất dòng hướng dẫn, nên xóa lỗi cũ để thấy báo.
-              onPressed: () => setState(() {
-                _qrTapped = true;
-                _error = null;
-              }),
-            ),
-          ),
-          const SizedBox(height: SoSpace.s16),
-          if (_looking)
-            const SoSkeleton(height: 72, radius: SoRadius.lg)
-          else if (preview != null)
-            _PreviewCard(preview: preview),
-        ],
-      ),
-    );
-  }
-}
-
-/// Thẻ kết quả tra mã: logo tròn, tên, mã.
-class _PreviewCard extends StatelessWidget {
-  const _PreviewCard({required this.preview});
-
-  final ShopPreview preview;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.soColors;
-    return Container(
-      key: const Key('add_shop_preview'),
-      padding: SoSpace.card,
-      decoration: SoShape.card(c),
-      child: Row(
-        children: [
-          SoShopLogo(name: preview.name),
-          const SizedBox(width: SoSpace.s12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Đã tìm thấy',
-                  style: context.textTheme.bodySmall?.copyWith(color: c.ink2),
-                ),
-                Text(
-                  preview.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.textTheme.titleMedium,
-                ),
-              ],
-            ),
-          ),
-          Icon(LucideIcons.circleCheck, color: c.success),
-        ],
+      child: ShopCodeLookup(
+        keyPrefix: 'add_shop',
+        errorText: _joinError,
+        isJoined: (code) =>
+            hasJoined(ref.read(myShopsProvider).value ?? const [], code),
+        onChanged: (preview) => setState(() {
+          _preview = preview;
+          _joinError = null;
+        }),
       ),
     );
   }

@@ -10,16 +10,31 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/storage/token_storage.dart';
 import '../data/auth_mock_repository.dart';
 import '../data/auth_remote_repository.dart';
+import '../data/mock_account_store.dart';
+import '../data/registration_mock_repository.dart';
 import '../domain/auth_failure.dart';
 import '../domain/auth_repository.dart';
+import '../domain/registration.dart';
+
+/// Tài khoản khách đăng ký mới ở chế độ mock, dùng chung cho đăng nhập,
+/// đăng ký, cửa hàng và điểm mock.
+final mockAccountStoreProvider = Provider<MockAccountStore>(
+  (ref) => MockAccountStore(),
+);
 
 /// Chọn repository thật hoặc mock theo cấu hình `USE_MOCK`.
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final config = ref.watch(appConfigProvider);
   return config.useMock
-      ? AuthMockRepository()
+      ? AuthMockRepository(store: ref.watch(mockAccountStoreProvider))
       : AuthRemoteRepository(ref.watch(dioProvider));
 });
+
+/// Backend chưa có API đăng ký khách -> luôn dùng mock, kể cả khi
+/// USE_MOCK=false.
+final registrationRepositoryProvider = Provider<RegistrationRepository>(
+  (ref) => RegistrationMockRepository(ref.watch(mockAccountStoreProvider)),
+);
 
 /// Trạng thái đăng nhập của app.
 sealed class AuthState {
@@ -93,6 +108,11 @@ class AuthController extends Notifier<AuthState> {
       );
     }
 
+    await signIn(session);
+  }
+
+  /// Vào app bằng phiên đã có (vd. sau khi xác minh OTP đăng ký).
+  Future<void> signIn(Session session) async {
     await _storage.writeToken(session.accessToken);
     state = Authenticated(session);
   }
