@@ -35,7 +35,7 @@ C-40 (`customer_account_screen.dart`) đã dùng design system một phần; rà
 4. `feature/ui-customer-loyalty`: C-20, C-30, C-40 theo mục 8b. SoTierBadge, SoTextField mono cho mã đơn. Dữ liệu tách theo cửa hàng đang xem.
 5. `feature/ui-customer-register`: A-05 Đăng ký + OTP, chạy bằng mock (backend chưa có `POST /api/customers/register`). Nút "Chưa có tài khoản? Đăng ký" trên A-02. Thêm route vào `resolveRedirect()` (trang công khai) và test cho router.
 
-Để sau 5 nhánh: C-12 Chatbot, M-60/61 Hộp thư CSKH, luồng OAuth/App Key của T-10, T-20…T-50 (dùng interview-me + writing-plans; M-60/61, C-12, T-10 đã có mockup đợt 2).
+Để sau 5 nhánh (đặc tả đã có ở DESIGN.md mục 8b, làm theo thứ tự): M-60/61 Hộp thư CSKH → C-12 Chatbot → M-22 In vận đơn → T-20 Nhân viên → T-30 Phát voucher → T-40 Gói dịch vụ → T-50 Hỗ trợ → T-10 OAuth (khi backend có). Mỗi nhóm 1 nhánh, dùng mock khi chưa có API.
 
 ## Vòng lặp cho mỗi màn
 
@@ -50,7 +50,7 @@ C-40 (`customer_account_screen.dart`) đã dùng design system một phần; rà
 - [x] DESIGN.md bản 2 Glass + mockup 4 màn (A-02, M-10 Admin, M-20, C-20), duyệt 19/10/2026
 - [x] Nhánh 0: nền móng Glass (PR #14, xong 20/10/2026; sửa tiếp ở `fix/glass-followups`: đồng hồ dữ liệu mẫu, thẻ nhóm ngày M-20)
 - [ ] Nhánh 1: M-31 · M-32 · M-51 · T-10
-- [ ] Nhánh 2: mục 8b DESIGN.md (A-05 · C-00 · SoShopSwitcher · C-10 · C-11 · C-20 · C-30 · C-40)
+- [x] Nhánh 2: mục 8b DESIGN.md — viết xong 20/10/2026 cho **mọi màn còn lại** (kể cả M-22, M-60/61, T-10…T-50, C-12) từ mockup glass 41 màn
 - [ ] Nhánh 3: C-00 · SoShopSwitcher · C-10 · C-11
 - [ ] Nhánh 4: C-20 · C-30 · C-40
 - [ ] Nhánh 5: A-05 (+ OTP)
