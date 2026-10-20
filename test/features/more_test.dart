@@ -49,7 +49,7 @@ void main() {
 
     expect(find.text('Quản trị cửa hàng'), findsOneWidget);
     expect(_tag(tester, 'connection_shopee'), 'Đã kết nối');
-    expect(_tag(tester, 'connection_tiktokShop'), 'Chưa kết nối');
+    expect(_tag(tester, 'connection_tiktokShop'), 'Lỗi kết nối');
 
     await tapVisible(tester, find.byKey(const Key('menu_marketplace')));
     expect(find.byType(MarketplaceScreen), findsOneWidget);
