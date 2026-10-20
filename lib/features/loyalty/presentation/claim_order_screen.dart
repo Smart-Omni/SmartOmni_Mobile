@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +14,7 @@ import '../../../core/utils/input_formatters.dart';
 import '../../../core/utils/validators.dart';
 import '../../account/presentation/account_widgets.dart';
 import '../../customer_shop/presentation/customer_shop_providers.dart';
+import '../../customer_shop/presentation/no_shop_state.dart';
 import '../domain/loyalty_repository.dart';
 import '../domain/loyalty_rules.dart';
 import 'claim_result_screen.dart';
@@ -36,11 +39,15 @@ class _ClaimOrderScreenState extends ConsumerState<ClaimOrderScreen> {
   /// Thử sai quá nhiều lần: khóa nút Claim tới lúc này.
   DateTime? _lockedUntil;
 
+  /// Dựng lại màn khi hết khóa, để nút Claim tự bật lại.
+  Timer? _unlockTimer;
+
   bool get _locked =>
       _lockedUntil != null && DateTime.now().isBefore(_lockedUntil!);
 
   @override
   void dispose() {
+    _unlockTimer?.cancel();
     _codeCtrl.dispose();
     super.dispose();
   }
@@ -64,7 +71,12 @@ class _ClaimOrderScreenState extends ConsumerState<ClaimOrderScreen> {
       outcome = ClaimOutcome.success(result, shopName: shop.name);
     } on ClaimFailure catch (f) {
       if (f.kind == ClaimEligibility.tooManyAttempts) {
-        _lockedUntil = DateTime.now().add(f.retryAfter ?? Duration.zero);
+        final wait = f.retryAfter ?? Duration.zero;
+        _lockedUntil = DateTime.now().add(wait);
+        _unlockTimer?.cancel();
+        _unlockTimer = Timer(wait, () {
+          if (mounted) setState(() {});
+        });
       }
       outcome = ClaimOutcome.failure(f, shopName: shop.name);
     } catch (e) {
@@ -112,13 +124,7 @@ class _ClaimOrderScreenState extends ConsumerState<ClaimOrderScreen> {
           padding: SoSpace.page,
           sliver: SliverToBoxAdapter(
             child: shopAsync.hasValue && shop == null
-                ? SoEmptyState(
-                    icon: LucideIcons.store,
-                    title: 'Bạn chưa tham gia cửa hàng nào',
-                    message: 'Nhập mã cửa hàng để xem sản phẩm và tích điểm.',
-                    actionLabel: 'Thêm cửa hàng',
-                    onAction: () => context.push(Routes.customerShops),
-                  )
+                ? const NoShopState()
                 // Form dựng hết một lần (không lười) để validate() thấy mọi ô.
                 : Form(
                     key: _formKey,

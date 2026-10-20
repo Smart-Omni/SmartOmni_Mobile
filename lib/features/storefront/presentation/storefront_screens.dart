@@ -10,6 +10,7 @@ import '../../../core/models/platform.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/utils/formatters.dart';
 import '../../customer_shop/presentation/customer_shop_providers.dart';
+import '../../customer_shop/presentation/no_shop_state.dart';
 import '../../loyalty/domain/loyalty_rules.dart';
 import '../../products/domain/product.dart';
 import '../data/storefront_mock_repository.dart';
@@ -95,16 +96,7 @@ class StorefrontScreen extends ConsumerWidget {
         SliverPadding(
           padding: SoSpace.page,
           sliver: noShop
-              ? SliverToBoxAdapter(
-                  child: SoEmptyState(
-                    key: const Key('storefront_no_shop'),
-                    icon: LucideIcons.store,
-                    title: 'Bạn chưa tham gia cửa hàng nào',
-                    message: 'Nhập mã cửa hàng để xem sản phẩm và tích điểm.',
-                    actionLabel: 'Thêm cửa hàng',
-                    onAction: () => context.push(Routes.customerShops),
-                  ),
-                )
+              ? const SliverToBoxAdapter(child: NoShopState())
               : products != null
               ? SliverMainAxisGroup(
                   slivers: [

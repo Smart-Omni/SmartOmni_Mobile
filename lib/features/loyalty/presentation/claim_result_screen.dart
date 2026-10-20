@@ -34,17 +34,24 @@ enum ClaimNext {
 
 /// Tiêu đề, mô tả, màu banner cho từng loại lỗi claim (DESIGN.md mục 8b).
 (String, String, SoBannerTone) claimFailureText(ClaimFailure f) {
-  String day(DateTime? d) => d == null ? '' : Formatters.date(d);
+  // Backend có thể không trả ngày: khi đó vẫn có câu đọc được.
+  final completedAt = f.completedAt;
+  final claimedAt = f.claimedAt;
   return switch (f.kind) {
     ClaimEligibility.tooEarly => (
       'Chưa đủ 15 ngày',
-      'Đơn hoàn tất ${day(f.completedAt).substring(0, 5)}. '
-          'Claim được từ ${day(f.claimableFrom)}.',
+      completedAt == null
+          ? 'Đơn chưa đủ 15 ngày kể từ khi hoàn tất.'
+          : 'Đơn hoàn tất ${Formatters.date(completedAt).substring(0, 5)}. '
+                'Claim được từ ${Formatters.date(f.claimableFrom)}.',
       SoBannerTone.warning,
     ),
     ClaimEligibility.alreadyClaimed => (
       'Đơn đã được claim',
-      'Đã claim ngày ${day(f.claimedAt)}. Mỗi đơn chỉ claim một lần.',
+      [
+        if (claimedAt != null) 'Đã claim ngày ${Formatters.date(claimedAt)}.',
+        'Mỗi đơn chỉ claim một lần.',
+      ].join(' '),
       SoBannerTone.danger,
     ),
     ClaimEligibility.notFound => (

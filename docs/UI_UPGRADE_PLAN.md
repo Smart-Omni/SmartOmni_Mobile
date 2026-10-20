@@ -53,7 +53,7 @@ C-40 (`customer_account_screen.dart`) đã dùng design system một phần; rà
 - [x] Nhánh 1b `feature/ui-marketplace`: T-10 (danh sách sàn + sheet App Key; OAuth để sau), xong 20/10/2026. Danh sách, ngắt kết nối, công tắc tự nhập chạy mock; kết nối App Key gọi API thật
 - [x] Nhánh 2: mục 8b DESIGN.md — viết xong 20/10/2026 cho **mọi màn còn lại** (kể cả M-22, M-60/61, T-10…T-50, C-12) từ mockup glass 41 màn
 - [x] Nhánh 3: C-00 · SoShopSwitcher · C-10 · C-11, xong 20/10/2026. Nhiều cửa hàng chạy mock (`CustomerShopRepository`, `currentShopProvider`); quét QR mã cửa hàng để sau (nút báo "sắp có")
-- [ ] Nhánh 4: C-20 · C-30 · C-40
+- [x] Nhánh 4: C-20 · C-30 (+ màn kết quả, 5 lỗi) · C-40, xong 20/10/2026. Điểm, voucher, lịch sử, claim tách theo cửa hàng đang xem (mock); khung tab Customer bật `extendBody`; quét mã đơn để sau (báo "sắp có")
 - [ ] Nhánh 5: A-05 (+ OTP)
 
 Claude: cập nhật danh sách này khi xong mỗi màn.

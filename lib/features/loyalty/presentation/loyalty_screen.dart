@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../app/router/routes.dart';
 import '../../../core/design/design.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/utils/formatters.dart';
 import '../../customer_shop/presentation/customer_shop_providers.dart';
+import '../../customer_shop/presentation/no_shop_state.dart';
 import '../domain/loyalty_repository.dart';
 import '../domain/loyalty_rules.dart';
 import 'loyalty_providers.dart';
@@ -50,15 +50,7 @@ class LoyaltyScreen extends ConsumerWidget {
         SliverPadding(
           padding: SoSpace.page,
           sliver: noShop
-              ? SliverToBoxAdapter(
-                  child: SoEmptyState(
-                    icon: LucideIcons.store,
-                    title: 'Bạn chưa tham gia cửa hàng nào',
-                    message: 'Nhập mã cửa hàng để xem sản phẩm và tích điểm.',
-                    actionLabel: 'Thêm cửa hàng',
-                    onAction: () => context.push(Routes.customerShops),
-                  ),
-                )
+              ? const SliverToBoxAdapter(child: NoShopState())
               : summary != null
               ? SliverList.list(
                   children: [
