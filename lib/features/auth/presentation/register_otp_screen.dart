@@ -357,9 +357,11 @@ class _OtpBoxesState extends State<_OtpBoxes> {
               ],
             ),
             // Ô nhập thật: trong suốt, phủ kín 6 ô để chạm đâu cũng mở bàn phím.
+            // Vẫn giữ semantics để TalkBack/VoiceOver thấy ô nhập.
             Positioned.fill(
               child: Opacity(
                 opacity: 0,
+                alwaysIncludeSemantics: true,
                 child: TextField(
                   key: const Key('otp_input'),
                   controller: widget.controller,

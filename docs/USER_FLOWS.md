@@ -28,7 +28,7 @@ flowchart TD
 | A-02 | Đăng nhập chung | Tất cả | ✅ |
 | A-03 | Quên mật khẩu (gửi email) | Tất cả | ✅ |
 | A-04 | Đặt lại mật khẩu (mã + mật khẩu mới) | Tất cả | ✅ |
-| A-05 | Đăng ký tài khoản khách (+ OTP email) | Customer | ⚪ (có mockup) |
+| A-05 | Đăng ký tài khoản khách (+ OTP email) | Customer | ✅ (mock) |
 | C-00 | Chọn cửa hàng / thêm cửa hàng (1 khách nhiều cửa hàng) | Customer | ✅ (mock) |
 | C-10 | Storefront - danh sách sản phẩm | Customer | ✅ (mock) |
 | C-11 | Chi tiết sản phẩm + nút mua trên sàn | Customer | ✅ (mock) |

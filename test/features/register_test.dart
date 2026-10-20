@@ -140,6 +140,14 @@ void main() {
     expect(find.text('Bạn sẽ tham gia'), findsOneWidget);
     expect(find.text('Bếp Xinh · Standard'), findsOneWidget);
 
+    // Ô nhập ẩn vẫn có trong semantics cho trình đọc màn hình.
+    final semantics = tester.ensureSemantics();
+    expect(
+      tester.getSemantics(find.byType(EditableText)),
+      isSemantics(isTextField: true, isEnabled: true),
+    );
+    semantics.dispose();
+
     await _enterOtp(tester, '12345');
     expect(_otpSubmit(tester).onPressed, isNull);
 
