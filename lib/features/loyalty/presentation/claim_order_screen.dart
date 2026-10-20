@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/platform.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/state_views.dart';
+import '../../customer_shop/presentation/customer_shop_providers.dart';
 import 'loyalty_providers.dart';
 
 /// Khách chọn shop + nhập mã đơn để tích điểm.
@@ -36,9 +37,15 @@ class _ClaimOrderScreenState extends ConsumerState<ClaimOrderScreen> {
       _result = null;
     });
     try {
+      // Claim vào cửa hàng đang xem (C-30 làm lại ở bước sau).
+      final shop = await ref.read(currentShopProvider.future);
       final points = await ref
           .read(loyaltyRepositoryProvider)
-          .claimOrder(platform: _platform, orderCode: _codeCtrl.text);
+          .claimOrder(
+            tenantId: shop?.tenantId ?? 0,
+            platform: _platform,
+            orderCode: _codeCtrl.text,
+          );
       ref.invalidate(loyaltySummaryProvider);
       if (!mounted) return;
       setState(() => _result = 'Thành công! Bạn được cộng $points điểm.');

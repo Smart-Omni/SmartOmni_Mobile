@@ -44,15 +44,17 @@ class CustomerVoucher {
 }
 
 /// ⚠️ Backend CHƯA có API Customer Portal / loyalty -> toàn bộ là mock.
-/// API đề xuất xem docs/API_CONTRACT.md.
+/// API đề xuất xem docs/API_CONTRACT.md. Điểm, voucher, claim tính riêng
+/// theo từng cửa hàng ([tenantId]; API thật gửi qua header `X-Tenant-Id`).
 abstract class LoyaltyRepository {
-  Future<LoyaltySummary> getSummary();
+  Future<LoyaltySummary> getSummary(int tenantId);
 
-  Future<List<CustomerVoucher>> getVouchers();
+  Future<List<CustomerVoucher>> getVouchers(int tenantId);
 
   /// Claim đơn: khách chọn shop (sàn) + nhập mã đơn.
   /// Trả về số điểm được cộng. Ném ApiException nếu không hợp lệ.
   Future<int> claimOrder({
+    required int tenantId,
     required Platform platform,
     required String orderCode,
   });
