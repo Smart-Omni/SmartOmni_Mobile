@@ -47,8 +47,14 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     final orders = pageAsync.value?.items ?? const <Order>[];
     final counts = countByStatus(orders);
 
-    return Scaffold(
-      extendBodyBehindAppBar: true,
+    return SoScaffold(
+      onRefresh: pageAsync.hasValue
+          ? () async {
+              ref.invalidate(ordersPageProvider);
+              await ref.read(ordersPageProvider.future);
+            }
+          : null,
+      scrollable: !pageAsync.isLoading || pageAsync.hasValue,
       appBar: SoAppBar.root(
         title: 'Đơn hàng',
         actions: [
@@ -82,48 +88,31 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
           ],
         ),
       ),
-      body: SoAmbientBackground(
-        child: switch (pageAsync) {
-          AsyncData(:final value) => RefreshIndicator(
-            edgeOffset: MediaQuery.paddingOf(context).top,
-            onRefresh: () async {
-              ref.invalidate(ordersPageProvider);
-              await ref.read(ordersPageProvider.future);
-            },
-            child: _OrderList(
-              orders: value.items
-                  .where((o) => _filter == null || o.status == _filter)
-                  .where((o) => orderMatches(o, _searchCtrl.text))
-                  .toList(),
-              hasAnyOrder: value.items.isNotEmpty,
-              now: ref.watch(clockProvider)(),
+      slivers: [
+        switch (pageAsync) {
+          AsyncData(:final value) => _OrderList(
+            orders: value.items
+                .where((o) => _filter == null || o.status == _filter)
+                .where((o) => orderMatches(o, _searchCtrl.text))
+                .toList(),
+            hasAnyOrder: value.items.isNotEmpty,
+            now: ref.watch(clockProvider)(),
+          ),
+          AsyncError(:final error) => SliverToBoxAdapter(
+            child: SoEmptyState.error(
+              title: 'Không tải được đơn hàng',
+              message: AsyncValueView.errorMessage(error),
+              onAction: () => ref.invalidate(ordersPageProvider),
             ),
           ),
-          AsyncError(:final error) => ListView(
-            padding: SoSpace.scrollable(context),
-            children: [
-              SoEmptyState.error(
-                title: 'Không tải được đơn hàng',
-                message: AsyncValueView.errorMessage(error),
-                onAction: () => ref.invalidate(ordersPageProvider),
-              ),
-            ],
-          ),
-          _ => SingleChildScrollView(
-            physics: const NeverScrollableScrollPhysics(),
-            padding: SoSpace.scrollable(
-              context,
-              const EdgeInsets.fromLTRB(
-                SoSpace.screen,
-                SoSpace.s8,
-                SoSpace.screen,
-                0,
-              ),
+          _ => const SliverPadding(
+            padding: SoSpace.page,
+            sliver: SliverToBoxAdapter(
+              child: SoListGroup(children: [SoSkeletonList(count: 6)]),
             ),
-            child: const SoListGroup(children: [SoSkeletonList(count: 6)]),
           ),
         },
-      ),
+      ],
     );
   }
 }
@@ -216,8 +205,7 @@ class _OrderList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (orders.isEmpty) {
-      return ListView(
-        padding: SoSpace.scrollable(context),
+      return SliverList.list(
         children: [
           hasAnyOrder
               ? const SoEmptyState(
@@ -235,9 +223,8 @@ class _OrderList extends StatelessWidget {
     }
 
     final groups = groupOrdersByDay(orders);
-    return ListView(
+    return SliverList.list(
       key: const Key('orders_list'),
-      padding: SoSpace.scrollable(context),
       children: [
         for (final (g, (day, items)) in groups.indexed) ...[
           Padding(

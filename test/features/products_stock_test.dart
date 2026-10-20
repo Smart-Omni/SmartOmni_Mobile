@@ -34,6 +34,14 @@ Future<void> _openTab(WidgetTester tester, String navKey) async {
   await tester.pumpAndSettle();
 }
 
+/// Hàng nằm trong thẻ trắng cách lề 16 (không phải dải tràn ngang).
+void _expectInCard(WidgetTester tester, Finder row) {
+  final rect = tester.getRect(row);
+  final width = tester.view.physicalSize.width / tester.view.devicePixelRatio;
+  expect(rect.left, SoSpace.screen);
+  expect(rect.right, width - SoSpace.screen);
+}
+
 void main() {
   group('domain', () {
     test('skuCodePattern lấy phần đầu chung theo dấu "-"', () {
@@ -88,6 +96,7 @@ void main() {
     expect(find.text('Đã ẩn · 1'), findsOneWidget);
     expect(find.textContaining('AT-BASIC-*'), findsOneWidget);
     expect(find.text('Sắp hết'), findsNWidgets(3));
+    _expectInCard(tester, find.byKey(const Key('product_1')));
 
     await tapVisible(tester, find.text('Đã ẩn · 1'));
     expect(find.byKey(const Key('product_5')), findsOneWidget);
@@ -123,6 +132,8 @@ void main() {
       find.descendant(of: total, matching: find.text('162')),
       findsOneWidget,
     );
+
+    _expectInCard(tester, find.byKey(const Key('stock_101')));
 
     await tapVisible(tester, find.byKey(const Key('stock_filter_out')));
     expect(find.byKey(const Key('stock_103')), findsOneWidget);
@@ -163,16 +174,25 @@ void main() {
     await loginAs(tester, 'staff@demo.vn');
 
     await _openTab(tester, 'nav_products');
-    await tester.drag(find.byType(ListView).last, const Offset(0, -2000));
+    await tester.drag(
+      find.byType(CustomScrollView).last,
+      const Offset(0, -2000),
+    );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
 
     await _openTab(tester, 'nav_inventory');
-    await tester.drag(find.byType(ListView).last, const Offset(0, -2000));
+    await tester.drag(
+      find.byType(CustomScrollView).last,
+      const Offset(0, -2000),
+    );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
 
-    await tester.drag(find.byType(ListView).last, const Offset(0, 2000));
+    await tester.drag(
+      find.byType(CustomScrollView).last,
+      const Offset(0, 2000),
+    );
     await tester.pumpAndSettle();
     await tapVisible(tester, find.byKey(const Key('stock_101')));
     expect(find.text('Đặt lại số tồn'), findsOneWidget);

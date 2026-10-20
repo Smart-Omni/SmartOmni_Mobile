@@ -123,37 +123,14 @@ class LogoutRow extends ConsumerWidget {
 }
 
 /// Tiêu đề nhóm (title3), cách nhóm trước 28.
-///
-/// [trailing]: ghi chú nhỏ căn phải, vd. "Nhiều SKU, ảnh, link sàn · Sắp có".
 class GroupTitle extends StatelessWidget {
-  const GroupTitle(this.title, {super.key, this.trailing});
+  const GroupTitle(this.title, {super.key});
 
   final String title;
-  final String? trailing;
 
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(top: SoSpace.group, bottom: SoSpace.s8),
-    child: trailing == null
-        ? Text(title, style: context.soText.title3)
-        : Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Flexible(child: Text(title, style: context.soText.title3)),
-              const SizedBox(width: SoSpace.s12),
-              Expanded(
-                child: Text(
-                  trailing!,
-                  textAlign: TextAlign.end,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.textTheme.bodySmall?.copyWith(
-                    color: context.soColors.ink2,
-                  ),
-                ),
-              ),
-            ],
-          ),
+    child: Text(title, style: context.soText.title3),
   );
 }

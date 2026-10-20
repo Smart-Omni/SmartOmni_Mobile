@@ -64,11 +64,26 @@ void main() {
     expect(find.text('Tên sản phẩm không được để trống'), findsOneWidget);
     expect(find.byType(ProductCreateScreen), findsOneWidget);
 
+    // Ô giá: trống (không có 0 mặc định), hint ví dụ, căn trái như các ô khác.
+    final price = tester.widget<EditableText>(_field('sku_price'));
+    expect(price.controller.text, isEmpty);
+    expect(price.textAlign, TextAlign.start);
+    expect(find.text('Vd: 159.000'), findsOneWidget);
+    expect(find.text('Nhiều SKU, ảnh, link sàn · Sắp có'), findsOneWidget);
+
     await tester.enterText(_field('sku_code'), 'at 001-m/á');
     await tester.enterText(_field('sku_price'), '159000');
     await tester.pump();
     expect(_text(tester, 'sku_code'), 'AT001-M');
     expect(_text(tester, 'sku_price'), '159.000');
+    // "₫" là suffix cùng cỡ chữ với số.
+    final currency = tester.widget<Text>(
+      find.descendant(
+        of: find.byKey(const Key('sku_price')),
+        matching: find.text('₫'),
+      ),
+    );
+    expect(currency.style?.fontSize, price.style.fontSize);
   });
 
   testWidgets('M-32: tạo xong mở M-31 của sản phẩm mới', (tester) async {

@@ -30,6 +30,7 @@ class SoTextField extends StatelessWidget {
     this.textAlign = TextAlign.start,
     this.prefix,
     this.suffix,
+    this.suffixText,
     this.maxLines = 1,
   });
 
@@ -56,6 +57,10 @@ class SoTextField extends StatelessWidget {
 
   /// Thường là `IconButton` (vd. hiện/ẩn mật khẩu).
   final Widget? suffix;
+
+  /// Đơn vị sau số (vd. "₫"): cùng cỡ chữ và cùng baseline với chữ đang nhập.
+  /// Như mọi suffix của Flutter, chỉ hiện khi ô đang focus hoặc đã có chữ.
+  final String? suffixText;
   final int maxLines;
 
   @override
@@ -101,6 +106,8 @@ class SoTextField extends StatelessWidget {
                   ),
             prefixIcon: prefix,
             suffixIcon: suffix,
+            suffixText: suffixText,
+            suffixStyle: textStyle?.copyWith(color: c.ink2),
             fillColor: enabled ? c.surface : c.fill,
             constraints: const BoxConstraints(minHeight: SoSize.input),
           ),

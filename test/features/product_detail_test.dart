@@ -148,7 +148,7 @@ void main() {
     expect(tester.takeException(), isNull);
 
     // Cuộn hết màn: lỗi tràn ở bất kỳ hàng nào sẽ làm test fail.
-    await tester.drag(find.byType(ListView), const Offset(0, -3000));
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -3000));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.byKey(const Key('copy_link_tiktokShop')), findsOneWidget);

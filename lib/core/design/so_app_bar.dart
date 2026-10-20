@@ -5,21 +5,24 @@ import 'so_glass.dart';
 import 'so_text.dart';
 import 'so_tokens.dart';
 
-/// AppBar kính (docs/DESIGN.md bản 2, mục 5).
+/// AppBar kính (docs/DESIGN.md bản 2, mục 5), dựng thành **sliver ghim** ở
+/// đầu `CustomScrollView`. Dùng qua `SoScaffold`, không đặt vào
+/// `Scaffold.appBar`.
 ///
 /// - Màn gốc ([SoAppBar.root]): tiêu đề lớn `largeTitle` + dòng phụ
-///   `footnote`. Khi nội dung cuộn, tiêu đề lớn thu lại, thanh còn 52 với
-///   tiêu đề `headline` ở giữa.
+///   `footnote` nằm ngay dưới thanh 52 và **cuộn đi cùng nội dung**; khi đã
+///   cuộn qua, thanh còn 52 với tiêu đề `headline` ở giữa.
 /// - Màn con ([SoAppBar.new]): nút back tròn 36 nền `fill` + tiêu đề
 ///   `headline` (+ dòng phụ mono, vd. mã đơn). [close]: nút đóng (X) thay
 ///   cho nút back, dùng cho màn tạo mới (vd. M-32).
 ///
 /// Ở đầu trang thanh trong suốt; khi nội dung cuộn xuống dưới thì chuyển
-/// sang kính mỏng. Để nội dung chạy được dưới kính, Scaffold đặt
-/// `extendBodyBehindAppBar: true` và danh sách dùng `SoSpace.scrollable`.
+/// sang kính mỏng. Nội dung luôn bắt đầu dưới thanh, chỉ trượt dưới kính khi
+/// cuộn.
 ///
-/// [bottom]: phần dính dưới thanh (hàng chip lọc, ô tìm), nằm chung tấm kính.
-class SoAppBar extends StatefulWidget implements PreferredSizeWidget {
+/// [bottom]: phần dính dưới thanh (hàng chip lọc, ô tìm): cuộn lên cùng tiêu
+/// đề lớn rồi dính lại dưới thanh, nằm chung tấm kính.
+class SoAppBar extends StatelessWidget {
   const SoAppBar({
     super.key,
     required this.title,
@@ -56,134 +59,121 @@ class SoAppBar extends StatefulWidget implements PreferredSizeWidget {
   final PreferredSizeWidget? bottom;
 
   /// Chiều cao khối tiêu đề lớn (chỉ màn gốc): chữ 40 + dòng phụ 18 + lề.
-  double get _largeTitleHeight =>
+  double get largeTitleHeight =>
       isRoot ? 40 + (subtitle != null ? 18 : 0) + SoSpace.s8 : 0;
 
-  @override
-  Size get preferredSize => Size.fromHeight(
-    SoSize.appBar + _largeTitleHeight + (bottom?.preferredSize.height ?? 0),
-  );
-
-  @override
-  State<SoAppBar> createState() => _SoAppBarState();
-}
-
-class _SoAppBarState extends State<SoAppBar> {
-  ScrollNotificationObserverState? _observer;
-
-  /// Độ cuộn của danh sách chính, kẹp trong [0, chiều cao tiêu đề lớn + 1].
-  double _offset = 0;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _observer?.removeListener(_onScroll);
-    _observer = ScrollNotificationObserver.maybeOf(context);
-    _observer?.addListener(_onScroll);
-  }
-
-  @override
-  void dispose() {
-    _observer?.removeListener(_onScroll);
-    super.dispose();
-  }
-
-  void _onScroll(ScrollNotification n) {
-    // Chỉ danh sách dọc trực tiếp trong body (bỏ hàng chip cuộn ngang).
-    if (n.depth != 0 || n.metrics.axis != Axis.vertical) return;
-    final offset = n.metrics.pixels.clamp(0.0, widget._largeTitleHeight + 1);
-    if (offset != _offset) setState(() => _offset = offset);
-  }
+  /// Phần luôn ghim dưới vùng an toàn: thanh 52 + [bottom].
+  double get pinnedHeight =>
+      SoSize.appBar + (bottom?.preferredSize.height ?? 0);
 
   @override
   Widget build(BuildContext context) {
+    return SliverPersistentHeader(
+      pinned: true,
+      delegate: _SoAppBarDelegate(
+        bar: this,
+        insets: MediaQuery.paddingOf(context),
+      ),
+    );
+  }
+}
+
+class _SoAppBarDelegate extends SliverPersistentHeaderDelegate {
+  _SoAppBarDelegate({required this.bar, required this.insets});
+
+  final SoAppBar bar;
+  final EdgeInsets insets;
+
+  @override
+  double get minExtent => insets.top + bar.pinnedHeight;
+
+  @override
+  double get maxExtent => minExtent + bar.largeTitleHeight;
+
+  @override
+  bool shouldRebuild(_SoAppBarDelegate old) =>
+      old.bar != bar || old.insets != insets;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlaps) {
     final c = context.soColors;
-    final top = MediaQuery.paddingOf(context).top;
-    final large = widget._largeTitleHeight;
-    final bottomHeight = widget.bottom?.preferredSize.height ?? 0;
-
-    // collapse: phần tiêu đề lớn đã thu (0 → large).
-    final collapse = _offset.clamp(0.0, large);
+    final top = insets.top;
+    final large = bar.largeTitleHeight;
+    // collapse: phần tiêu đề lớn đã cuộn đi (0 → large), đúng bằng quãng cuộn.
+    final collapse = shrinkOffset.clamp(0.0, large);
     final progress = large == 0 ? 1.0 : collapse / large;
-    final scrolled = _offset > 0;
-    final barHeight = top + SoSize.appBar + large - collapse + bottomHeight;
-
-    final smallTitleOpacity = widget.isRoot
+    final titleOpacity = bar.isRoot
         ? ((progress - 0.7) / 0.3).clamp(0.0, 1.0)
         : 1.0;
 
-    return SizedBox(
-      height: top + widget.preferredSize.height,
-      child: Stack(
-        children: [
-          // Nền kính: chỉ phủ phần thanh đang hiện, chặn chạm vào nội dung
-          // đang nằm dưới kính.
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: barHeight,
-            child: AnimatedOpacity(
-              opacity: scrolled ? 1 : 0,
-              duration: SoMotion.fast,
-              curve: SoMotion.curve,
-              child: const SoGlass(
-                level: SoGlassLevel.thin,
-                borderRadius: BorderRadius.zero,
-                shadow: false,
-                child: SizedBox.expand(),
-              ),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Kính chỉ hiện khi đã cuộn (nội dung bắt đầu trượt dưới thanh).
+        Positioned.fill(
+          child: AnimatedOpacity(
+            opacity: shrinkOffset > 0 || overlaps ? 1 : 0,
+            duration: SoMotion.fast,
+            curve: SoMotion.curve,
+            child: const SoGlass(
+              level: SoGlassLevel.thin,
+              borderRadius: BorderRadius.zero,
+              shadow: false,
+              child: SizedBox.expand(),
             ),
           ),
-          Positioned(
-            top: top,
-            left: 0,
-            right: 0,
-            height: SoSize.appBar,
-            child: _Toolbar(
-              title: widget.title,
-              subtitle: widget.isRoot ? null : widget.subtitle,
-              isRoot: widget.isRoot,
-              close: widget.close,
-              titleOpacity: smallTitleOpacity,
-              actions: widget.actions,
-              onBack: widget.onBack,
-            ),
+        ),
+        // Né tai thỏ / vùng cong khi xoay ngang.
+        Positioned(
+          top: top,
+          left: insets.left,
+          right: insets.right,
+          height: SoSize.appBar,
+          child: _Toolbar(
+            title: bar.title,
+            subtitle: bar.isRoot ? null : bar.subtitle,
+            isRoot: bar.isRoot,
+            close: bar.close,
+            titleOpacity: titleOpacity,
+            actions: bar.actions,
+            onBack: bar.onBack,
           ),
-          if (widget.isRoot)
-            Positioned(
-              top: top + SoSize.appBar,
-              left: 0,
-              right: 0,
-              height: large - collapse,
-              child: ClipRect(
-                child: OverflowBox(
-                  alignment: Alignment.bottomLeft,
-                  minHeight: large,
-                  maxHeight: large,
-                  child: IgnorePointer(
-                    child: Opacity(
-                      opacity: 1 - progress,
-                      child: _LargeTitle(
-                        title: widget.title,
-                        subtitle: widget.subtitle,
-                        subtitleColor: c.ink2,
-                      ),
+        ),
+        // Tiêu đề lớn bám mép dưới vùng đang thu, nên đi lên đúng bằng quãng
+        // cuộn như một phần của nội dung.
+        if (bar.isRoot && collapse < large)
+          Positioned(
+            top: top + SoSize.appBar,
+            left: insets.left,
+            right: insets.right,
+            height: large - collapse,
+            child: ClipRect(
+              child: OverflowBox(
+                alignment: Alignment.bottomLeft,
+                minHeight: large,
+                maxHeight: large,
+                child: IgnorePointer(
+                  child: Opacity(
+                    opacity: 1 - progress,
+                    child: _LargeTitle(
+                      title: bar.title,
+                      subtitle: bar.subtitle,
+                      subtitleColor: c.ink2,
                     ),
                   ),
                 ),
               ),
             ),
-          if (widget.bottom != null)
-            Positioned(
-              top: top + SoSize.appBar + large - collapse,
-              left: 0,
-              right: 0,
-              height: bottomHeight,
-              child: widget.bottom!,
-            ),
-        ],
-      ),
+          ),
+        if (bar.bottom != null)
+          Positioned(
+            top: top + SoSize.appBar + large - collapse,
+            left: insets.left,
+            right: insets.right,
+            height: bar.bottom!.preferredSize.height,
+            child: bar.bottom!,
+          ),
+      ],
     );
   }
 }
@@ -218,13 +208,12 @@ class _Toolbar extends StatelessWidget {
     );
 
     // Màn gốc: tiêu đề nhỏ chỉ có trong cây khi đã thu, để không trùng chữ
-    // với tiêu đề lớn (đọc màn hình, finder trong test).
+    // với tiêu đề lớn (đọc màn hình, finder trong test). Không bọc Center:
+    // NavigationToolbar tự căn giữa theo cả bề rộng thanh, kể cả khi bên phải
+    // có nút.
     final Widget? center = isRoot
         ? (titleOpacity > 0
-              ? Opacity(
-                  opacity: titleOpacity,
-                  child: Center(child: titleText),
-                )
+              ? Opacity(opacity: titleOpacity, child: titleText)
               : null)
         : Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -244,9 +233,12 @@ class _Toolbar extends StatelessWidget {
     return NavigationToolbar(
       leading: isRoot
           ? null
+          // Vùng chạm 48 (IconButton tự đệm 6 mỗi bên quanh viên 36): đệm
+          // trái 8 để viên tròn cách mép 14, trong khoảng 12–16 của lề màn.
           : Padding(
-              padding: const EdgeInsets.only(left: SoSpace.s4),
+              padding: const EdgeInsets.only(left: SoSpace.s8),
               child: IconButton(
+                key: const Key('so_app_bar_leading'),
                 tooltip: close
                     ? MaterialLocalizations.of(context).closeButtonTooltip
                     : MaterialLocalizations.of(context).backButtonTooltip,

@@ -129,18 +129,17 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
   @override
   Widget build(BuildContext context) {
     final c = context.soColors;
-    // Form không chạy dưới kính (giống A-03/A-04): ô đang nhập không bị che.
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop || _busy) return;
         _dirty ? _confirmDiscard() : context.pop();
       },
-      child: SoAmbientBackground(
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
+      child: Form(
+        key: _formKey,
+        child: SoScaffold(
           appBar: const SoAppBar(title: 'Sản phẩm mới', close: true),
-          bottomNavigationBar: SoActionBar(
+          bottomBar: SoActionBar(
             // Hủy đi qua PopScope: form có dữ liệu thì hỏi trước khi bỏ.
             secondary: SoButton.secondary(
               key: const Key('product_create_cancel'),
@@ -154,97 +153,94 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
               onPressed: _submit,
             ),
           ),
-          body: Form(
-            key: _formKey,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(
-                SoSpace.screen,
-                SoSpace.s8,
-                SoSpace.screen,
-                SoSpace.s24,
-              ),
-              children: [
-                if (_formError != null) ...[
-                  SoBanner(
-                    key: const Key('product_create_error'),
-                    tone: SoBannerTone.danger,
-                    title: 'Chưa tạo được sản phẩm',
-                    message: _formError,
-                  ),
-                  const SizedBox(height: SoSpace.s16),
-                ],
-                _Card(
+          slivers: [
+            // Form: dựng hết các ô một lần (không lười) để validate() thấy
+            // cả ô đang nằm ngoài màn.
+            SliverPadding(
+              padding: SoSpace.page,
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    SoTextField(
-                      key: const Key('product_name'),
-                      label: 'Tên sản phẩm *',
-                      controller: _name,
-                      hint: 'Vd: Áo thun cổ tròn',
-                      textInputAction: TextInputAction.next,
-                      validator: (v) =>
-                          Validators.required(v, field: 'Tên sản phẩm'),
-                    ),
-                    SoTextField(
-                      key: const Key('product_desc'),
-                      label: 'Mô tả',
-                      controller: _desc,
-                      maxLines: 3,
-                      keyboardType: TextInputType.multiline,
-                    ),
-                  ],
-                ),
-                const GroupTitle(
-                  'SKU',
-                  trailing: 'Nhiều SKU, ảnh, link sàn · Sắp có',
-                ),
-                _Card(
-                  children: [
-                    SoTextField(
-                      key: const Key('sku_code'),
-                      label: 'Mã SKU *',
-                      controller: _skuCode,
-                      hint: 'AT-001-M',
-                      helper: 'Chữ in hoa, số và dấu -, không có dấu cách.',
-                      mono: true,
-                      errorText: _skuError,
-                      inputFormatters: skuCodeFormatters,
-                      textInputAction: TextInputAction.next,
-                      validator: (v) => Validators.required(v, field: 'Mã SKU'),
-                    ),
-                    SoTextField(
-                      key: const Key('sku_variant'),
-                      label: 'Phân loại',
-                      controller: _variant,
-                      hint: 'Vd: Đen / M',
-                      textInputAction: TextInputAction.next,
-                    ),
-                    SoTextField(
-                      key: const Key('sku_price'),
-                      label: 'Giá bán *',
-                      controller: _price,
-                      hint: '0',
-                      keyboardType: TextInputType.number,
-                      inputFormatters: const [VndInputFormatter()],
-                      textAlign: TextAlign.end,
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) => _submit(),
-                      suffix: Padding(
-                        padding: const EdgeInsets.only(right: SoSpace.s16),
-                        child: Text(
-                          '₫',
-                          style: context.textTheme.bodyLarge?.copyWith(
-                            color: c.ink2,
-                          ),
-                        ),
+                    if (_formError != null) ...[
+                      SoBanner(
+                        key: const Key('product_create_error'),
+                        tone: SoBannerTone.danger,
+                        title: 'Chưa tạo được sản phẩm',
+                        message: _formError,
                       ),
-                      validator: (v) =>
-                          Validators.positiveVnd(v, field: 'Giá bán'),
+                      const SizedBox(height: SoSpace.s16),
+                    ],
+                    _Card(
+                      children: [
+                        SoTextField(
+                          key: const Key('product_name'),
+                          label: 'Tên sản phẩm *',
+                          controller: _name,
+                          hint: 'Vd: Áo thun cổ tròn',
+                          textInputAction: TextInputAction.next,
+                          validator: (v) =>
+                              Validators.required(v, field: 'Tên sản phẩm'),
+                        ),
+                        SoTextField(
+                          key: const Key('product_desc'),
+                          label: 'Mô tả',
+                          controller: _desc,
+                          maxLines: 3,
+                          keyboardType: TextInputType.multiline,
+                        ),
+                      ],
+                    ),
+                    const GroupTitle('SKU'),
+                    Text(
+                      'Nhiều SKU, ảnh, link sàn · Sắp có',
+                      style: context.textTheme.bodySmall?.copyWith(
+                        color: c.ink2,
+                      ),
+                    ),
+                    const SizedBox(height: SoSpace.sectionTitle),
+                    _Card(
+                      children: [
+                        SoTextField(
+                          key: const Key('sku_code'),
+                          label: 'Mã SKU *',
+                          controller: _skuCode,
+                          hint: 'AT-001-M',
+                          helper: 'Chữ in hoa, số và dấu -, không có dấu cách.',
+                          mono: true,
+                          errorText: _skuError,
+                          inputFormatters: skuCodeFormatters,
+                          textInputAction: TextInputAction.next,
+                          validator: (v) =>
+                              Validators.required(v, field: 'Mã SKU'),
+                        ),
+                        SoTextField(
+                          key: const Key('sku_variant'),
+                          label: 'Phân loại',
+                          controller: _variant,
+                          hint: 'Vd: Đen / M',
+                          textInputAction: TextInputAction.next,
+                        ),
+                        SoTextField(
+                          key: const Key('sku_price'),
+                          label: 'Giá bán *',
+                          controller: _price,
+                          hint: 'Vd: 159.000',
+                          keyboardType: TextInputType.number,
+                          inputFormatters: const [VndInputFormatter()],
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => _submit(),
+                          suffixText: '₫',
+                          validator: (v) =>
+                              Validators.positiveVnd(v, field: 'Giá bán'),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

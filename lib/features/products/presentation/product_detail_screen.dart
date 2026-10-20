@@ -33,40 +33,40 @@ class ProductDetailScreen extends ConsumerWidget {
     final useMock = ref.watch(appConfigProvider).useMock;
     final product = productAsync.value;
 
-    return Scaffold(
-      extendBodyBehindAppBar: true,
+    return SoScaffold(
+      scrollable: !productAsync.isLoading || productAsync.hasValue,
       appBar: SoAppBar(
         title: 'Chi tiết sản phẩm',
         subtitle: product == null || product.skus.isEmpty
             ? null
             : skuCodePattern([for (final s in product.skus) s.skuCode]),
       ),
-      body: SoAmbientBackground(
-        child: switch (productAsync) {
-          AsyncData(:final value) => _Body(
-            product: value,
-            stock: stock,
-            // Chi tiết sản phẩm có API thật; nhãn tồn kho thì luôn là mẫu
-            // (backend chưa có GET /api/inventory).
-            mockNote: useMock
-                ? 'Sản phẩm và tồn kho đang là dữ liệu mẫu.'
-                : 'Nhãn tồn kho là dữ liệu mẫu, backend chưa có API.',
-          ),
-          AsyncError(:final error) => ListView(
-            padding: SoSpace.scrollable(context),
-            children: [
-              SoEmptyState.error(
+      slivers: [
+        SliverPadding(
+          padding: SoSpace.page,
+          sliver: switch (productAsync) {
+            AsyncData(:final value) => _Body(
+              product: value,
+              stock: stock,
+              // Chi tiết sản phẩm có API thật; nhãn tồn kho thì luôn là mẫu
+              // (backend chưa có GET /api/inventory).
+              mockNote: useMock
+                  ? 'Sản phẩm và tồn kho đang là dữ liệu mẫu.'
+                  : 'Nhãn tồn kho là dữ liệu mẫu, backend chưa có API.',
+            ),
+            AsyncError(:final error) => SliverToBoxAdapter(
+              child: SoEmptyState.error(
                 title: 'Không tải được sản phẩm',
                 // Chỉ hiện lỗi đã dịch từ API, không in exception thô.
                 message: error is ApiException ? error.message : null,
                 onAction: () =>
                     ref.invalidate(productDetailProvider(productId)),
               ),
-            ],
-          ),
-          _ => const _Skeleton(),
-        },
-      ),
+            ),
+            _ => const _Skeleton(),
+          },
+        ),
+      ],
     );
   }
 }
@@ -86,8 +86,7 @@ class _Body extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = product;
     final levels = {for (final item in stock) item.skuId: item.level};
-    return ListView(
-      padding: SoSpace.scrollable(context, _listPadding),
+    return SliverList.list(
       children: [
         SoMockBanner(message: mockNote),
         const SizedBox(height: SoSpace.s16),
@@ -109,13 +108,6 @@ class _Body extends StatelessWidget {
     );
   }
 }
-
-const _listPadding = EdgeInsets.fromLTRB(
-  SoSpace.screen,
-  SoSpace.s8,
-  SoSpace.screen,
-  SoSpace.s8,
-);
 
 /// Thẻ đầu: tên, mô tả, trạng thái + kênh, giá "từ".
 class _HeaderCard extends StatelessWidget {
@@ -386,9 +378,7 @@ class _Skeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      physics: const NeverScrollableScrollPhysics(),
-      padding: SoSpace.scrollable(context, _listPadding),
+    return SliverList.list(
       children: [
         Container(
           padding: SoSpace.card,

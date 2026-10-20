@@ -68,8 +68,7 @@ class _SkuForecastScreenState extends ConsumerState<SkuForecastScreen> {
     final stock = ref.watch(inventoryListProvider);
     final item = stock.value?.where((i) => i.skuId == skuId).firstOrNull;
 
-    return Scaffold(
-      extendBodyBehindAppBar: true,
+    return SoScaffold(
       appBar: const SoAppBar(
         title: 'Dự báo nhu cầu',
         actions: [
@@ -79,43 +78,38 @@ class _SkuForecastScreenState extends ConsumerState<SkuForecastScreen> {
           ),
         ],
       ),
-      body: SoAmbientBackground(
-        child: ListView(
-          padding: SoSpace.scrollable(context, _listPadding),
-          children: [
-            SoMockBanner(
-              message: useMock
-                  ? 'Dự báo, danh sách SKU và số tồn đang là dữ liệu mẫu.'
-                  : 'Danh sách SKU và số tồn là dữ liệu mẫu, backend chưa '
-                        'có API.',
-            ),
-            const SizedBox(height: SoSpace.s16),
-            _SkuCard(
-              skuId: skuId,
-              item: item,
-              loading: stock.isLoading && item == null,
-              onChange: _pickSku,
-            ),
-            if (skuId != null)
-              _ForecastSection(
-                skuId: skuId,
-                // Tồn chưa tải xong hoặc SKU không có trong dữ liệu mẫu: "—".
-                available: item?.available,
-                onChangeSku: _pickSku,
+      slivers: [
+        SliverPadding(
+          padding: SoSpace.page,
+          sliver: SliverList.list(
+            children: [
+              SoMockBanner(
+                message: useMock
+                    ? 'Dự báo, danh sách SKU và số tồn đang là dữ liệu mẫu.'
+                    : 'Danh sách SKU và số tồn là dữ liệu mẫu, backend chưa '
+                          'có API.',
               ),
-          ],
+              const SizedBox(height: SoSpace.s16),
+              _SkuCard(
+                skuId: skuId,
+                item: item,
+                loading: stock.isLoading && item == null,
+                onChange: _pickSku,
+              ),
+              if (skuId != null)
+                _ForecastSection(
+                  skuId: skuId,
+                  // Tồn chưa tải xong hoặc SKU không có trong dữ liệu mẫu: "—".
+                  available: item?.available,
+                  onChangeSku: _pickSku,
+                ),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }
-
-const _listPadding = EdgeInsets.fromLTRB(
-  SoSpace.screen,
-  SoSpace.s8,
-  SoSpace.screen,
-  SoSpace.s8,
-);
 
 /// Thẻ SKU đang xem: tên · phân loại, mã, mức tồn, nút "Đổi SKU".
 class _SkuCard extends StatelessWidget {

@@ -29,7 +29,10 @@ void _useNarrowPhone(WidgetTester tester) {
 }
 
 Future<void> _scrollToBottom(WidgetTester tester) async {
-  await tester.drag(find.byType(ListView).first, const Offset(0, -2000));
+  await tester.drag(
+    find.byType(CustomScrollView).first,
+    const Offset(0, -2000),
+  );
   await tester.pumpAndSettle();
 }
 

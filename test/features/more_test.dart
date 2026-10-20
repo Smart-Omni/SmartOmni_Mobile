@@ -75,7 +75,10 @@ void main() {
     await loginAs(tester, 'admin@demo.vn');
     await tester.tap(find.byKey(const Key('nav_more')));
     await tester.pumpAndSettle();
-    await tester.drag(find.byType(ListView).last, const Offset(0, -2000));
+    await tester.drag(
+      find.byType(CustomScrollView).last,
+      const Offset(0, -2000),
+    );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
