@@ -28,6 +28,11 @@ class Product {
       ? null
       : skus.map((s) => s.basePrice).reduce((a, b) => a < b ? a : b);
 
+  /// Giá cao nhất trong các SKU, cùng [minPrice] tạo khoảng giá ở C-11.
+  double? get maxPrice => skus.isEmpty
+      ? null
+      : skus.map((s) => s.basePrice).reduce((a, b) => a > b ? a : b);
+
   factory Product.fromJson(JsonMap json, {List<Sku> skus = const []}) =>
       Product(
         id: Json.asInt(json['id']) ?? 0,

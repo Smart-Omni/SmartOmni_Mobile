@@ -23,6 +23,7 @@ import '../../features/products/presentation/product_create_screen.dart';
 import '../../features/products/presentation/product_detail_screen.dart';
 import '../../features/products/presentation/products_screen.dart';
 import '../../features/storefront/presentation/storefront_screens.dart';
+import '../../features/customer_shop/presentation/customer_shops_screen.dart';
 import '../config/app_config.dart';
 import 'routes.dart';
 import 'shells.dart';
@@ -110,6 +111,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           _branch(Routes.customerClaim, const ClaimOrderScreen()),
           _branch(Routes.customerAccount, const CustomerAccountScreen()),
         ],
+      ),
+      GoRoute(
+        path: Routes.customerShops,
+        builder: (_, _) => const CustomerShopsScreen(),
       ),
       GoRoute(
         path: '/c/product/:id',

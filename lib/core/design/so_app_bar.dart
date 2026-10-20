@@ -31,7 +31,8 @@ class SoAppBar extends StatelessWidget {
     this.onBack,
     this.bottom,
     this.close = false,
-  }) : isRoot = false;
+  }) : isRoot = false,
+       leading = null;
 
   const SoAppBar.root({
     super.key,
@@ -39,6 +40,7 @@ class SoAppBar extends StatelessWidget {
     this.subtitle,
     this.actions = const [],
     this.bottom,
+    this.leading,
   }) : isRoot = true,
        onBack = null,
        close = false;
@@ -56,11 +58,19 @@ class SoAppBar extends StatelessWidget {
 
   /// Mặc định: `Navigator.maybePop`.
   final VoidCallback? onBack;
+
+  /// Màn gốc: widget ghim bên trái thanh 52 (vd. `SoShopSwitcher` ở C-10).
+  /// Có [leading] thì thanh không hiện tiêu đề nhỏ khi thu.
+  final Widget? leading;
   final PreferredSizeWidget? bottom;
 
-  /// Chiều cao khối tiêu đề lớn (chỉ màn gốc): chữ 40 + dòng phụ 18 + lề.
-  double get largeTitleHeight =>
-      isRoot ? 40 + (subtitle != null ? 18 : 0) + SoSpace.s8 : 0;
+  /// Chiều cao khối tiêu đề lớn (chỉ màn gốc): dòng chữ 40 + dòng phụ 18
+  /// (cả hai phóng theo cỡ chữ hệ thống) + lề 8.
+  double _largeTitleHeight(TextScaler scaler) => isRoot
+      ? scaler.scale(40) +
+            (subtitle != null ? scaler.scale(18) : 0) +
+            SoSpace.s8
+      : 0;
 
   /// Phần luôn ghim dưới vùng an toàn: thanh 52 + [bottom].
   double get pinnedHeight =>
@@ -73,38 +83,46 @@ class SoAppBar extends StatelessWidget {
       delegate: _SoAppBarDelegate(
         bar: this,
         insets: MediaQuery.paddingOf(context),
+        large: _largeTitleHeight(MediaQuery.textScalerOf(context)),
       ),
     );
   }
 }
 
 class _SoAppBarDelegate extends SliverPersistentHeaderDelegate {
-  _SoAppBarDelegate({required this.bar, required this.insets});
+  _SoAppBarDelegate({
+    required this.bar,
+    required this.insets,
+    required this.large,
+  });
 
   final SoAppBar bar;
   final EdgeInsets insets;
+
+  /// Chiều cao khối tiêu đề lớn (0 ở màn con).
+  final double large;
 
   @override
   double get minExtent => insets.top + bar.pinnedHeight;
 
   @override
-  double get maxExtent => minExtent + bar.largeTitleHeight;
+  double get maxExtent => minExtent + large;
 
   @override
   bool shouldRebuild(_SoAppBarDelegate old) =>
-      old.bar != bar || old.insets != insets;
+      old.bar != bar || old.insets != insets || old.large != large;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlaps) {
     final c = context.soColors;
     final top = insets.top;
-    final large = bar.largeTitleHeight;
     // collapse: phần tiêu đề lớn đã cuộn đi (0 → large), đúng bằng quãng cuộn.
     final collapse = shrinkOffset.clamp(0.0, large);
     final progress = large == 0 ? 1.0 : collapse / large;
     final titleOpacity = bar.isRoot
         ? ((progress - 0.7) / 0.3).clamp(0.0, 1.0)
         : 1.0;
+    final glassOn = shrinkOffset > 0 || overlaps;
 
     return Stack(
       fit: StackFit.expand,
@@ -112,7 +130,7 @@ class _SoAppBarDelegate extends SliverPersistentHeaderDelegate {
         // Kính chỉ hiện khi đã cuộn (nội dung bắt đầu trượt dưới thanh).
         Positioned.fill(
           child: AnimatedOpacity(
-            opacity: shrinkOffset > 0 || overlaps ? 1 : 0,
+            opacity: glassOn ? 1 : 0,
             duration: SoMotion.fast,
             curve: SoMotion.curve,
             child: const SoGlass(
@@ -129,14 +147,20 @@ class _SoAppBarDelegate extends SliverPersistentHeaderDelegate {
           left: insets.left,
           right: insets.right,
           height: SoSize.appBar,
-          child: _Toolbar(
-            title: bar.title,
-            subtitle: bar.isRoot ? null : bar.subtitle,
-            isRoot: bar.isRoot,
-            close: bar.close,
-            titleOpacity: titleOpacity,
-            actions: bar.actions,
-            onBack: bar.onBack,
+          // Thanh đã thành kính: kính bên trong thanh (vd. SoShopSwitcher) vẽ
+          // nền đặc để không có kính chồng lên kính.
+          child: SoGlassScope(
+            enabled: SoGlassScope.enabledOf(context) && !glassOn,
+            child: _Toolbar(
+              title: bar.title,
+              subtitle: bar.isRoot ? null : bar.subtitle,
+              isRoot: bar.isRoot,
+              close: bar.close,
+              titleOpacity: titleOpacity,
+              actions: bar.actions,
+              onBack: bar.onBack,
+              leading: bar.leading,
+            ),
           ),
         ),
         // Tiêu đề lớn bám mép dưới vùng đang thu, nên đi lên đúng bằng quãng
@@ -187,6 +211,7 @@ class _Toolbar extends StatelessWidget {
     required this.titleOpacity,
     required this.actions,
     required this.onBack,
+    required this.leading,
   });
 
   final String title;
@@ -196,10 +221,25 @@ class _Toolbar extends StatelessWidget {
   final double titleOpacity;
   final List<Widget> actions;
   final VoidCallback? onBack;
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
     final c = context.soColors;
+    // Màn gốc có leading: viên bên trái (co lại khi chật) + nút bên phải,
+    // không có tiêu đề nhỏ.
+    if (leading case final leading?) {
+      return Row(
+        children: [
+          const SizedBox(width: SoSpace.screen),
+          Expanded(
+            child: Align(alignment: Alignment.centerLeft, child: leading),
+          ),
+          ...actions,
+          const SizedBox(width: SoSpace.s4),
+        ],
+      );
+    }
     final titleText = Text(
       title,
       maxLines: 1,

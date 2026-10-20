@@ -83,6 +83,13 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
               _Section(title: 'Ô nhập', child: _fields()),
               _Section(title: 'Chip & segmented', child: _chips()),
               _Section(title: 'Nhãn', child: _tags()),
+              _Section(
+                title: 'Đổi cửa hàng',
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: SoShopSwitcher(name: 'Shop Demo', onTap: () {}),
+                ),
+              ),
               _Section(title: 'Ô chỉ số', child: _stats()),
               _Section(title: 'Tồn kho', child: _stock()),
               _Section(title: 'Hàng đơn', padded: false, child: _orders()),

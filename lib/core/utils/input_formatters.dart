@@ -32,8 +32,13 @@ class VndInputFormatter extends TextInputFormatter {
 }
 
 /// Mã SKU: chỉ chữ không dấu, số và "-", viết hoa (vd. "at 001-m" → "AT001-M").
-final skuCodeFormatters = <TextInputFormatter>[
-  FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9-]')),
+final skuCodeFormatters = _upperCode(RegExp(r'[A-Za-z0-9-]'));
+
+/// Mã cửa hàng: chỉ chữ không dấu và số, viết hoa (vd. "shop demo" → "SHOPDEMO").
+final shopCodeFormatters = _upperCode(RegExp(r'[A-Za-z0-9]'));
+
+List<TextInputFormatter> _upperCode(RegExp allowed) => [
+  FilteringTextInputFormatter.allow(allowed),
   TextInputFormatter.withFunction(
     (oldValue, newValue) =>
         newValue.copyWith(text: newValue.text.toUpperCase()),
