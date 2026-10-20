@@ -5,28 +5,42 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/router/routes.dart';
 import '../../../core/models/platform.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/state_views.dart';
-import '../../products/data/products_repositories.dart';
+import '../../customer_shop/presentation/customer_shop_providers.dart';
 import '../../products/domain/product.dart';
-import '../../products/domain/products_repository.dart';
+import '../data/storefront_mock_repository.dart';
+import '../domain/storefront_repository.dart';
 
-/// Storefront dùng repository riêng: backend chưa có API storefront công khai
-/// cho khách, nên luôn dùng mock (không dùng API merchant `/api/products`).
-final storefrontRepositoryProvider = Provider<ProductsRepository>(
-  (ref) => ProductsMockRepository(),
+/// Backend chưa có API storefront cho khách -> luôn dùng mock (không dùng API
+/// merchant `/api/products`).
+final storefrontRepositoryProvider = Provider<StorefrontRepository>(
+  (ref) => StorefrontMockRepository(),
 );
 
-final storefrontProductsProvider = FutureProvider.autoDispose<List<Product>>(
-  (ref) async => (await ref.watch(storefrontRepositoryProvider).listProducts())
-      .where((p) => p.active)
-      .toList(),
-);
+/// Sản phẩm của cửa hàng đang xem; chưa tham gia cửa hàng nào thì rỗng.
+final storefrontProductsProvider = FutureProvider.autoDispose<List<Product>>((
+  ref,
+) async {
+  final shop = await ref.watch(currentShopProvider.future);
+  if (shop == null) return const [];
+  return ref.watch(storefrontRepositoryProvider).listProducts(shop.tenantId);
+});
 
 final storefrontProductProvider = FutureProvider.autoDispose
-    .family<Product, int>(
-      (ref, id) => ref.watch(storefrontRepositoryProvider).getProduct(id),
-    );
+    .family<Product, int>((ref, id) async {
+      final shop = await ref.watch(currentShopProvider.future);
+      if (shop == null) {
+        throw const ApiException(
+          type: ApiErrorType.notFound,
+          message: 'Bạn chưa tham gia cửa hàng nào.',
+        );
+      }
+      return ref
+          .watch(storefrontRepositoryProvider)
+          .getProduct(shop.tenantId, id);
+    });
 
 /// Danh sách sản phẩm cho khách. Khách KHÔNG mua trên SmartOmni mà được
 /// chuyển sang Shopee / TikTok Shop.
