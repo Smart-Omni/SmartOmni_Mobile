@@ -46,8 +46,8 @@ flowchart TD
 | M-40 | Tồn kho + đặt lại số lượng | Staff, Admin | ✅ (mock list) |
 | M-50 | Thêm (menu) | Staff, Admin | ✅ |
 | M-51 | AI: chọn SKU → dự báo nhu cầu | Staff, Admin | ✅ |
-| M-60 | Hộp thư CSKH | Staff, Admin | ⚪ |
-| M-61 | Chi tiết hội thoại | Staff, Admin | ⚪ |
+| M-60 | Hộp thư CSKH | Staff, Admin | ✅ (mock) |
+| M-61 | Chi tiết hội thoại | Staff, Admin | ✅ (mock) |
 | T-10 | Kết nối sàn | Admin | ✅ |
 | T-20 | Quản lý nhân viên | Admin | ⚪ |
 | T-30 | Phát voucher | Admin | ⚪ |

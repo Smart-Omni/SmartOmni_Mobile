@@ -35,7 +35,7 @@ C-40 (`customer_account_screen.dart`) đã dùng design system một phần; rà
 4. `feature/ui-customer-loyalty`: C-20, C-30, C-40 theo mục 8b. SoTierBadge, SoTextField mono cho mã đơn. Dữ liệu tách theo cửa hàng đang xem.
 5. `feature/ui-customer-register`: A-05 Đăng ký + OTP, chạy bằng mock (backend chưa có `POST /api/customers/register`). Nút "Chưa có tài khoản? Đăng ký" trên A-02. Thêm route vào `resolveRedirect()` (trang công khai) và test cho router.
 
-Để sau 5 nhánh (đặc tả đã có ở DESIGN.md mục 8b, làm theo thứ tự): M-60/61 Hộp thư CSKH → C-12 Chatbot → M-22 In vận đơn → T-20 Nhân viên → T-30 Phát voucher → T-40 Gói dịch vụ → T-50 Hỗ trợ → T-10 OAuth (khi backend có). Mỗi nhóm 1 nhánh, dùng mock khi chưa có API.
+Để sau 5 nhánh (đặc tả đã có ở DESIGN.md mục 8b, làm theo thứ tự): ~~M-60/61 Hộp thư CSKH~~ (xong) → C-12 Chatbot → M-22 In vận đơn → T-20 Nhân viên → T-30 Phát voucher → T-40 Gói dịch vụ → T-50 Hỗ trợ → T-10 OAuth (khi backend có). Mỗi nhóm 1 nhánh, dùng mock khi chưa có API.
 
 ## Vòng lặp cho mỗi màn
 
@@ -55,5 +55,6 @@ C-40 (`customer_account_screen.dart`) đã dùng design system một phần; rà
 - [x] Nhánh 3: C-00 · SoShopSwitcher · C-10 · C-11, xong 20/10/2026. Nhiều cửa hàng chạy mock (`CustomerShopRepository`, `currentShopProvider`); quét QR mã cửa hàng để sau (nút báo "sắp có")
 - [x] Nhánh 4: C-20 · C-30 (+ màn kết quả, 5 lỗi) · C-40, xong 20/10/2026. Điểm, voucher, lịch sử, claim tách theo cửa hàng đang xem (mock); khung tab Customer bật `extendBody`; quét mã đơn để sau (báo "sắp có")
 - [x] Nhánh 5: A-05 (+ OTP), xong 20/10/2026. Đăng ký + OTP chạy mock (`RegistrationRepository`, mã mẫu `123456`); tài khoản mới chỉ có cửa hàng vừa tham gia, đăng nhập lại được trong phiên chạy app; tra mã cửa hàng dùng chung `ShopCodeLookup` với sheet C-00; quét QR để sau
+- [x] Nhánh 6 `feature/ui-inbox`: M-60 · M-61 (khiếu nại + thường) · sheet gắn đơn, xong 21/10/2026. Chạy mock (`InboxRepository`, chưa có Remote vì backend chưa có Message Service). Mỗi hàng một nhãn theo ưu tiên Đã giải quyết > Khiếu nại > Cần kiểm tra > Chưa trả lời; tin shop có Đang gửi… / Đã gửi / Chưa rõ (lỗi hoặc quá 15 giây); gửi ảnh để sau (báo "sắp có"). Design system thêm `SoChipBar` (M-20 dùng chung), `SoAppBar.channel`, `SoScaffold.controller`, `SoOrderRow.selected`
 
 Claude: cập nhật danh sách này khi xong mỗi màn.
