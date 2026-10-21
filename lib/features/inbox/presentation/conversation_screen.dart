@@ -57,8 +57,12 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   }
 
   Future<void> _markRead() async {
-    await ref.read(inboxRepositoryProvider).markRead(_id);
-    ref.invalidate(conversationsProvider);
+    try {
+      await ref.read(inboxRepositoryProvider).markRead(_id);
+      ref.invalidate(conversationsProvider);
+    } catch (_) {
+      // Không đánh dấu được thì để lần mở sau; màn vẫn tự báo lỗi tải.
+    }
   }
 
   void _scrollToEnd() {

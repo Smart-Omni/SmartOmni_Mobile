@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:smartomni_mobile/app/router/routes.dart';
 import 'package:smartomni_mobile/core/design/design.dart';
 import 'package:smartomni_mobile/core/models/platform.dart';
 import 'package:smartomni_mobile/core/utils/clock.dart';
@@ -32,6 +36,15 @@ Conversation _conv({
   resolved: resolved,
 );
 
+/// Gửi tin luôn lỗi, để thử trạng thái "chưa rõ".
+class _FailingSendRepository extends InboxMockRepository {
+  _FailingSendRepository() : super(clock: () => _now);
+
+  @override
+  Future<Message> sendMessage(int conversationId, String text) async =>
+      throw const ApiException(type: ApiErrorType.timeout, message: 'Hết giờ');
+}
+
 /// Gắn đơn luôn lỗi, để thử báo lỗi trong sheet.
 class _FailingAttachRepository extends InboxMockRepository {
   _FailingAttachRepository() : super(clock: () => _now);
@@ -44,7 +57,11 @@ class _FailingAttachRepository extends InboxMockRepository {
       );
 }
 
-Future<void> _openInbox(WidgetTester tester, {bool failAttach = false}) async {
+Future<void> _openInbox(
+  WidgetTester tester, {
+  bool failAttach = false,
+  bool failSend = false,
+}) async {
   await loginAs(
     tester,
     'staff@demo.vn',
@@ -53,6 +70,8 @@ Future<void> _openInbox(WidgetTester tester, {bool failAttach = false}) async {
       clockProvider.overrideWithValue(() => _now),
       if (failAttach)
         inboxRepositoryProvider.overrideWithValue(_FailingAttachRepository()),
+      if (failSend)
+        inboxRepositoryProvider.overrideWithValue(_FailingSendRepository()),
     ],
   );
   await tester.tap(find.byKey(const Key('nav_more')));
@@ -202,6 +221,10 @@ void main() {
     expect(
       responseDueLabel(DateTime(2026, 10, 21, 12), now: _now),
       'Khiếu nại · đã quá hạn phản hồi (12:00)',
+    );
+    expect(
+      responseDueLabel(DateTime(2026, 10, 20, 23), now: _now),
+      'Khiếu nại · đã quá hạn phản hồi (23:00 20/10)',
     );
   });
 
@@ -388,5 +411,60 @@ void main() {
     await tester.tap(find.byKey(const Key('attach_order_1006')));
     await tester.pump();
     expect(find.byKey(const Key('attach_error')), findsNothing);
+  });
+
+  testWidgets('gửi lỗi: tin chuyển sang Chưa rõ, mở lại nút gửi', (
+    tester,
+  ) async {
+    await _openInbox(tester, failSend: true);
+    await tapVisible(tester, find.byKey(const Key('conversation_2')));
+
+    await tester.enterText(
+      find.byKey(const Key('composer_input')),
+      'Dạ còn màu đen ạ',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('composer_send')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Dạ còn màu đen ạ'), findsOneWidget);
+    expect(
+      find.text('Chưa rõ đã gửi chưa · đối soát trước khi gửi lại'),
+      findsOneWidget,
+    );
+    expect(find.text('Bạn · 14:30'), findsOneWidget);
+  });
+
+  testWidgets('sheet: đơn đã chọn bị lọc khuất thì không gắn được', (
+    tester,
+  ) async {
+    await _openInbox(tester);
+    await tapVisible(tester, find.byKey(const Key('conversation_2')));
+    await tapVisible(tester, find.byKey(const Key('conversation_find_order')));
+
+    await tester.tap(find.byKey(const Key('attach_order_1002')));
+    await tester.pump();
+    await tester.enterText(find.byKey(const Key('attach_code')), '6677');
+    await tester.pump();
+    expect(find.byKey(const Key('attach_order_1002')), findsNothing);
+    expect(
+      tester.widget<SoButton>(find.byKey(const Key('attach_submit'))).onPressed,
+      isNull,
+    );
+  });
+
+  testWidgets('mở hội thoại không tồn tại: đánh dấu đã đọc không văng lỗi', (
+    tester,
+  ) async {
+    await _openInbox(tester);
+    unawaited(
+      GoRouter.of(
+        tester.element(find.byType(InboxScreen)),
+      ).push(Routes.merchantConversation(999)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ConversationScreen), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

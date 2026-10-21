@@ -185,9 +185,9 @@ String inboxTimeLabel(DateTime at, {required DateTime now}) {
 /// Tiêu đề banner hạn phản hồi khiếu nại (M-61).
 String responseDueLabel(DateTime due, {required DateTime now}) {
   final hm = '${_two(due.hour)}:${_two(due.minute)}';
-  if (!due.isAfter(now)) return 'Khiếu nại · đã quá hạn phản hồi ($hm)';
   final when = _daysBetween(now, due) == 0
       ? hm
       : '$hm ${_two(due.day)}/${_two(due.month)}';
+  if (!due.isAfter(now)) return 'Khiếu nại · đã quá hạn phản hồi ($when)';
   return 'Khiếu nại · phản hồi trước $when';
 }

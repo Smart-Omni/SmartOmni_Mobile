@@ -84,7 +84,8 @@ class _AttachOrderSheetState extends ConsumerState<AttachOrderSheet> {
     final shown = candidates
         .where((o) => orderCodeMatches(o, _code.text))
         .toList();
-    final picked = candidates.where((o) => o.id == _selected).firstOrNull;
+    // Chỉ gắn đơn đang hiện: đơn đã chọn mà bị ô mã lọc khuất thì không gắn.
+    final picked = shown.where((o) => o.id == _selected).firstOrNull;
     final changed = picked != null && picked.id != widget.conversation.orderId;
 
     return SoBottomSheet(
