@@ -11,6 +11,7 @@ import '../../features/auth/presentation/register_otp_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/reset_password_screen.dart';
 import '../../features/auth/presentation/splash_screen.dart';
+import '../../features/chatbot/presentation/chatbot_screen.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
 import '../../features/dev_gallery/presentation/design_gallery_screen.dart';
 import '../../features/inbox/presentation/conversation_screen.dart';
@@ -140,6 +141,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.customerShops,
         builder: (_, _) => const CustomerShopsScreen(),
+      ),
+      GoRoute(
+        path: Routes.customerChat,
+        builder: (_, _) => const ChatbotScreen(),
       ),
       GoRoute(
         path: '/c/product/:id',

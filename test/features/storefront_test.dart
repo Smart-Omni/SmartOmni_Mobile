@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:smartomni_mobile/features/chatbot/presentation/chatbot_screen.dart';
 import 'package:smartomni_mobile/core/design/design.dart';
 import 'package:smartomni_mobile/core/models/platform.dart';
 import 'package:smartomni_mobile/core/network/api_exception.dart';
@@ -75,9 +76,12 @@ void main() {
     expect(_inCard(1, find.byType(SoChannelTag)), findsNWidgets(2));
     expect(_inCard(2, find.text('Chưa mở bán trên sàn')), findsOneWidget);
 
+    // "Hỏi AI" mở C-12 (test chi tiết ở chatbot_test.dart).
     await tester.tap(find.byKey(const Key('ask_ai')));
-    await tester.pump();
-    expect(find.text('Sắp có'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.byType(ChatbotScreen), findsOneWidget);
+    await tester.tap(find.byKey(const Key('so_app_bar_leading')));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('storefront_product_1')));
     await tester.pumpAndSettle();
