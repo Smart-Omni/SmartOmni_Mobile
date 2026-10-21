@@ -32,7 +32,7 @@ flowchart TD
 | C-00 | Chọn cửa hàng / thêm cửa hàng (1 khách nhiều cửa hàng) | Customer | ✅ (mock) |
 | C-10 | Storefront - danh sách sản phẩm | Customer | ✅ (mock) |
 | C-11 | Chi tiết sản phẩm + nút mua trên sàn | Customer | ✅ (mock) |
-| C-12 | Chatbot tư vấn | Customer | ⚪ |
+| C-12 | Chatbot tư vấn | Customer | ✅ (mock) |
 | C-20 | Điểm & hạng + lịch sử + voucher | Customer | ✅ (mock) |
 | C-30 | Claim đơn | Customer | ✅ (mock) |
 | C-40 | Tài khoản | Customer | ✅ (khung) |
@@ -97,7 +97,7 @@ Cần thiết kế: logo, ô nhập có icon hiện/ẩn mật khẩu, link "Qu�
 flowchart LR
     Shop["C-10 Sản phẩm"] --> Detail["C-11 Chi tiết"]
     Detail -->|Mua trên Shopee/TikTok| Ext(["Mở app/web sàn"])
-    Shop -.-> Chat["C-12 Chatbot ⚪"]
+    Shop -.-> Chat["C-12 Chatbot (mock)"]
     Ext -. "đơn hoàn tất + 15 ngày" .-> Claim["C-30 Claim đơn"]
     Claim -->|thành công| Points["C-20 Điểm & hạng"]
     Points --> Voucher["Voucher (copy mã) → dùng trên sàn"]
@@ -113,8 +113,8 @@ flowchart LR
 
 Trạng thái: đang tải (skeleton), rỗng ("Cửa hàng chưa có sản phẩm"), lỗi + thử lại, sản phẩm chưa mở bán trên sàn nào.
 
-### F-C2. Hỏi chatbot ⚪
-Nút nổi trên C-10 → **C-12** khung chat với AI tư vấn sản phẩm; AI có thể gợi ý sản phẩm (thẻ sản phẩm bấm được → C-11). Chưa có API.
+### F-C2. Hỏi chatbot (mock)
+Nút "Hỏi AI" trên thanh của C-10 → **C-12** khung chat với AI tư vấn sản phẩm; AI có thể gợi ý sản phẩm (thẻ sản phẩm bấm được → C-11). Chưa có API.
 
 ### F-C3. Claim đơn tích điểm
 | Bước | Người dùng | Hệ thống |

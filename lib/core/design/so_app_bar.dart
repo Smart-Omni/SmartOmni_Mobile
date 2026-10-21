@@ -34,6 +34,7 @@ class SoAppBar extends StatelessWidget {
     this.bottom,
     this.close = false,
     this.channel,
+    this.subtitleIsCode = true,
   }) : isRoot = false,
        leading = null;
 
@@ -47,7 +48,8 @@ class SoAppBar extends StatelessWidget {
   }) : isRoot = true,
        onBack = null,
        close = false,
-       channel = null;
+       channel = null,
+       subtitleIsCode = false;
 
   final String title;
 
@@ -59,6 +61,10 @@ class SoAppBar extends StatelessWidget {
 
   /// Màn con: nút đóng (X) thay cho nút back.
   final bool close;
+
+  /// Màn con: [subtitle] là mã (chữ mono). `false`: chữ thường `footnote`,
+  /// vd. "Tư vấn sản phẩm · không đặt hàng" ở C-12.
+  final bool subtitleIsCode;
 
   /// Màn con: kênh bán (`SoChannelTag`) dưới tiêu đề, vd. tên khách ở M-61.
   final Platform? channel;
@@ -162,6 +168,7 @@ class _SoAppBarDelegate extends SliverPersistentHeaderDelegate {
               title: bar.title,
               subtitle: bar.isRoot ? null : bar.subtitle,
               channel: bar.channel,
+              subtitleIsCode: bar.subtitleIsCode,
               isRoot: bar.isRoot,
               close: bar.close,
               titleOpacity: titleOpacity,
@@ -215,6 +222,7 @@ class _Toolbar extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.channel,
+    required this.subtitleIsCode,
     required this.isRoot,
     required this.close,
     required this.titleOpacity,
@@ -226,6 +234,7 @@ class _Toolbar extends StatelessWidget {
   final String title;
   final String? subtitle;
   final Platform? channel;
+  final bool subtitleIsCode;
   final bool isRoot;
   final bool close;
   final double titleOpacity;
@@ -275,7 +284,9 @@ class _Toolbar extends StatelessWidget {
                   subtitle!,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: context.soText.code.copyWith(color: c.ink2),
+                  style: subtitleIsCode
+                      ? context.soText.code.copyWith(color: c.ink2)
+                      : context.textTheme.bodySmall?.copyWith(color: c.ink2),
                 ),
               if (channel != null) SoChannelTag(platform: channel!),
             ],

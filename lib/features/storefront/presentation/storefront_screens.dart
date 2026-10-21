@@ -84,8 +84,7 @@ class StorefrontScreen extends ConsumerWidget {
               label: 'Hỏi AI',
               icon: LucideIcons.messageCircle,
               size: SoButtonSize.small,
-              // C-12 Chatbot chưa làm.
-              onPressed: () => showSoToast(context, 'Sắp có'),
+              onPressed: () => context.push(Routes.customerChat),
             ),
           ),
         ],

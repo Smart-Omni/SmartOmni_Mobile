@@ -162,7 +162,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       ),
       bottomBar: conv == null
           ? null
-          : _Composer(
+          : SoChatComposer(
               controller: _input,
               sending: _sending,
               onSend: _send,
@@ -436,10 +436,6 @@ class _Bubble extends StatelessWidget {
     final m = message;
     final mine = !m.fromCustomer;
     final unsupported = m.text == null;
-    final (bg, fg) = mine && !unsupported
-        ? (c.brand, c.onBrand)
-        : (c.surface, unsupported ? c.ink2 : c.ink);
-
     final meta = mine
         ? [
             m.senderName ?? 'Bạn',
@@ -452,82 +448,51 @@ class _Bubble extends StatelessWidget {
           ].nonNulls.join(' · ')
         : _time(m.sentAt);
 
-    return Align(
-      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
-      child: FractionallySizedBox(
-        widthFactor: 0.78,
-        alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
-        child: Column(
-          crossAxisAlignment: mine
-              ? CrossAxisAlignment.end
-              : CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: SoSpace.s16,
-                vertical: SoSpace.s12,
-              ),
-              decoration: mine && !unsupported
-                  ? ShapeDecoration(
-                      color: bg,
-                      shape: SoShape.squircle(SoRadius.lgAll),
-                    )
-                  : SoShape.card(c),
-              child: unsupported
-                  ? Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          LucideIcons.fileX,
-                          size: SoSize.iconSmall,
-                          color: fg,
-                        ),
-                        const SizedBox(width: SoSpace.s8),
-                        Flexible(
-                          child: Text(
-                            'Không xem được nội dung này',
-                            style: context.textTheme.bodyMedium?.copyWith(
-                              color: fg,
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-                  : Text(
-                      m.text!,
-                      style: context.textTheme.bodyLarge?.copyWith(color: fg),
-                    ),
-            ),
-            const SizedBox(height: SoSpace.s4),
-            Text(
-              meta,
-              key: Key('message_meta_${m.id}'),
-              style: context.textTheme.bodySmall?.copyWith(color: c.muted),
-            ),
-            if (m.status == MessageStatus.unknown)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(LucideIcons.triangleAlert, size: 14, color: c.warning),
-                    const SizedBox(width: SoSpace.s4),
-                    Flexible(
-                      child: Text(
-                        'Chưa rõ đã gửi chưa · đối soát trước khi gửi lại',
-                        key: Key('message_unknown_${m.id}'),
-                        textAlign: TextAlign.end,
-                        style: context.textTheme.bodySmall?.copyWith(
-                          color: c.warning,
-                        ),
-                      ),
-                    ),
-                  ],
+    return SoChatBubble(
+      mine: mine,
+      tone: unsupported ? SoChatTone.muted : SoChatTone.normal,
+      below: [
+        Text(
+          meta,
+          key: Key('message_meta_${m.id}'),
+          style: context.textTheme.bodySmall?.copyWith(color: c.muted),
+        ),
+        if (m.status == MessageStatus.unknown)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(LucideIcons.triangleAlert, size: 14, color: c.warning),
+              const SizedBox(width: SoSpace.s4),
+              Flexible(
+                child: Text(
+                  'Chưa rõ đã gửi chưa · đối soát trước khi gửi lại',
+                  key: Key('message_unknown_${m.id}'),
+                  textAlign: TextAlign.end,
+                  style: context.textTheme.bodySmall?.copyWith(
+                    color: c.warning,
+                  ),
                 ),
               ),
-          ],
-        ),
-      ),
+            ],
+          ),
+      ],
+      child: unsupported
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(LucideIcons.fileX),
+                const SizedBox(width: SoSpace.s8),
+                Flexible(
+                  child: Text(
+                    'Không xem được nội dung này',
+                    style: context.textTheme.bodyMedium?.copyWith(
+                      color: c.ink2,
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : Text(m.text!),
     );
   }
 }
@@ -555,106 +520,6 @@ class _MessagesSkeleton extends StatelessWidget {
           child: SoSkeleton(width: 240, height: 48, radius: SoRadius.lg),
         ),
       ],
-    );
-  }
-}
-
-/// Ô soạn kính dưới đáy: nút ảnh + ô nhập (nền trắng, tối đa 4 dòng) + nút
-/// gửi. Nâng lên theo bàn phím.
-class _Composer extends StatefulWidget {
-  const _Composer({
-    required this.controller,
-    required this.sending,
-    required this.onSend,
-    required this.onPhoto,
-  });
-
-  final TextEditingController controller;
-  final bool sending;
-  final VoidCallback onSend;
-  final VoidCallback onPhoto;
-
-  @override
-  State<_Composer> createState() => _ComposerState();
-}
-
-class _ComposerState extends State<_Composer> {
-  @override
-  void initState() {
-    super.initState();
-    widget.controller.addListener(_changed);
-  }
-
-  @override
-  void dispose() {
-    widget.controller.removeListener(_changed);
-    super.dispose();
-  }
-
-  void _changed() => setState(() {});
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.soColors;
-    final canSend = widget.controller.text.trim().isNotEmpty && !widget.sending;
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: SoGlass(
-        borderRadius: BorderRadius.zero,
-        shadow: false,
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              SoSpace.s4,
-              SoSpace.s8,
-              SoSpace.s4,
-              SoSpace.s8,
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                IconButton(
-                  key: const Key('composer_photo'),
-                  tooltip: 'Gửi ảnh',
-                  icon: Icon(LucideIcons.imagePlus, color: c.ink2),
-                  onPressed: widget.onPhoto,
-                ),
-                Expanded(
-                  child: TextField(
-                    key: const Key('composer_input'),
-                    controller: widget.controller,
-                    minLines: 1,
-                    maxLines: 4,
-                    textCapitalization: TextCapitalization.sentences,
-                    style: context.textTheme.bodyLarge,
-                    decoration: const InputDecoration(
-                      hintText: 'Nhập tin nhắn',
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: SoSpace.s16,
-                        vertical: SoSpace.s12,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: SoSpace.s4),
-                IconButton(
-                  key: const Key('composer_send'),
-                  tooltip: 'Gửi',
-                  onPressed: canSend ? widget.onSend : null,
-                  style: IconButton.styleFrom(
-                    backgroundColor: c.brand,
-                    foregroundColor: c.onBrand,
-                    disabledBackgroundColor: c.fillStrong,
-                    disabledForegroundColor: c.muted,
-                  ),
-                  icon: const Icon(LucideIcons.sendHorizontal),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
