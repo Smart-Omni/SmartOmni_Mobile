@@ -1,4 +1,5 @@
 import '../../../core/models/platform.dart';
+import '../../orders/domain/order.dart';
 
 /// Nhãn AI gắn cho hội thoại (USER_FLOWS F-S6). AI chỉ gắn nhãn, không soạn
 /// hay gửi tin thay.
@@ -52,6 +53,7 @@ class Conversation {
     bool? unread,
     bool? awaitingReply,
     bool? resolved,
+    int? orderId,
   }) => Conversation(
     id: id,
     platform: platform,
@@ -62,7 +64,7 @@ class Conversation {
     unread: unread ?? this.unread,
     awaitingReply: awaitingReply ?? this.awaitingReply,
     resolved: resolved ?? this.resolved,
-    orderId: orderId,
+    orderId: orderId ?? this.orderId,
     responseDueAt: responseDueAt,
   );
 }
@@ -119,7 +121,17 @@ abstract interface class InboxRepository {
 
   /// Đánh dấu "Đã giải quyết" (đóng phiên).
   Future<void> resolve(int conversationId);
+
+  /// Gắn [order] làm đơn liên quan (thay đơn cũ nếu có). Đơn phải cùng sàn.
+  Future<void> attachOrder(int conversationId, Order order);
 }
+
+/// Chỉ gắn được đơn cùng sàn với hội thoại.
+bool canAttachOrder(Conversation c, Order o) => o.platform == c.platform;
+
+/// Ô mã đơn ở sheet gắn đơn: khớp một phần, không phân biệt hoa thường.
+bool orderCodeMatches(Order o, String query) =>
+    o.platformOrderId.toLowerCase().contains(query.trim().toLowerCase());
 
 /// Quá thời gian này mà sàn chưa xác nhận thì coi là "chưa rõ".
 const sendTimeout = Duration(seconds: 15);

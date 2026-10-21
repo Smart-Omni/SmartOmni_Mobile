@@ -1,6 +1,7 @@
 import '../../../core/models/platform.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/utils/mock_delay.dart';
+import '../../orders/domain/order.dart';
 import '../domain/inbox.dart';
 
 /// Hộp thư mẫu: backend chưa có API tin nhắn sàn (docs/API_CONTRACT.md).
@@ -244,5 +245,18 @@ class InboxMockRepository implements InboxRepository {
     await MockDelay.short();
     final c = _find(conversationId);
     _conversations[c.id] = c.copyWith(resolved: true);
+  }
+
+  @override
+  Future<void> attachOrder(int conversationId, Order order) async {
+    await MockDelay.short();
+    final c = _find(conversationId);
+    if (!canAttachOrder(c, order)) {
+      throw ApiException(
+        type: ApiErrorType.validation,
+        message: 'Chỉ gắn được đơn ${c.platform.label}.',
+      );
+    }
+    _conversations[c.id] = c.copyWith(orderId: order.id);
   }
 }

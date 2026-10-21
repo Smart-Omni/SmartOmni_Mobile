@@ -15,6 +15,7 @@ import '../../orders/domain/order.dart';
 import '../../orders/presentation/order_ui.dart';
 import '../../orders/presentation/orders_providers.dart';
 import '../domain/inbox.dart';
+import 'attach_order_sheet.dart';
 import 'inbox_providers.dart';
 
 /// M-61 Hội thoại (DESIGN.md mục 8b), bản khiếu nại và bản thường: banner
@@ -121,6 +122,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     }
   }
 
+  Future<void> _attach(Conversation conv) async {
+    final order = await showAttachOrderSheet(context, conv);
+    if (order == null || !mounted) return;
+    ref.invalidate(conversationProvider(_id));
+    showSoToast(context, 'Đã gắn đơn ${order.platformOrderId}');
+  }
+
   @override
   Widget build(BuildContext context) {
     final convAsync = ref.watch(conversationProvider(_id));
@@ -177,7 +185,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                   ),
                   const SizedBox(height: SoSpace.cardGap),
                 ],
-                _RelatedOrder(orderId: conv.orderId),
+                _RelatedOrder(
+                  orderId: conv.orderId,
+                  onAttach: () => _attach(conv),
+                ),
                 const SizedBox(height: SoSpace.group),
                 switch (msgAsync) {
                   AsyncData(:final value) => _MessageList(
@@ -211,31 +222,38 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 /// Thẻ đơn liên quan (mã, trạng thái, sản phẩm) + "Đổi"; chưa gắn đơn thì
 /// thẻ viền nét đứt + "Tìm đơn".
 class _RelatedOrder extends ConsumerWidget {
-  const _RelatedOrder({required this.orderId});
+  const _RelatedOrder({required this.orderId, required this.onAttach});
 
   final int? orderId;
 
+  /// Mở sheet gắn đơn ("Đổi" / "Tìm đơn").
+  final VoidCallback onAttach;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (orderId == null) return const _NoOrderCard();
+    if (orderId == null) return _NoOrderCard(onAttach: onAttach);
     final async = ref.watch(ordersPageProvider);
     return switch (async) {
       AsyncData(:final value) => switch (value.items.where(
         (o) => o.id == orderId,
       )) {
-        final found when found.isNotEmpty => _OrderCard(order: found.first),
-        _ => const _NoOrderCard(),
+        final found when found.isNotEmpty => _OrderCard(
+          order: found.first,
+          onAttach: onAttach,
+        ),
+        _ => _NoOrderCard(onAttach: onAttach),
       },
-      AsyncError() => const _NoOrderCard(),
+      AsyncError() => _NoOrderCard(onAttach: onAttach),
       _ => const SoListGroup(children: [SoSkeletonList(count: 1)]),
     };
   }
 }
 
 class _OrderCard extends StatelessWidget {
-  const _OrderCard({required this.order});
+  const _OrderCard({required this.order, required this.onAttach});
 
   final Order order;
+  final VoidCallback onAttach;
 
   @override
   Widget build(BuildContext context) {
@@ -283,10 +301,9 @@ class _OrderCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                // Sheet gắn đơn: bước 3.
                 TextButton(
                   key: const Key('conversation_change_order'),
-                  onPressed: () {},
+                  onPressed: onAttach,
                   child: const Text('Đổi'),
                 ),
               ],
@@ -299,7 +316,9 @@ class _OrderCard extends StatelessWidget {
 }
 
 class _NoOrderCard extends StatelessWidget {
-  const _NoOrderCard();
+  const _NoOrderCard({required this.onAttach});
+
+  final VoidCallback onAttach;
 
   @override
   Widget build(BuildContext context) {
@@ -326,12 +345,11 @@ class _NoOrderCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: SoSpace.s12),
-            // Sheet gắn đơn: bước 3.
             SoButton.secondary(
               key: const Key('conversation_find_order'),
               label: 'Tìm đơn',
               size: SoButtonSize.small,
-              onPressed: () {},
+              onPressed: onAttach,
             ),
           ],
         ),

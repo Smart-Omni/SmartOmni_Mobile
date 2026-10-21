@@ -3,7 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:smartomni_mobile/core/design/design.dart';
 import 'package:smartomni_mobile/core/models/platform.dart';
 import 'package:smartomni_mobile/core/utils/clock.dart';
+import 'package:smartomni_mobile/core/network/api_exception.dart';
+import 'package:smartomni_mobile/features/inbox/data/inbox_mock_repository.dart';
 import 'package:smartomni_mobile/features/inbox/domain/inbox.dart';
+import 'package:smartomni_mobile/features/inbox/presentation/inbox_providers.dart';
+import 'package:smartomni_mobile/features/orders/domain/order.dart';
 import 'package:smartomni_mobile/features/inbox/presentation/conversation_screen.dart';
 import 'package:smartomni_mobile/features/inbox/presentation/inbox_screen.dart';
 import 'package:smartomni_mobile/features/orders/presentation/order_detail_screen.dart';
@@ -28,12 +32,28 @@ Conversation _conv({
   resolved: resolved,
 );
 
-Future<void> _openInbox(WidgetTester tester) async {
+/// Gắn đơn luôn lỗi, để thử báo lỗi trong sheet.
+class _FailingAttachRepository extends InboxMockRepository {
+  _FailingAttachRepository() : super(clock: () => _now);
+
+  @override
+  Future<void> attachOrder(int conversationId, Order order) async =>
+      throw const ApiException(
+        type: ApiErrorType.server,
+        message: 'Sàn đang bận, thử lại sau.',
+      );
+}
+
+Future<void> _openInbox(WidgetTester tester, {bool failAttach = false}) async {
   await loginAs(
     tester,
     'staff@demo.vn',
     tallView: true,
-    overrides: [clockProvider.overrideWithValue(() => _now)],
+    overrides: [
+      clockProvider.overrideWithValue(() => _now),
+      if (failAttach)
+        inboxRepositoryProvider.overrideWithValue(_FailingAttachRepository()),
+    ],
   );
   await tester.tap(find.byKey(const Key('nav_more')));
   await tester.pumpAndSettle();
@@ -269,5 +289,104 @@ void main() {
     await tapVisible(tester, find.byKey(const Key('menu_inbox')));
     await tapVisible(tester, find.byKey(const Key('conversation_1')));
     expect(tester.takeException(), isNull);
+    await tapVisible(
+      tester,
+      find.byKey(const Key('conversation_change_order')),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  test('gắn đơn: chỉ cùng sàn; ô mã khớp một phần, không phân biệt hoa', () {
+    const o = Order(
+      id: 1,
+      platform: Platform.shopee,
+      platformOrderId: '241014ABCD12',
+      status: OrderStatus.pending,
+      totalAmount: 0,
+    );
+    expect(canAttachOrder(_conv(), o), isTrue);
+    expect(canAttachOrder(_conv(platform: Platform.tiktokShop), o), isFalse);
+    expect(orderCodeMatches(o, ' abcd '), isTrue);
+    expect(orderCodeMatches(o, ''), isTrue);
+    expect(orderCodeMatches(o, 'XYZ'), isFalse);
+  });
+
+  testWidgets('sheet gắn đơn: Tìm đơn → lọc mã, chọn, Gắn đơn', (tester) async {
+    await _openInbox(tester);
+    await tapVisible(tester, find.byKey(const Key('conversation_2')));
+    await tapVisible(tester, find.byKey(const Key('conversation_find_order')));
+
+    expect(find.text('Gắn đơn vào hội thoại'), findsOneWidget);
+    // Hội thoại TikTok Shop: chỉ đơn TikTok Shop.
+    expect(find.byKey(const Key('attach_order_1006')), findsOneWidget);
+    expect(find.byKey(const Key('attach_order_1001')), findsNothing);
+    SoButton submit() =>
+        tester.widget<SoButton>(find.byKey(const Key('attach_submit')));
+    expect(submit().onPressed, isNull);
+
+    await tester.enterText(find.byKey(const Key('attach_code')), 'zzz');
+    await tester.pump();
+    expect(find.byKey(const Key('attach_empty')), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('attach_code')), '112233');
+    await tester.pump();
+    expect(find.byKey(const Key('attach_order_1006')), findsNothing);
+    await tester.tap(find.byKey(const Key('attach_order_1002')));
+    await tester.pump();
+    expect(
+      tester
+          .widget<SoOrderRow>(find.byKey(const Key('attach_order_1002')))
+          .selected,
+      isTrue,
+    );
+    await tester.tap(find.byKey(const Key('attach_submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Gắn đơn vào hội thoại'), findsNothing);
+    expect(find.text('Đã gắn đơn 5779112233445566'), findsOneWidget);
+    expect(find.byKey(const Key('conversation_order')), findsOneWidget);
+    expect(find.text('5779112233445566'), findsOneWidget);
+  });
+
+  testWidgets('sheet từ Đổi: chọn sẵn đơn đang gắn, Gắn đơn khóa', (
+    tester,
+  ) async {
+    await _openInbox(tester);
+    await tapVisible(tester, find.byKey(const Key('conversation_1')));
+    await tapVisible(
+      tester,
+      find.byKey(const Key('conversation_change_order')),
+    );
+
+    expect(
+      tester
+          .widget<SoOrderRow>(find.byKey(const Key('attach_order_1001')))
+          .selected,
+      isTrue,
+    );
+    expect(
+      tester.widget<SoButton>(find.byKey(const Key('attach_submit'))).onPressed,
+      isNull,
+    );
+  });
+
+  testWidgets('gắn đơn lỗi: báo trong sheet, sheet vẫn mở', (tester) async {
+    await _openInbox(tester, failAttach: true);
+    await tapVisible(tester, find.byKey(const Key('conversation_2')));
+    await tapVisible(tester, find.byKey(const Key('conversation_find_order')));
+
+    await tester.tap(find.byKey(const Key('attach_order_1002')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('attach_submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Gắn đơn vào hội thoại'), findsOneWidget);
+    expect(find.byKey(const Key('attach_error')), findsOneWidget);
+    expect(find.text('Sàn đang bận, thử lại sau.'), findsOneWidget);
+
+    // Chọn đơn khác thì lỗi cũ mất.
+    await tester.tap(find.byKey(const Key('attach_order_1006')));
+    await tester.pump();
+    expect(find.byKey(const Key('attach_error')), findsNothing);
   });
 }
