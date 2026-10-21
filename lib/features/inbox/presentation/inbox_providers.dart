@@ -20,3 +20,12 @@ final inboxUnreadCountProvider = Provider.autoDispose<int?>(
       .watch(conversationsProvider)
       .whenOrNull(data: (list) => list.where((c) => c.unread).length),
 );
+
+final conversationProvider = FutureProvider.autoDispose
+    .family<Conversation, int>(
+      (ref, id) => ref.watch(inboxRepositoryProvider).getConversation(id),
+    );
+
+final messagesProvider = FutureProvider.autoDispose.family<List<Message>, int>(
+  (ref, id) => ref.watch(inboxRepositoryProvider).listMessages(id),
+);

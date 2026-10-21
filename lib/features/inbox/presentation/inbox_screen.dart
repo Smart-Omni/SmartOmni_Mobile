@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../app/router/routes.dart';
 import '../../../core/design/design.dart';
 import '../../../core/utils/clock.dart';
 import '../../../core/widgets/state_views.dart';
@@ -141,6 +143,7 @@ class _ConversationList extends StatelessWidget {
               key: Key('conversation_${c.id}'),
               conversation: c,
               now: now,
+              onTap: () => context.push(Routes.merchantConversation(c.id)),
             ),
           ],
         ],
@@ -156,10 +159,12 @@ class _ConversationRow extends StatelessWidget {
     super.key,
     required this.conversation,
     required this.now,
+    required this.onTap,
   });
 
   final Conversation conversation;
   final DateTime now;
+  final VoidCallback onTap;
 
   static const double _dot = 8;
 
@@ -173,7 +178,7 @@ class _ConversationRow extends StatelessWidget {
     return Material(
       color: c.surface,
       child: InkWell(
-        onTap: null,
+        onTap: onTap,
         child: Padding(
           padding: SoSpace.card,
           child: Column(

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../models/platform.dart';
 import 'so_glass.dart';
+import 'so_tags.dart';
 import 'so_text.dart';
 import 'so_tokens.dart';
 
@@ -31,6 +33,7 @@ class SoAppBar extends StatelessWidget {
     this.onBack,
     this.bottom,
     this.close = false,
+    this.channel,
   }) : isRoot = false,
        leading = null;
 
@@ -43,7 +46,8 @@ class SoAppBar extends StatelessWidget {
     this.leading,
   }) : isRoot = true,
        onBack = null,
-       close = false;
+       close = false,
+       channel = null;
 
   final String title;
 
@@ -55,6 +59,9 @@ class SoAppBar extends StatelessWidget {
 
   /// Màn con: nút đóng (X) thay cho nút back.
   final bool close;
+
+  /// Màn con: kênh bán (`SoChannelTag`) dưới tiêu đề, vd. tên khách ở M-61.
+  final Platform? channel;
 
   /// Mặc định: `Navigator.maybePop`.
   final VoidCallback? onBack;
@@ -154,6 +161,7 @@ class _SoAppBarDelegate extends SliverPersistentHeaderDelegate {
             child: _Toolbar(
               title: bar.title,
               subtitle: bar.isRoot ? null : bar.subtitle,
+              channel: bar.channel,
               isRoot: bar.isRoot,
               close: bar.close,
               titleOpacity: titleOpacity,
@@ -206,6 +214,7 @@ class _Toolbar extends StatelessWidget {
   const _Toolbar({
     required this.title,
     required this.subtitle,
+    required this.channel,
     required this.isRoot,
     required this.close,
     required this.titleOpacity,
@@ -216,6 +225,7 @@ class _Toolbar extends StatelessWidget {
 
   final String title;
   final String? subtitle;
+  final Platform? channel;
   final bool isRoot;
   final bool close;
   final double titleOpacity;
@@ -267,6 +277,7 @@ class _Toolbar extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: context.soText.code.copyWith(color: c.ink2),
                 ),
+              if (channel != null) SoChannelTag(platform: channel!),
             ],
           );
 

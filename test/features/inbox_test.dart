@@ -4,7 +4,9 @@ import 'package:smartomni_mobile/core/design/design.dart';
 import 'package:smartomni_mobile/core/models/platform.dart';
 import 'package:smartomni_mobile/core/utils/clock.dart';
 import 'package:smartomni_mobile/features/inbox/domain/inbox.dart';
+import 'package:smartomni_mobile/features/inbox/presentation/conversation_screen.dart';
 import 'package:smartomni_mobile/features/inbox/presentation/inbox_screen.dart';
+import 'package:smartomni_mobile/features/orders/presentation/order_detail_screen.dart';
 
 import '../helpers/test_app.dart';
 
@@ -125,7 +127,7 @@ void main() {
 
     expect(find.byType(InboxScreen), findsOneWidget);
     expect(find.byType(SoMockBanner), findsOneWidget);
-    expect(find.text('Nguyễn Thị Lan'), findsOneWidget);
+    expect(find.text('Nguyễn Văn A'), findsOneWidget);
     expect(find.byKey(const Key('unread_dot')), findsNWidgets(2));
     expect(
       tester
@@ -165,6 +167,107 @@ void main() {
     await tester.tap(find.byKey(const Key('nav_more')));
     await tester.pumpAndSettle();
     await tapVisible(tester, find.byKey(const Key('menu_inbox')));
+    expect(tester.takeException(), isNull);
+  });
+
+  test('responseDueLabel: hôm nay, ngày khác, quá hạn', () {
+    expect(
+      responseDueLabel(DateTime(2026, 10, 21, 16, 30), now: _now),
+      'Khiếu nại · phản hồi trước 16:30',
+    );
+    expect(
+      responseDueLabel(DateTime(2026, 10, 22, 9), now: _now),
+      'Khiếu nại · phản hồi trước 09:00 22/10',
+    );
+    expect(
+      responseDueLabel(DateTime(2026, 10, 21, 12), now: _now),
+      'Khiếu nại · đã quá hạn phản hồi (12:00)',
+    );
+  });
+
+  testWidgets('M-61 khiếu nại: banner hạn, thẻ đơn, trạng thái tin, gửi tin', (
+    tester,
+  ) async {
+    await _openInbox(tester);
+    await tapVisible(tester, find.byKey(const Key('conversation_1')));
+
+    expect(find.byType(ConversationScreen), findsOneWidget);
+    expect(find.byType(SoMockBanner), findsOneWidget);
+    expect(find.text('Khiếu nại · phản hồi trước 16:30'), findsOneWidget);
+    expect(find.text('241014ABCD12'), findsOneWidget);
+    expect(find.text('Không xem được nội dung này'), findsOneWidget);
+    expect(
+      find.text('Chưa rõ đã gửi chưa · đối soát trước khi gửi lại'),
+      findsOneWidget,
+    );
+    expect(find.text('Lan'), findsNothing);
+    expect(find.textContaining('Lan · '), findsOneWidget);
+
+    // Nút gửi khóa khi ô trống.
+    final send = find.byKey(const Key('composer_send'));
+    expect(tester.widget<IconButton>(send).onPressed, isNull);
+    await tester.enterText(
+      find.byKey(const Key('composer_input')),
+      'Dạ shop đổi áo mới cho anh ạ',
+    );
+    await tester.pump();
+    await tester.tap(send);
+    await tester.pumpAndSettle();
+    expect(find.text('Dạ shop đổi áo mới cho anh ạ'), findsOneWidget);
+    expect(find.text('Bạn · 14:30 · Đã gửi'), findsOneWidget);
+
+    // Nút ảnh chưa có: báo sắp có.
+    await tester.tap(find.byKey(const Key('composer_photo')));
+    await tester.pump();
+    expect(find.text('Gửi ảnh sắp có'), findsOneWidget);
+    await tester.pumpAndSettle(const Duration(seconds: 5));
+
+    // Chạm thẻ đơn → M-21.
+    await tapVisible(tester, find.byKey(const Key('conversation_order')));
+    expect(find.byType(OrderDetailScreen), findsOneWidget);
+  });
+
+  testWidgets('M-61 thường: không banner, chưa gắn đơn có Tìm đơn', (
+    tester,
+  ) async {
+    await _openInbox(tester);
+    await tapVisible(tester, find.byKey(const Key('conversation_2')));
+
+    expect(find.byKey(const Key('conversation_deadline')), findsNothing);
+    expect(find.byKey(const Key('conversation_no_order')), findsOneWidget);
+    expect(find.byKey(const Key('conversation_find_order')), findsOneWidget);
+  });
+
+  testWidgets('mở hội thoại thì đã đọc; Đã giải quyết bỏ banner và nút', (
+    tester,
+  ) async {
+    await _openInbox(tester);
+    await tapVisible(tester, find.byKey(const Key('conversation_1')));
+
+    await tester.tap(find.byKey(const Key('conversation_resolve')));
+    await tester.pumpAndSettle();
+    expect(find.text('Đã đánh dấu đã giải quyết'), findsOneWidget);
+    expect(find.byKey(const Key('conversation_deadline')), findsNothing);
+    expect(find.byKey(const Key('conversation_resolve')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('so_app_bar_leading')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('unread_dot')), findsOneWidget);
+    expect(
+      tester
+          .widget<SoStatusTag>(find.byKey(const Key('conversation_tag_1')))
+          .label,
+      'Đã giải quyết',
+    );
+  });
+
+  testWidgets('M-61 vừa bề rộng 360dp', (tester) async {
+    useNarrowPhone(tester);
+    await loginAs(tester, 'staff@demo.vn');
+    await tester.tap(find.byKey(const Key('nav_more')));
+    await tester.pumpAndSettle();
+    await tapVisible(tester, find.byKey(const Key('menu_inbox')));
+    await tapVisible(tester, find.byKey(const Key('conversation_1')));
     expect(tester.takeException(), isNull);
   });
 }
