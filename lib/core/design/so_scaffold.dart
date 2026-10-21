@@ -15,6 +15,7 @@ import 'so_tokens.dart';
 /// [bottomBar]: thanh hành động kính (`SoActionBar`) của màn con.
 /// [onRefresh]: kéo xuống để tải lại.
 /// [scrollable]: `false` khi nội dung là skeleton (không cho cuộn).
+/// [controller]: điều khiển cuộn, vd. M-61 cuộn xuống tin cuối.
 class SoScaffold extends StatelessWidget {
   const SoScaffold({
     super.key,
@@ -23,6 +24,7 @@ class SoScaffold extends StatelessWidget {
     this.bottomBar,
     this.onRefresh,
     this.scrollable = true,
+    this.controller,
   });
 
   final SoAppBar appBar;
@@ -30,6 +32,7 @@ class SoScaffold extends StatelessWidget {
   final Widget? bottomBar;
   final RefreshCallback? onRefresh;
   final bool scrollable;
+  final ScrollController? controller;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +44,7 @@ class SoScaffold extends StatelessWidget {
           builder: (context) {
             final padding = MediaQuery.paddingOf(context);
             Widget view = CustomScrollView(
+              controller: controller,
               physics: scrollable
                   ? const AlwaysScrollableScrollPhysics()
                   : const NeverScrollableScrollPhysics(),
