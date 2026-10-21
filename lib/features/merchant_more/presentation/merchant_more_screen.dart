@@ -9,6 +9,7 @@ import '../../../core/design/design.dart';
 import '../../../core/models/platform.dart';
 import '../../account/presentation/account_widgets.dart';
 import '../../auth/presentation/auth_controller.dart';
+import '../../inbox/presentation/inbox_providers.dart';
 import '../../marketplace/domain/marketplace_connection.dart';
 import '../../marketplace/presentation/marketplace_providers.dart';
 import '../../marketplace/presentation/marketplace_screen.dart';
@@ -40,12 +41,7 @@ class MerchantMoreScreen extends ConsumerWidget {
                     trailing: const SoAiLabel(),
                     onTap: () => context.push(Routes.merchantAi),
                   ),
-                  const SoListRow(
-                    icon: LucideIcons.messagesSquare,
-                    title: 'Hộp thư CSKH',
-                    subtitle: 'Tin nhắn Shopee và TikTok Shop',
-                    comingSoon: true,
-                  ),
+                  const _InboxRow(),
                   const SoListRow(
                     icon: LucideIcons.undo2,
                     title: 'Danh sách hoàn/trả',
@@ -87,6 +83,45 @@ class MerchantMoreScreen extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// "Hộp thư CSKH" kèm số hội thoại chưa đọc → M-60.
+class _InboxRow extends ConsumerWidget {
+  const _InboxRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.soColors;
+    final unread = ref.watch(inboxUnreadCountProvider);
+    return SoListRow(
+      key: const Key('menu_inbox'),
+      icon: LucideIcons.messagesSquare,
+      title: 'Hộp thư CSKH',
+      subtitle: 'Tin nhắn Shopee và TikTok Shop',
+      onTap: () => context.push(Routes.merchantInbox),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (unread != null && unread > 0)
+            Text(
+              '$unread',
+              key: const Key('menu_inbox_unread'),
+              semanticsLabel: '$unread chưa đọc',
+              style: context.textTheme.bodySmall?.copyWith(
+                color: c.ink2,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          const SizedBox(width: SoSpace.s4),
+          Icon(
+            LucideIcons.chevronRight,
+            size: SoSize.iconSmall,
+            color: c.muted,
+          ),
+        ],
+      ),
     );
   }
 }

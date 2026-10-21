@@ -13,6 +13,7 @@ import '../../features/auth/presentation/reset_password_screen.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
 import '../../features/dev_gallery/presentation/design_gallery_screen.dart';
+import '../../features/inbox/presentation/inbox_screen.dart';
 import '../../features/inventory/presentation/inventory_screen.dart';
 import '../../features/loyalty/presentation/claim_order_screen.dart';
 import '../../features/loyalty/presentation/claim_result_screen.dart';
@@ -109,6 +110,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.merchantMarketplace,
         builder: (_, _) => const MarketplaceScreen(),
+      ),
+      GoRoute(
+        path: Routes.merchantInbox,
+        builder: (_, _) => const InboxScreen(),
       ),
 
       // --------------------------------------------------------------- Customer

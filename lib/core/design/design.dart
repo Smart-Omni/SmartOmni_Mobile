@@ -11,6 +11,7 @@ export 'so_app_bar.dart';
 export 'so_bottom_nav.dart';
 export 'so_bottom_sheet.dart';
 export 'so_button.dart';
+export 'so_chip_bar.dart';
 export 'so_colors.dart';
 export 'so_feedback.dart';
 export 'so_filter_chip.dart';

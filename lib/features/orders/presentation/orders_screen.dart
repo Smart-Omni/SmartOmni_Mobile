@@ -133,11 +133,10 @@ class _FilterBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget> chips;
 
   static const double _searchHeight = SoSpace.s8 + SoSize.input;
-  static const double _chipsHeight = SoSize.chip + SoSpace.s12 * 2;
 
   @override
   Size get preferredSize =>
-      Size.fromHeight(_chipsHeight + (searching ? _searchHeight : 0));
+      Size.fromHeight(SoChipBar.height + (searching ? _searchHeight : 0));
 
   @override
   Widget build(BuildContext context) {
@@ -166,24 +165,7 @@ class _FilterBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             ),
           ),
-        SizedBox(
-          height: _chipsHeight,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(
-              horizontal: SoSpace.screen,
-              vertical: SoSpace.s12,
-            ),
-            child: Row(
-              children: [
-                for (final (i, chip) in chips.indexed) ...[
-                  if (i > 0) const SizedBox(width: SoSpace.s8),
-                  chip,
-                ],
-              ],
-            ),
-          ),
-        ),
+        SoChipBar(chips: chips),
       ],
     );
   }

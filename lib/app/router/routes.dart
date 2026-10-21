@@ -30,6 +30,7 @@ class Routes {
   static const merchantAi = '/m/ai';
   static String merchantAiForecast(int skuId) => '/m/ai/$skuId';
   static const merchantMarketplace = '/m/marketplace';
+  static const merchantInbox = '/m/inbox';
 
   // Customer - các tab
   static const customerShop = '/c/shop';
