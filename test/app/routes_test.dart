@@ -74,6 +74,21 @@ void main() {
       );
     });
 
+    test('T-40 Gói dịch vụ: chỉ Tenant Admin', () {
+      expect(
+        resolveRedirect(_as(UserRole.staff), Routes.merchantSubscription),
+        Routes.merchantMore,
+      );
+      expect(
+        resolveRedirect(_as(UserRole.customer), Routes.merchantSubscription),
+        Routes.customerShop,
+      );
+      expect(
+        resolveRedirect(_as(UserRole.tenantAdmin), Routes.merchantSubscription),
+        isNull,
+      );
+    });
+
     test('T-30 Phát voucher: chỉ Tenant Admin', () {
       expect(
         resolveRedirect(_as(UserRole.staff), Routes.merchantVouchers),
