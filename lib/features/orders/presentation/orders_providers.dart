@@ -33,18 +33,13 @@ final shippingLabelRepositoryProvider = Provider<ShippingLabelRepository>(
 
 /// Tem vận đơn của một đơn (M-22): file PDF + ảnh từng trang để xem trước.
 final shippingLabelProvider = FutureProvider.autoDispose
-    .family<ShippingLabel, int>(
-      (ref, orderId) async {
-        final pdf = await ref
-            .watch(shippingLabelRepositoryProvider)
-            .fetchLabel(orderId);
-        final pages = await ref.watch(pdfToolsProvider).rasterize(pdf);
-        return ShippingLabel(pdf: pdf, pages: pages);
-      },
-      // Không tự thử lại (mặc định Riverpod thử 10 lần, ~38 giây skeleton):
-      // hiện lỗi ngay, người dùng bấm "Thử lại".
-      retry: (_, _) => null,
-    );
+    .family<ShippingLabel, int>((ref, orderId) async {
+      final pdf = await ref
+          .watch(shippingLabelRepositoryProvider)
+          .fetchLabel(orderId);
+      final pages = await ref.watch(pdfToolsProvider).rasterize(pdf);
+      return ShippingLabel(pdf: pdf, pages: pages);
+    });
 
 class ShippingLabel {
   const ShippingLabel({required this.pdf, required this.pages});

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartomni_mobile/app/app.dart';
+import 'package:smartomni_mobile/app/bootstrap.dart';
 import 'package:smartomni_mobile/app/config/app_config.dart';
 import 'package:smartomni_mobile/core/storage/token_storage.dart';
 import 'package:smartomni_mobile/features/auth/data/auth_mock_repository.dart';
@@ -25,6 +26,7 @@ Future<InMemoryTokenStorage> pumpSmartOmniApp(
   final storage = InMemoryTokenStorage(savedToken);
   await tester.pumpWidget(
     ProviderScope(
+      retry: noAutoRetry,
       overrides: [
         appConfigProvider.overrideWithValue(testConfig),
         tokenStorageProvider.overrideWithValue(storage),
