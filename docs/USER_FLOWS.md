@@ -52,7 +52,7 @@ flowchart TD
 | T-20 | Quản lý nhân viên | Admin | 🟡 |
 | T-30 | Phát voucher | Admin | 🟡 |
 | T-40 | Gói dịch vụ SaaS | Admin | 🟡 |
-| T-50 | Yêu cầu hỗ trợ | Admin | ⚪ |
+| T-50 | Yêu cầu hỗ trợ | Admin | 🟡 |
 
 ---
 
@@ -254,7 +254,7 @@ Danh sách Staff (tên, email, trạng thái) → Mời/Tạo Staff (email, mậ
 ### F-T5. Gói dịch vụ SaaS (T-40) 🟡
 Gói hiện tại, giới hạn (số SKU, số kết nối, dung lượng) và mức đã dùng, nâng/hạ cấp, lịch sử hóa đơn, thanh toán.
 
-### F-T6. Yêu cầu hỗ trợ (T-50) ⚪
+### F-T6. Yêu cầu hỗ trợ (T-50) 🟡
 Tạo ticket (tiêu đề, mô tả) → danh sách ticket + trạng thái (Mở / Đang xử lý / Đã giải quyết).
 
 ### F-T7. Đăng ký cửa hàng mới ⚪

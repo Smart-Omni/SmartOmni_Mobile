@@ -52,7 +52,7 @@ JWT payload: `{ sub: "<userId>", role, tenantId?, iat, exp }` (HS256, hạn 24h)
 | Quản lý Staff | - | - | 🟡 | App dùng mock (`StaffRepository`): danh sách, thêm (email + mật khẩu tạm), khóa / mở khóa |
 | Phát voucher | - | - | 🟡 | Phụ thuộc API tạo voucher của sàn; app dùng mock (`VoucherRepository`) |
 | Gói SaaS | - | - | 🟡 | `subscription_plans`, `tenant_invoices` đã có trong ERD; app dùng mock (`SubscriptionRepository`), chưa thanh toán trong app |
-| Hỗ trợ | - | - | ⚪ | Bảng `support_tickets` đã có, Nginx đã route `/api/support-tickets/` |
+| Hỗ trợ | - | - | 🟡 | Bảng `support_tickets` đã có, Nginx đã route `/api/support-tickets/`; app dùng mock (`SupportRepository`): danh sách + tạo (tiêu đề, mô tả) |
 
 ## 3. Customer
 

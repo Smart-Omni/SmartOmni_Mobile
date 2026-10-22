@@ -32,6 +32,7 @@ import '../../features/products/presentation/products_screen.dart';
 import '../../features/staff/presentation/staff_screen.dart';
 import '../../features/storefront/presentation/storefront_screens.dart';
 import '../../features/subscription/presentation/subscription_screen.dart';
+import '../../features/support/presentation/support_screen.dart';
 import '../../features/voucher/presentation/voucher_screen.dart';
 import '../../features/customer_shop/presentation/customer_shops_screen.dart';
 import '../config/app_config.dart';
@@ -135,6 +136,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.merchantSubscription,
         builder: (_, _) => const SubscriptionScreen(),
+      ),
+      GoRoute(
+        path: Routes.merchantSupport,
+        builder: (_, _) => const SupportScreen(),
       ),
       GoRoute(
         path: Routes.merchantInbox,

@@ -74,6 +74,21 @@ void main() {
       );
     });
 
+    test('T-50 Yêu cầu hỗ trợ: chỉ Tenant Admin', () {
+      expect(
+        resolveRedirect(_as(UserRole.staff), Routes.merchantSupport),
+        Routes.merchantMore,
+      );
+      expect(
+        resolveRedirect(_as(UserRole.customer), Routes.merchantSupport),
+        Routes.customerShop,
+      );
+      expect(
+        resolveRedirect(_as(UserRole.tenantAdmin), Routes.merchantSupport),
+        isNull,
+      );
+    });
+
     test('T-40 Gói dịch vụ: chỉ Tenant Admin', () {
       expect(
         resolveRedirect(_as(UserRole.staff), Routes.merchantSubscription),
