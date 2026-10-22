@@ -1,0 +1,139 @@
+import 'package:flutter/material.dart';
+
+import '../../l10n/l10n.dart';
+import '../utils/formatters.dart';
+import 'so_text.dart';
+import 'so_tokens.dart';
+
+/// Thanh tồn kho: phần đang giữ chỗ (held) + phần có thể bán (brand).
+///
+/// Có thể bán = tồn − giữ chỗ (đã tính sẵn trong `InventoryItem.available`).
+class SoStockMeter extends StatelessWidget {
+  const SoStockMeter({
+    super.key,
+    required this.onHand,
+    required this.reserved,
+    this.showLegend = true,
+  });
+
+  /// Bản thu nhỏ cho hàng danh sách: thanh 4px, không chú giải.
+  const SoStockMeter.mini({
+    super.key,
+    required this.onHand,
+    required this.reserved,
+  }) : showLegend = false;
+
+  final int onHand;
+  final int reserved;
+  final bool showLegend;
+
+  int get sellable => onHand - reserved;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.soColors;
+    final heldPart = reserved.clamp(0, onHand < 0 ? 0 : onHand);
+    final sellPart = sellable < 0 ? 0 : sellable;
+    final barHeight = showLegend ? 8.0 : 4.0;
+
+    // Giữ chỗ + có thể bán luôn tô kín rãnh, nên cắt rãnh theo capsule là đủ
+    // để hai đầu thanh tròn.
+    final bar = ClipRSuperellipse(
+      borderRadius: SoRadius.capsuleAll,
+      child: SizedBox(
+        height: barHeight,
+        child: ColoredBox(
+          color: c.fill,
+          child: Row(
+            children: [
+              if (heldPart > 0)
+                Expanded(
+                  flex: heldPart,
+                  child: ColoredBox(color: c.held),
+                ),
+              if (sellPart > 0)
+                Expanded(
+                  flex: sellPart,
+                  child: ColoredBox(color: c.brand),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!showLegend) return bar;
+
+    final l10n = context.l10n;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        bar,
+        const SizedBox(height: SoSpace.s12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _Legend(label: l10n.stockOnHand, value: onHand),
+            ),
+            Expanded(
+              child: _Legend(
+                label: l10n.stockReserved,
+                value: reserved,
+                swatch: c.held,
+              ),
+            ),
+            Expanded(
+              child: _Legend(
+                label: l10n.stockSellable,
+                value: sellable,
+                swatch: c.brand,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _Legend extends StatelessWidget {
+  const _Legend({required this.label, required this.value, this.swatch});
+
+  final String label;
+  final int value;
+  final Color? swatch;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            if (swatch != null) ...[
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: swatch,
+                  shape: BoxShape.circle,
+                ),
+                child: const SizedBox.square(dimension: 8),
+              ),
+              const SizedBox(width: 6),
+            ],
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: context.textTheme.bodySmall,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(Formatters.number(value), style: context.soText.money),
+      ],
+    );
+  }
+}

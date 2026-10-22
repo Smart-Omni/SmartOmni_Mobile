@@ -28,30 +28,31 @@ flowchart TD
 | A-02 | Đăng nhập chung | Tất cả | ✅ |
 | A-03 | Quên mật khẩu (gửi email) | Tất cả | ✅ |
 | A-04 | Đặt lại mật khẩu (mã + mật khẩu mới) | Tất cả | ✅ |
-| A-05 | Đăng ký tài khoản khách | Customer | ⚪ |
+| A-05 | Đăng ký tài khoản khách (+ OTP email) | Customer | ✅ (mock) |
+| C-00 | Chọn cửa hàng / thêm cửa hàng (1 khách nhiều cửa hàng) | Customer | ✅ (mock) |
 | C-10 | Storefront - danh sách sản phẩm | Customer | ✅ (mock) |
 | C-11 | Chi tiết sản phẩm + nút mua trên sàn | Customer | ✅ (mock) |
-| C-12 | Chatbot tư vấn | Customer | ⚪ |
+| C-12 | Chatbot tư vấn | Customer | ✅ (mock) |
 | C-20 | Điểm & hạng + lịch sử + voucher | Customer | ✅ (mock) |
 | C-30 | Claim đơn | Customer | ✅ (mock) |
 | C-40 | Tài khoản | Customer | ✅ (khung) |
 | M-10 | Tổng quan (Staff: việc hôm nay / Admin: tổng quan cửa hàng) | Staff, Admin | ✅ (mock) |
 | M-20 | Danh sách đơn | Staff, Admin | ✅ |
 | M-21 | Chi tiết đơn | Staff, Admin | ✅ |
-| M-22 | In vận đơn | Staff, Admin | ⚪ |
+| M-22 | In vận đơn | Staff, Admin | 🟡 |
 | M-30 | Danh sách sản phẩm | Staff, Admin | ✅ (mock list) |
 | M-31 | Chi tiết sản phẩm + SKU | Staff, Admin | ✅ |
 | M-32 | Tạo / sửa sản phẩm | Staff, Admin | ✅ tạo (1 SKU) |
 | M-40 | Tồn kho + đặt lại số lượng | Staff, Admin | ✅ (mock list) |
 | M-50 | Thêm (menu) | Staff, Admin | ✅ |
 | M-51 | AI: chọn SKU → dự báo nhu cầu | Staff, Admin | ✅ |
-| M-60 | Hộp thư CSKH | Staff, Admin | ⚪ |
-| M-61 | Chi tiết hội thoại | Staff, Admin | ⚪ |
+| M-60 | Hộp thư CSKH | Staff, Admin | ✅ (mock) |
+| M-61 | Chi tiết hội thoại | Staff, Admin | ✅ (mock) |
 | T-10 | Kết nối sàn | Admin | ✅ |
-| T-20 | Quản lý nhân viên | Admin | ⚪ |
-| T-30 | Phát voucher | Admin | ⚪ |
-| T-40 | Gói dịch vụ SaaS | Admin | ⚪ |
-| T-50 | Yêu cầu hỗ trợ | Admin | ⚪ |
+| T-20 | Quản lý nhân viên | Admin | 🟡 |
+| T-30 | Phát voucher | Admin | 🟡 |
+| T-40 | Gói dịch vụ SaaS | Admin | 🟡 |
+| T-50 | Yêu cầu hỗ trợ | Admin | 🟡 |
 
 ---
 
@@ -96,7 +97,7 @@ Cần thiết kế: logo, ô nhập có icon hiện/ẩn mật khẩu, link "Qu�
 flowchart LR
     Shop["C-10 Sản phẩm"] --> Detail["C-11 Chi tiết"]
     Detail -->|Mua trên Shopee/TikTok| Ext(["Mở app/web sàn"])
-    Shop -.-> Chat["C-12 Chatbot ⚪"]
+    Shop -.-> Chat["C-12 Chatbot (mock)"]
     Ext -. "đơn hoàn tất + 15 ngày" .-> Claim["C-30 Claim đơn"]
     Claim -->|thành công| Points["C-20 Điểm & hạng"]
     Points --> Voucher["Voucher (copy mã) → dùng trên sàn"]
@@ -112,8 +113,8 @@ flowchart LR
 
 Trạng thái: đang tải (skeleton), rỗng ("Cửa hàng chưa có sản phẩm"), lỗi + thử lại, sản phẩm chưa mở bán trên sàn nào.
 
-### F-C2. Hỏi chatbot ⚪
-Nút nổi trên C-10 → **C-12** khung chat với AI tư vấn sản phẩm; AI có thể gợi ý sản phẩm (thẻ sản phẩm bấm được → C-11). Chưa có API.
+### F-C2. Hỏi chatbot (mock)
+Nút "Hỏi AI" trên thanh của C-10 → **C-12** khung chat với AI tư vấn sản phẩm; AI có thể gợi ý sản phẩm (thẻ sản phẩm bấm được → C-11). Chưa có API.
 
 ### F-C3. Claim đơn tích điểm
 | Bước | Người dùng | Hệ thống |
@@ -143,7 +144,7 @@ Quy tắc hiển thị: điểm = `floor(tiền hàng thực trả / 1.000₫)`,
 C-40: thông tin (email, SĐT), đổi mật khẩu ⚪, sửa thông tin ⚪, đăng xuất ✅.
 
 ### F-C6. Đăng ký tài khoản khách ⚪
-A-02 → "Chưa có tài khoản? Đăng ký" → A-05: họ tên, email, SĐT, mật khẩu, (chọn cửa hàng nếu 1 khách dùng nhiều tenant - **chưa chốt**) → xác minh (OTP email/SĐT - **chưa chốt**) → đăng nhập.
+A-02 → "Chưa có tài khoản? Đăng ký" → A-05: họ tên, email, SĐT, mật khẩu, mã cửa hàng (nhập hoặc quét QR; **đã chốt: 1 khách dùng nhiều cửa hàng**, thêm cửa hàng khác sau ở C-00) → xác minh OTP qua email (6 số, gửi lại sau 45 giây) → vào C-10 của cửa hàng vừa tham gia.
 
 ---
 
@@ -175,7 +176,7 @@ stateDiagram-v2
 | 1 | M-20 | Danh sách đơn: logo sàn, mã đơn, khách, thời gian, tổng tiền, trạng thái. Lọc theo trạng thái (chip). Kéo làm mới. (Sau: lọc theo sàn, tìm mã đơn, tải thêm khi cuộn) | ✅ `GET /api/orders` |
 | 2 | M-21 | Chi tiết: sàn, trạng thái, tổng tiền, khách, SĐT (che bớt), địa chỉ, danh sách sản phẩm | ✅ (items 🟡) |
 | 3 | M-21 | Nút **Chuyển sang "Chờ giao"** - chỉ hiện khi đơn PENDING | ✅ `PATCH /api/orders/{id}/status` |
-| 4 | M-22 | **In vận đơn** PDF → xem / chia sẻ / in | ⚪ |
+| 4 | M-22 | **In vận đơn** PDF → xem / chia sẻ / in (từ Chờ giao trở đi) | 🟡 |
 | 5 | M-21 | **Ghi nhận hoàn/trả**: hộp thoại nhập lý do | ✅ `POST /api/returns` |
 
 Quy tắc: Staff **không** tự đánh dấu Hoàn tất / Trả hàng / Hủy (đồng bộ từ sàn) - giao diện không có nút cho các trạng thái này.
@@ -240,24 +241,24 @@ Có **toàn bộ flow của Staff**, thêm:
 
 > Thực tế Shopee/TikTok dùng OAuth (mở trang sàn để cấp quyền). Khi BE làm OAuth, flow đổi thành: bấm Kết nối → mở trình duyệt → đăng nhập sàn → quay về app.
 
-### F-T3. Quản lý nhân viên (T-20) ⚪
+### F-T3. Quản lý nhân viên (T-20) 🟡
 Danh sách Staff (tên, email, trạng thái) → Mời/Tạo Staff (email, mật khẩu tạm) → Vô hiệu hóa / kích hoạt lại. (Chưa chốt Staff có quyền con.)
 
-### F-T4. Phát voucher cho khách (T-30) ⚪
+### F-T4. Phát voucher cho khách (T-30) 🟡
 1. Chọn đối tượng: theo **hạng** (Silver trở lên…) hoặc chọn từng khách.
 2. Chọn sàn/shop, cấu hình voucher (giá trị, đơn tối thiểu, hạn dùng - tùy API sàn).
 3. Xác nhận → SmartOmni gọi API sàn tạo voucher → **chỉ gửi email cho khách khi sàn xác nhận tạo thành công**.
 4. Theo dõi trạng thái: đang tạo / thành công / lỗi / chưa rõ (cần đối soát, không tạo lại).
 5. Nếu sàn không cho tạo voucher qua API → chức năng ẩn/khóa cho sàn đó.
 
-### F-T5. Gói dịch vụ SaaS (T-40) ⚪
+### F-T5. Gói dịch vụ SaaS (T-40) 🟡
 Gói hiện tại, giới hạn (số SKU, số kết nối, dung lượng) và mức đã dùng, nâng/hạ cấp, lịch sử hóa đơn, thanh toán.
 
-### F-T6. Yêu cầu hỗ trợ (T-50) ⚪
+### F-T6. Yêu cầu hỗ trợ (T-50) 🟡
 Tạo ticket (tiêu đề, mô tả) → danh sách ticket + trạng thái (Mở / Đang xử lý / Đã giải quyết).
 
-### F-T7. Đăng ký cửa hàng mới ⚪
-Có thể làm trên mobile: A-02 → "Mở cửa hàng" → tên cửa hàng, subdomain, email, mật khẩu → `POST /api/tenants/onboarding` ✅ → đăng nhập. (Cần chốt có làm trên mobile hay chỉ web.)
+### F-T7. Đăng ký cửa hàng mới
+Chỉ làm trên web portal, không làm trên mobile (chốt 22/10/2026). A-02 không có nút "Mở cửa hàng".
 
 ---
 

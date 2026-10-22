@@ -64,9 +64,12 @@ jobs:
   # ---------------------------------------------------------------------------
   # 2. Build APK Android để tải về cài thử
   # ---------------------------------------------------------------------------
+  # Chỉ build APK sau khi đã merge (push vào develop/main) hoặc bấm chạy tay.
+  # PR chỉ chạy job quality (~2 phút) để không phải chờ build APK (~6 phút).
   build-android:
     name: Build APK (dev + staging)
     needs: quality
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -77,6 +80,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
 
       - name: Cài Flutter
         uses: subosito/flutter-action@v2

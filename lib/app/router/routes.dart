@@ -12,6 +12,9 @@ class Routes {
   static const splash = '/splash';
   static const login = '/login';
   static const forgotPassword = '/forgot-password';
+  static const resetPassword = '/reset-password';
+  static const register = '/register';
+  static const registerVerify = '/register/verify';
 
   // Merchant - các tab (nằm trong bottom navigation)
   static const merchantDashboard = '/m/dashboard';
@@ -22,11 +25,18 @@ class Routes {
 
   // Merchant - màn hình con (mở toàn màn hình, che bottom navigation)
   static const merchantOrderDetail = '/m/order-detail';
+  static const merchantShippingLabel = '/m/order-detail/label';
   static const merchantProductCreate = '/m/product-new';
   static String merchantProductDetail(int id) => '/m/product/$id';
   static const merchantAi = '/m/ai';
   static String merchantAiForecast(int skuId) => '/m/ai/$skuId';
   static const merchantMarketplace = '/m/marketplace';
+  static const merchantStaff = '/m/staff';
+  static const merchantVouchers = '/m/vouchers';
+  static const merchantSubscription = '/m/subscription';
+  static const merchantSupport = '/m/support';
+  static const merchantInbox = '/m/inbox';
+  static String merchantConversation(int id) => '/m/inbox/$id';
 
   // Customer - các tab
   static const customerShop = '/c/shop';
@@ -36,9 +46,22 @@ class Routes {
 
   // Customer - màn hình con
   static String customerProduct(int id) => '/c/product/$id';
+  static const customerShops = '/c/shops';
+  static const customerChat = '/c/chat';
+  static const customerClaimResult = '/c/claim-result';
+
+  // Chỉ có ở bản dev (flavor dev)
+  static const devPrefix = '/dev/';
+  static const devGallery = '/dev/gallery';
 
   /// Route chỉ Tenant Admin được vào.
-  static const tenantAdminOnly = [merchantMarketplace];
+  static const tenantAdminOnly = [
+    merchantMarketplace,
+    merchantStaff,
+    merchantVouchers,
+    merchantSubscription,
+    merchantSupport,
+  ];
 
   /// Trang chủ theo role sau khi đăng nhập.
   static String homeFor(UserRole role) =>
@@ -49,8 +72,30 @@ class Routes {
 ///
 /// Trả về `null` nếu được phép ở lại [location]. Tách thành hàm thuần (pure
 /// function) để viết unit test dễ dàng (xem test/app/routes_test.dart).
-String? resolveRedirect(AuthState auth, String location) {
-  const publicRoutes = [Routes.login, Routes.forgotPassword];
+///
+/// [allowDevRoutes]: `true` ở bản dev, cho vào `/dev/...` (vd. gallery) mà
+/// không cần đăng nhập. Bản khác: coi `/dev/...` như route không tồn tại.
+String? resolveRedirect(
+  AuthState auth,
+  String location, {
+  bool allowDevRoutes = false,
+}) {
+  const publicRoutes = [
+    Routes.login,
+    Routes.forgotPassword,
+    Routes.resetPassword,
+    Routes.register,
+    Routes.registerVerify,
+  ];
+
+  if (location.startsWith(Routes.devPrefix)) {
+    if (allowDevRoutes) return null;
+    return switch (auth) {
+      Authenticated(:final session) => Routes.homeFor(session.role),
+      AuthUnknown() => Routes.splash,
+      Unauthenticated() => Routes.login,
+    };
+  }
 
   switch (auth) {
     case AuthUnknown():

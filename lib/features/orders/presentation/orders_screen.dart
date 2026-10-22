@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../app/router/routes.dart';
-import '../../../core/utils/formatters.dart';
+import '../../../core/utils/clock.dart';
+import '../../../core/design/design.dart';
 import '../../../core/widgets/state_views.dart';
 import '../domain/order.dart';
+import '../domain/order_rules.dart';
+import 'order_ui.dart';
 import 'orders_providers.dart';
 
-/// Danh sách đơn hàng đa kênh (Shopee + TikTok Shop).
+/// M-20 Danh sách đơn đa kênh (Shopee + TikTok Shop).
+///
+/// Lọc theo trạng thái (chip có số đếm), tìm theo mã đơn / tên khách,
+/// nhóm theo ngày. Số đếm và tìm kiếm chạy trên trang đầu đã tải về.
 class OrdersScreen extends ConsumerStatefulWidget {
   const OrdersScreen({super.key});
 
@@ -18,91 +25,223 @@ class OrdersScreen extends ConsumerStatefulWidget {
 
 class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   OrderStatus? _filter;
+  bool _searching = false;
+  final _searchCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      _searching = !_searching;
+      if (!_searching) _searchCtrl.clear();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final pageAsync = ref.watch(ordersPageProvider);
+    final orders = pageAsync.value?.items ?? const <Order>[];
+    final counts = countByStatus(orders);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Đơn hàng')),
-      body: Column(
-        children: [
-          SizedBox(
-            height: 56,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              children: [
-                _chip(null, 'Tất cả'),
-                for (final s in OrderStatus.values) _chip(s, s.label),
-              ],
-            ),
-          ),
-          Expanded(
-            child: AsyncValueView(
-              value: pageAsync,
-              onRetry: () => ref.invalidate(ordersPageProvider),
-              data: (page) {
-                final orders = _filter == null
-                    ? page.items
-                    : page.items.where((o) => o.status == _filter).toList();
-                if (orders.isEmpty) {
-                  return const EmptyView(
-                    message: 'Chưa có đơn hàng',
-                    icon: Icons.receipt_long,
-                  );
-                }
-                return RefreshIndicator(
-                  onRefresh: () => ref.refresh(ordersPageProvider.future),
-                  child: ListView.separated(
-                    itemCount: orders.length,
-                    separatorBuilder: (_, _) => const Divider(height: 1),
-                    itemBuilder: (_, i) => _OrderTile(order: orders[i]),
-                  ),
-                );
-              },
-            ),
+    return SoScaffold(
+      onRefresh: pageAsync.hasValue
+          ? () async {
+              ref.invalidate(ordersPageProvider);
+              await ref.read(ordersPageProvider.future);
+            }
+          : null,
+      scrollable: !pageAsync.isLoading || pageAsync.hasValue,
+      appBar: SoAppBar.root(
+        title: 'Đơn hàng',
+        actions: [
+          IconButton(
+            key: const Key('orders_search'),
+            tooltip: _searching ? 'Đóng tìm kiếm' : 'Tìm đơn',
+            icon: Icon(_searching ? LucideIcons.x : LucideIcons.search),
+            onPressed: _toggleSearch,
           ),
         ],
+        bottom: _FilterBar(
+          searching: _searching,
+          searchCtrl: _searchCtrl,
+          onSearchChanged: (_) => setState(() {}),
+          chips: [
+            SoFilterChip(
+              key: const Key('filter_all'),
+              label: 'Tất cả',
+              count: orders.length,
+              selected: _filter == null,
+              onSelected: () => setState(() => _filter = null),
+            ),
+            for (final s in OrderStatus.values)
+              SoFilterChip(
+                key: Key('filter_${s.name}'),
+                label: s.label,
+                count: counts[s],
+                selected: _filter == s,
+                onSelected: () => setState(() => _filter = s),
+              ),
+          ],
+        ),
       ),
+      slivers: [
+        switch (pageAsync) {
+          AsyncData(:final value) => _OrderList(
+            orders: value.items
+                .where((o) => _filter == null || o.status == _filter)
+                .where((o) => orderMatches(o, _searchCtrl.text))
+                .toList(),
+            hasAnyOrder: value.items.isNotEmpty,
+            now: ref.watch(clockProvider)(),
+          ),
+          AsyncError(:final error) => SliverToBoxAdapter(
+            child: SoEmptyState.error(
+              title: 'Không tải được đơn hàng',
+              message: AsyncValueView.errorMessage(error),
+              onAction: () => ref.invalidate(ordersPageProvider),
+            ),
+          ),
+          _ => const SliverPadding(
+            padding: SoSpace.page,
+            sliver: SliverToBoxAdapter(
+              child: SoListGroup(children: [SoSkeletonList(count: 6)]),
+            ),
+          ),
+        },
+      ],
     );
   }
-
-  Widget _chip(OrderStatus? status, String label) => Padding(
-    padding: const EdgeInsets.only(right: 8),
-    child: ChoiceChip(
-      label: Text(label),
-      selected: _filter == status,
-      onSelected: (_) => setState(() => _filter = status),
-    ),
-  );
 }
 
-class _OrderTile extends StatelessWidget {
-  const _OrderTile({required this.order});
+/// Dải lọc dính dưới AppBar (nằm chung tấm kính): ô tìm (khi bật) + hàng
+/// chip cuộn ngang.
+class _FilterBar extends StatelessWidget implements PreferredSizeWidget {
+  const _FilterBar({
+    required this.searching,
+    required this.searchCtrl,
+    required this.onSearchChanged,
+    required this.chips,
+  });
 
-  final Order order;
+  final bool searching;
+  final TextEditingController searchCtrl;
+  final ValueChanged<String> onSearchChanged;
+  final List<Widget> chips;
+
+  static const double _searchHeight = SoSpace.s8 + SoSize.input;
+
+  @override
+  Size get preferredSize =>
+      Size.fromHeight(SoChipBar.height + (searching ? _searchHeight : 0));
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: CircleAvatar(child: Text(order.platform.label.substring(0, 1))),
-      title: Text('#${order.platformOrderId}'),
-      subtitle: Text(
-        '${order.customerName ?? 'Khách'} · ${Formatters.dateTime(order.createdAt)}',
-      ),
-      trailing: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
+    return Column(
+      children: [
+        if (searching)
+          Container(
+            height: _searchHeight,
+            padding: const EdgeInsets.fromLTRB(
+              SoSpace.screen,
+              SoSpace.s8,
+              SoSpace.screen,
+              0,
+            ),
+            child: TextField(
+              key: const Key('orders_search_field'),
+              controller: searchCtrl,
+              autofocus: true,
+              onChanged: onSearchChanged,
+              textInputAction: TextInputAction.search,
+              style: context.textTheme.bodyMedium,
+              decoration: const InputDecoration(
+                hintText: 'Mã đơn hoặc tên khách',
+                prefixIcon: Icon(LucideIcons.search, size: SoSize.iconSmall),
+                constraints: BoxConstraints(minHeight: SoSize.control),
+              ),
+            ),
+          ),
+        SoChipBar(chips: chips),
+      ],
+    );
+  }
+}
+
+class _OrderList extends StatelessWidget {
+  const _OrderList({
+    required this.orders,
+    required this.hasAnyOrder,
+    required this.now,
+  });
+
+  final List<Order> orders;
+  final bool hasAnyOrder;
+
+  /// Mốc tính nhãn "Hôm nay"/"Hôm qua" (cùng đồng hồ với dữ liệu mẫu).
+  final DateTime now;
+
+  @override
+  Widget build(BuildContext context) {
+    if (orders.isEmpty) {
+      return SliverList.list(
         children: [
-          Text(Formatters.vnd(order.totalAmount)),
-          Text(
-            order.status.label,
-            style: Theme.of(context).textTheme.bodySmall,
+          hasAnyOrder
+              ? const SoEmptyState(
+                  icon: LucideIcons.searchX,
+                  title: 'Không có đơn phù hợp',
+                  message: 'Thử chọn trạng thái khác hoặc đổi từ khóa tìm.',
+                )
+              : const SoEmptyState(
+                  icon: LucideIcons.receiptText,
+                  title: 'Chưa có đơn nào',
+                  message: 'Đơn mới từ Shopee và TikTok Shop sẽ hiện ở đây.',
+                ),
+        ],
+      );
+    }
+
+    final groups = groupOrdersByDay(orders);
+    return SliverList.list(
+      key: const Key('orders_list'),
+      children: [
+        for (final (g, (day, items)) in groups.indexed) ...[
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              SoSpace.screen,
+              g == 0 ? SoSpace.s8 : SoSpace.group,
+              SoSpace.screen,
+              SoSpace.sectionTitle,
+            ),
+            child: Text(
+              '${dayGroupLabel(day, now: now)} · ${items.length}',
+              style: context.soText.title3,
+            ),
+          ),
+          // Mỗi nhóm ngày là một thẻ trắng bo lg; đường chia thụt vào 16.
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: SoSpace.screen),
+            clipBehavior: Clip.antiAlias,
+            decoration: SoShape.card(context.soColors),
+            child: Column(
+              children: [
+                for (final (i, order) in items.indexed) ...[
+                  if (i > 0) const Divider(indent: SoSpace.s16),
+                  OrderRow(
+                    key: Key('order_${order.id}'),
+                    order: order,
+                    onTap: () =>
+                        context.push(Routes.merchantOrderDetail, extra: order),
+                  ),
+                ],
+              ],
+            ),
           ),
         ],
-      ),
-      onTap: () => context.push(Routes.merchantOrderDetail, extra: order),
+      ],
     );
   }
 }

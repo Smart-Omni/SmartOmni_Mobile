@@ -7,20 +7,35 @@ import '../../features/ai_insights/presentation/ai_screens.dart';
 import '../../features/auth/presentation/auth_controller.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/presentation/register_otp_screen.dart';
+import '../../features/auth/presentation/register_screen.dart';
+import '../../features/auth/presentation/reset_password_screen.dart';
 import '../../features/auth/presentation/splash_screen.dart';
+import '../../features/chatbot/presentation/chatbot_screen.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
+import '../../features/dev_gallery/presentation/design_gallery_screen.dart';
+import '../../features/inbox/presentation/conversation_screen.dart';
+import '../../features/inbox/presentation/inbox_screen.dart';
 import '../../features/inventory/presentation/inventory_screen.dart';
 import '../../features/loyalty/presentation/claim_order_screen.dart';
+import '../../features/loyalty/presentation/claim_result_screen.dart';
 import '../../features/loyalty/presentation/loyalty_screen.dart';
 import '../../features/marketplace/presentation/marketplace_screen.dart';
 import '../../features/merchant_more/presentation/merchant_more_screen.dart';
 import '../../features/orders/domain/order.dart';
 import '../../features/orders/presentation/order_detail_screen.dart';
 import '../../features/orders/presentation/orders_screen.dart';
+import '../../features/orders/presentation/shipping_label_screen.dart';
 import '../../features/products/presentation/product_create_screen.dart';
 import '../../features/products/presentation/product_detail_screen.dart';
 import '../../features/products/presentation/products_screen.dart';
+import '../../features/staff/presentation/staff_screen.dart';
 import '../../features/storefront/presentation/storefront_screens.dart';
+import '../../features/subscription/presentation/subscription_screen.dart';
+import '../../features/support/presentation/support_screen.dart';
+import '../../features/voucher/presentation/voucher_screen.dart';
+import '../../features/customer_shop/presentation/customer_shops_screen.dart';
+import '../config/app_config.dart';
 import 'routes.dart';
 import 'shells.dart';
 
@@ -34,19 +49,33 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
   ref.listen(authControllerProvider, (_, next) => authListenable.value = next);
   ref.onDispose(authListenable.dispose);
+  final isDev = ref.read(appConfigProvider).flavor == Flavor.dev;
 
   final router = GoRouter(
     navigatorKey: _rootKey,
     initialLocation: Routes.splash,
     refreshListenable: authListenable,
-    redirect: (context, state) =>
-        resolveRedirect(authListenable.value, state.matchedLocation),
+    redirect: (context, state) => resolveRedirect(
+      authListenable.value,
+      state.matchedLocation,
+      allowDevRoutes: isDev,
+    ),
     routes: [
       GoRoute(path: Routes.splash, builder: (_, _) => const SplashScreen()),
       GoRoute(path: Routes.login, builder: (_, _) => const LoginScreen()),
       GoRoute(
         path: Routes.forgotPassword,
         builder: (_, _) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: Routes.resetPassword,
+        builder: (_, _) => const ResetPasswordScreen(),
+      ),
+      GoRoute(path: Routes.register, builder: (_, _) => const RegisterScreen()),
+      GoRoute(
+        path: Routes.registerVerify,
+        builder: (_, state) =>
+            RegisterOtpScreen(args: state.extra as RegisterOtpArgs?),
       ),
 
       // ------------------------------------------------ Merchant (Staff + Admin)
@@ -68,6 +97,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             state.extra is Order ? null : Routes.merchantOrders,
       ),
       GoRoute(
+        path: Routes.merchantShippingLabel,
+        builder: (_, state) =>
+            ShippingLabelScreen(order: state.extra! as Order),
+        redirect: (_, state) =>
+            state.extra is Order ? null : Routes.merchantOrders,
+      ),
+      GoRoute(
         path: Routes.merchantProductCreate,
         builder: (_, _) => const ProductCreateScreen(),
       ),
@@ -78,9 +114,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: Routes.merchantAi,
-        builder: (context, _) => AiInsightsScreen(
-          onOpenSku: (skuId) => context.push(Routes.merchantAiForecast(skuId)),
-        ),
+        builder: (_, _) => const SkuForecastScreen(),
       ),
       GoRoute(
         path: '/m/ai/:skuId',
@@ -90,6 +124,31 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.merchantMarketplace,
         builder: (_, _) => const MarketplaceScreen(),
+      ),
+      GoRoute(
+        path: Routes.merchantStaff,
+        builder: (_, _) => const StaffScreen(),
+      ),
+      GoRoute(
+        path: Routes.merchantVouchers,
+        builder: (_, _) => const VoucherScreen(),
+      ),
+      GoRoute(
+        path: Routes.merchantSubscription,
+        builder: (_, _) => const SubscriptionScreen(),
+      ),
+      GoRoute(
+        path: Routes.merchantSupport,
+        builder: (_, _) => const SupportScreen(),
+      ),
+      GoRoute(
+        path: Routes.merchantInbox,
+        builder: (_, _) => const InboxScreen(),
+      ),
+      GoRoute(
+        path: '/m/inbox/:id',
+        builder: (_, state) =>
+            ConversationScreen(conversationId: _intParam(state, 'id')),
       ),
 
       // --------------------------------------------------------------- Customer
@@ -103,10 +162,30 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
       GoRoute(
+        path: Routes.customerClaimResult,
+        builder: (_, state) =>
+            ClaimResultScreen(outcome: state.extra as ClaimOutcome?),
+      ),
+      GoRoute(
+        path: Routes.customerShops,
+        builder: (_, _) => const CustomerShopsScreen(),
+      ),
+      GoRoute(
+        path: Routes.customerChat,
+        builder: (_, _) => const ChatbotScreen(),
+      ),
+      GoRoute(
         path: '/c/product/:id',
         builder: (_, state) =>
             StorefrontProductScreen(productId: _intParam(state, 'id')),
       ),
+
+      // ------------------------------------------------------- Chỉ bản dev
+      if (isDev)
+        GoRoute(
+          path: Routes.devGallery,
+          builder: (_, _) => const DesignGalleryScreen(),
+        ),
     ],
   );
   ref.onDispose(router.dispose);

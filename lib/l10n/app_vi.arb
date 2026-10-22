@@ -2,20 +2,22 @@
   "@@locale": "vi",
   "appTitle": "SmartOmni",
   "loginTitle": "Đăng nhập",
-  "loginSubtitle": "Dùng chung cho khách hàng, nhân viên và chủ cửa hàng",
+  "loginSubtitle": "Một tài khoản cho khách hàng, nhân viên và chủ cửa hàng.",
   "email": "Email",
   "password": "Mật khẩu",
   "loginButton": "Đăng nhập",
   "forgotPassword": "Quên mật khẩu?",
+  "loginNoAccount": "Khách mua hàng chưa có tài khoản?",
+  "loginRegister": "Đăng ký",
   "forgotPasswordTitle": "Quên mật khẩu",
-  "forgotPasswordHint": "Nhập email đã đăng ký. Nếu email tồn tại, hệ thống sẽ gửi hướng dẫn đặt lại mật khẩu.",
-  "sendResetLink": "Gửi yêu cầu",
-  "resetLinkSent": "Nếu email tồn tại, hướng dẫn đặt lại mật khẩu đã được gửi.",
+  "forgotPasswordHint": "Nhập email bạn dùng để đăng nhập. Mã đặt lại mật khẩu sẽ được gửi tới email này.",
+  "sendResetLink": "Gửi mã đặt lại",
+  "resetLinkSent": "Nếu email đã đăng ký, mã đặt lại sẽ được gửi tới đó. Mã dùng được trong 30 phút.",
   "resetPasswordTitle": "Đặt lại mật khẩu",
-  "resetToken": "Mã xác nhận",
+  "resetToken": "Mã đặt lại",
   "newPassword": "Mật khẩu mới",
-  "resetPasswordButton": "Đặt lại mật khẩu",
-  "resetPasswordDone": "Đã đặt lại mật khẩu. Vui lòng đăng nhập.",
+  "resetPasswordButton": "Lưu mật khẩu mới",
+  "resetPasswordDone": "Đã đặt lại mật khẩu. Đăng nhập bằng mật khẩu mới.",
   "logout": "Đăng xuất",
   "logoutConfirm": "Bạn có chắc muốn đăng xuất?",
   "cancel": "Hủy",
@@ -29,8 +31,55 @@
   "navLoyalty": "Điểm & hạng",
   "navClaim": "Claim đơn",
   "navAccount": "Tài khoản",
-  "demoAccountsHint": "Chế độ demo (mock): admin@demo.vn, staff@demo.vn, customer@demo.vn - mật khẩu {password}",
+  "demoAccountsHint": "Bản mock. Chạm một email để điền sẵn, mật khẩu chung {password}.",
   "@demoAccountsHint": {
-    "placeholders": { "password": { "type": "String" } }
+    "placeholders": {
+      "password": {
+        "type": "String"
+      }
+    }
+  },
+  "stockOnHand": "Tồn kho",
+  "stockReserved": "Đang giữ",
+  "stockSellable": "Có thể bán",
+  "mockDataLabel": "Dữ liệu mẫu",
+  "mockDataNote": "Chức năng này chưa có API, đang hiện dữ liệu mẫu.",
+  "devGalleryOpen": "Xem design system (bản dev)",
+  "devGalleryTitle": "Design system",
+  "showPassword": "Hiện mật khẩu",
+  "hidePassword": "Ẩn mật khẩu",
+  "loginWrongCredentials": "Email hoặc mật khẩu không đúng.",
+  "loginLockedTitle": "Tài khoản tạm khóa 15 phút",
+  "loginLockedMessage": "Bạn đã nhập sai mật khẩu nhiều lần. Thử lại sau 15 phút hoặc đặt lại mật khẩu.",
+  "loginResetPasswordLink": "Đặt lại mật khẩu",
+  "loginDisabledTitle": "Tài khoản đã bị vô hiệu hóa",
+  "loginDisabledMessage": "Liên hệ chủ cửa hàng để được mở lại.",
+  "loginTenantLockedTitle": "Cửa hàng đang bị khóa",
+  "loginTenantLockedMessage": "Tài khoản của cửa hàng này tạm thời không đăng nhập được. Chủ cửa hàng liên hệ SmartOmni để mở lại.",
+  "loginSuperAdminTitle": "Tài khoản này dùng trên web",
+  "loginSuperAdminMessage": "Super Admin đăng nhập tại Super Admin Console trên máy tính.",
+  "loginUseAnotherAccount": "Dùng tài khoản khác",
+  "loginFailedTitle": "Không đăng nhập được",
+  "demoAccountsTitle": "Tài khoản demo",
+  "resetSentTitle": "Kiểm tra hộp thư",
+  "resetHaveCode": "Tôi đã có mã",
+  "resetPasswordHint": "Nhập mã trong email và đặt mật khẩu mới.",
+  "newPasswordHelper": "Ít nhất 8 ký tự.",
+  "confirmPassword": "Nhập lại mật khẩu mới",
+  "resetCodeExpiredTitle": "Mã đặt lại đã hết hạn",
+  "resetCodeExpiredMessage": "Mã chỉ dùng được trong 30 phút. Gửi lại mã để nhận mã mới.",
+  "resetResendCode": "Gửi lại mã",
+  "resetCodeInvalid": "Mã không đúng hoặc đã được dùng.",
+  "resetFailedTitle": "Chưa đặt lại được mật khẩu",
+  "resetMockHint": "Bản mock: mã đúng {code}, mã hết hạn {expired}.",
+  "@resetMockHint": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      },
+      "expired": {
+        "type": "String"
+      }
+    }
   }
 }

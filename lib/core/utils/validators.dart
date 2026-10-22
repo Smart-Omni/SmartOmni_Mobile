@@ -1,3 +1,5 @@
+import 'input_formatters.dart';
+
 /// Hàm kiểm tra dữ liệu form. Trả về `null` nếu hợp lệ, ngược lại trả thông báo lỗi.
 ///
 /// Quy tắc khớp với validation của backend (LoginRequest, ResetPasswordRequest).
@@ -28,11 +30,32 @@ class Validators {
     return null;
   }
 
-  static String? positiveInt(String? value, {String field = 'Số lượng'}) {
+  static final _phoneRegex = RegExp(r'^0\d{9}$');
+
+  /// Số điện thoại Việt Nam: 10 số, bắt đầu bằng 0.
+  static String? phone(String? value) {
+    final empty = required(value, field: 'Số điện thoại');
+    if (empty != null) return empty;
+    if (!_phoneRegex.hasMatch(value!.trim())) {
+      return 'Số điện thoại gồm 10 số, bắt đầu bằng 0';
+    }
+    return null;
+  }
+
+  /// Ô "Nhập lại mật khẩu" phải giống [password].
+  static String? confirmPassword(String? value, String password) {
+    final empty = required(value, field: 'Mật khẩu');
+    if (empty != null) return empty;
+    if (value != password) return 'Hai mật khẩu chưa giống nhau';
+    return null;
+  }
+
+  /// Giá VND đã định dạng bằng `VndInputFormatter` ("159.000"), phải > 0.
+  static String? positiveVnd(String? value, {String field = 'Giá'}) {
     final empty = required(value, field: field);
     if (empty != null) return empty;
-    final n = int.tryParse(value!.trim());
-    if (n == null || n <= 0) return '$field phải là số nguyên dương';
+    final n = VndInputFormatter.parse(value!);
+    if (n == null || n <= 0) return '$field phải lớn hơn 0';
     return null;
   }
 

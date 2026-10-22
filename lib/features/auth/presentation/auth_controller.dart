@@ -10,15 +10,31 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/storage/token_storage.dart';
 import '../data/auth_mock_repository.dart';
 import '../data/auth_remote_repository.dart';
+import '../data/mock_account_store.dart';
+import '../data/registration_mock_repository.dart';
+import '../domain/auth_failure.dart';
 import '../domain/auth_repository.dart';
+import '../domain/registration.dart';
+
+/// Tài khoản khách đăng ký mới ở chế độ mock, dùng chung cho đăng nhập,
+/// đăng ký, cửa hàng và điểm mock.
+final mockAccountStoreProvider = Provider<MockAccountStore>(
+  (ref) => MockAccountStore(),
+);
 
 /// Chọn repository thật hoặc mock theo cấu hình `USE_MOCK`.
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final config = ref.watch(appConfigProvider);
   return config.useMock
-      ? AuthMockRepository()
+      ? AuthMockRepository(store: ref.watch(mockAccountStoreProvider))
       : AuthRemoteRepository(ref.watch(dioProvider));
 });
+
+/// Backend chưa có API đăng ký khách -> luôn dùng mock, kể cả khi
+/// USE_MOCK=false.
+final registrationRepositoryProvider = Provider<RegistrationRepository>(
+  (ref) => RegistrationMockRepository(ref.watch(mockAccountStoreProvider)),
+);
 
 /// Trạng thái đăng nhập của app.
 sealed class AuthState {
@@ -75,19 +91,28 @@ class AuthController extends Notifier<AuthState> {
     state = Authenticated(session);
   }
 
-  /// Đăng nhập. Ném [ApiException] nếu thất bại để màn hình hiển thị lỗi.
+  /// Đăng nhập. Ném [LoginFailure] (đã phân loại) để màn hình hiển thị lỗi.
   Future<void> login({required String email, required String password}) async {
-    final session = await _repo.login(email: email.trim(), password: password);
+    final Session session;
+    try {
+      session = await _repo.login(email: email.trim(), password: password);
+    } on ApiException catch (e) {
+      throw LoginFailure.fromApi(e);
+    }
 
     if (!session.role.isSupportedOnMobile) {
-      throw const ApiException(
-        type: ApiErrorType.forbidden,
-        message:
-            'Tài khoản này không dùng được trên app mobile. '
-            'Vui lòng đăng nhập Super Admin Console trên web.',
+      throw const LoginFailure(
+        LoginFailureKind.superAdmin,
+        'Tài khoản này không dùng được trên app mobile. '
+        'Vui lòng đăng nhập Super Admin Console trên web.',
       );
     }
 
+    await signIn(session);
+  }
+
+  /// Vào app bằng phiên đã có (vd. sau khi xác minh OTP đăng ký).
+  Future<void> signIn(Session session) async {
     await _storage.writeToken(session.accessToken);
     state = Authenticated(session);
   }

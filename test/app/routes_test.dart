@@ -21,6 +21,20 @@ void main() {
       expect(resolveRedirect(s, Routes.customerShop), Routes.login);
       expect(resolveRedirect(s, Routes.login), isNull);
       expect(resolveRedirect(s, Routes.forgotPassword), isNull);
+      expect(resolveRedirect(s, Routes.resetPassword), isNull);
+      expect(resolveRedirect(s, Routes.register), isNull);
+      expect(resolveRedirect(s, Routes.registerVerify), isNull);
+    });
+
+    test('đã đăng nhập thì không vào lại trang đăng ký', () {
+      expect(
+        resolveRedirect(_as(UserRole.customer), Routes.register),
+        Routes.customerShop,
+      );
+      expect(
+        resolveRedirect(_as(UserRole.customer), Routes.registerVerify),
+        Routes.customerShop,
+      );
     });
 
     test('đăng nhập xong vào trang chủ theo role', () {
@@ -57,6 +71,79 @@ void main() {
       expect(
         resolveRedirect(_as(UserRole.tenantAdmin), Routes.merchantMarketplace),
         isNull,
+      );
+    });
+
+    test('T-50 Yêu cầu hỗ trợ: chỉ Tenant Admin', () {
+      expect(
+        resolveRedirect(_as(UserRole.staff), Routes.merchantSupport),
+        Routes.merchantMore,
+      );
+      expect(
+        resolveRedirect(_as(UserRole.customer), Routes.merchantSupport),
+        Routes.customerShop,
+      );
+      expect(
+        resolveRedirect(_as(UserRole.tenantAdmin), Routes.merchantSupport),
+        isNull,
+      );
+    });
+
+    test('T-40 Gói dịch vụ: chỉ Tenant Admin', () {
+      expect(
+        resolveRedirect(_as(UserRole.staff), Routes.merchantSubscription),
+        Routes.merchantMore,
+      );
+      expect(
+        resolveRedirect(_as(UserRole.customer), Routes.merchantSubscription),
+        Routes.customerShop,
+      );
+      expect(
+        resolveRedirect(_as(UserRole.tenantAdmin), Routes.merchantSubscription),
+        isNull,
+      );
+    });
+
+    test('T-30 Phát voucher: chỉ Tenant Admin', () {
+      expect(
+        resolveRedirect(_as(UserRole.staff), Routes.merchantVouchers),
+        Routes.merchantMore,
+      );
+      expect(
+        resolveRedirect(_as(UserRole.customer), Routes.merchantVouchers),
+        Routes.customerShop,
+      );
+      expect(
+        resolveRedirect(_as(UserRole.tenantAdmin), Routes.merchantVouchers),
+        isNull,
+      );
+    });
+
+    test('T-20 Quản lý nhân viên: chỉ Tenant Admin', () {
+      expect(
+        resolveRedirect(_as(UserRole.staff), Routes.merchantStaff),
+        Routes.merchantMore,
+      );
+      expect(
+        resolveRedirect(_as(UserRole.customer), Routes.merchantStaff),
+        Routes.customerShop,
+      );
+      expect(
+        resolveRedirect(_as(UserRole.tenantAdmin), Routes.merchantStaff),
+        isNull,
+      );
+    });
+
+    test('route /dev/ chỉ vào được ở bản dev', () {
+      const s = Unauthenticated();
+      expect(
+        resolveRedirect(s, Routes.devGallery, allowDevRoutes: true),
+        isNull,
+      );
+      expect(resolveRedirect(s, Routes.devGallery), Routes.login);
+      expect(
+        resolveRedirect(_as(UserRole.staff), Routes.devGallery),
+        Routes.merchantDashboard,
       );
     });
   });
