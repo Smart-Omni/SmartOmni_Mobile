@@ -51,7 +51,7 @@ flowchart TD
 | T-10 | Kết nối sàn | Admin | ✅ |
 | T-20 | Quản lý nhân viên | Admin | 🟡 |
 | T-30 | Phát voucher | Admin | 🟡 |
-| T-40 | Gói dịch vụ SaaS | Admin | ⚪ |
+| T-40 | Gói dịch vụ SaaS | Admin | 🟡 |
 | T-50 | Yêu cầu hỗ trợ | Admin | ⚪ |
 
 ---
@@ -251,7 +251,7 @@ Danh sách Staff (tên, email, trạng thái) → Mời/Tạo Staff (email, mậ
 4. Theo dõi trạng thái: đang tạo / thành công / lỗi / chưa rõ (cần đối soát, không tạo lại).
 5. Nếu sàn không cho tạo voucher qua API → chức năng ẩn/khóa cho sàn đó.
 
-### F-T5. Gói dịch vụ SaaS (T-40) ⚪
+### F-T5. Gói dịch vụ SaaS (T-40) 🟡
 Gói hiện tại, giới hạn (số SKU, số kết nối, dung lượng) và mức đã dùng, nâng/hạ cấp, lịch sử hóa đơn, thanh toán.
 
 ### F-T6. Yêu cầu hỗ trợ (T-50) ⚪
