@@ -60,10 +60,11 @@ class MerchantMoreScreen extends ConsumerWidget {
                       title: 'Quản lý nhân viên',
                       onTap: () => context.push(Routes.merchantStaff),
                     ),
-                    const SoListRow(
+                    SoListRow(
+                      key: const Key('menu_voucher'),
                       icon: LucideIcons.ticket,
                       title: 'Phát voucher cho khách',
-                      comingSoon: true,
+                      onTap: () => context.push(Routes.merchantVouchers),
                     ),
                     const SoListRow(
                       icon: LucideIcons.badgeCheck,

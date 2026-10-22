@@ -50,7 +50,7 @@ JWT payload: `{ sub: "<userId>", role, tenantId?, iat, exp }` (HS256, hạn 24h)
 | Danh sách kết nối sàn | - | - | 🟡 | Đề xuất `GET /api/marketplace-connections` |
 | Kết nối sàn | `POST /api/marketplace-connections` | `{ platform, appKey, appSecret, autoImportProducts }` | ✅ | |
 | Quản lý Staff | - | - | 🟡 | App dùng mock (`StaffRepository`): danh sách, thêm (email + mật khẩu tạm), khóa / mở khóa |
-| Phát voucher | - | - | ⚪ | Phụ thuộc API tạo voucher của sàn |
+| Phát voucher | - | - | 🟡 | Phụ thuộc API tạo voucher của sàn; app dùng mock (`VoucherRepository`) |
 | Gói SaaS | - | - | ⚪ | `subscription_plans`, `tenant_invoices` đã có trong ERD |
 | Hỗ trợ | - | - | ⚪ | Bảng `support_tickets` đã có, Nginx đã route `/api/support-tickets/` |
 
