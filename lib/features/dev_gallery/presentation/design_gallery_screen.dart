@@ -92,6 +92,23 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
               ),
               _Section(title: 'Ô chỉ số', child: _stats()),
               _Section(title: 'Tồn kho', child: _stock()),
+              _Section(
+                title: 'Thanh tiến độ',
+                child: Builder(
+                  builder: (context) => Column(
+                    children: [
+                      const SoProgressBar(value: 0.5),
+                      const SizedBox(height: SoSpace.s12),
+                      SoProgressBar(
+                        value: 0.86,
+                        color: context.soColors.warning,
+                      ),
+                      const SizedBox(height: SoSpace.s12),
+                      SoProgressBar(value: 1, color: context.soColors.danger),
+                    ],
+                  ),
+                ),
+              ),
               _Section(title: 'Hàng đơn', padded: false, child: _orders()),
               _Section(title: 'Danh sách', child: _listRows()),
               _Section(title: 'Banner', child: _banners()),
