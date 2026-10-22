@@ -257,8 +257,8 @@ Gói hiện tại, giới hạn (số SKU, số kết nối, dung lượng) và 
 ### F-T6. Yêu cầu hỗ trợ (T-50) 🟡
 Tạo ticket (tiêu đề, mô tả) → danh sách ticket + trạng thái (Mở / Đang xử lý / Đã giải quyết).
 
-### F-T7. Đăng ký cửa hàng mới ⚪
-Có thể làm trên mobile: A-02 → "Mở cửa hàng" → tên cửa hàng, subdomain, email, mật khẩu → `POST /api/tenants/onboarding` ✅ → đăng nhập. (Cần chốt có làm trên mobile hay chỉ web.)
+### F-T7. Đăng ký cửa hàng mới
+Chỉ làm trên web portal, không làm trên mobile (chốt 22/10/2026). A-02 không có nút "Mở cửa hàng".
 
 ---
 
