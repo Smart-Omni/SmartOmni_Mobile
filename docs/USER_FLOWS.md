@@ -49,7 +49,7 @@ flowchart TD
 | M-60 | Hộp thư CSKH | Staff, Admin | ✅ (mock) |
 | M-61 | Chi tiết hội thoại | Staff, Admin | ✅ (mock) |
 | T-10 | Kết nối sàn | Admin | ✅ |
-| T-20 | Quản lý nhân viên | Admin | ⚪ |
+| T-20 | Quản lý nhân viên | Admin | 🟡 |
 | T-30 | Phát voucher | Admin | ⚪ |
 | T-40 | Gói dịch vụ SaaS | Admin | ⚪ |
 | T-50 | Yêu cầu hỗ trợ | Admin | ⚪ |
@@ -241,7 +241,7 @@ Có **toàn bộ flow của Staff**, thêm:
 
 > Thực tế Shopee/TikTok dùng OAuth (mở trang sàn để cấp quyền). Khi BE làm OAuth, flow đổi thành: bấm Kết nối → mở trình duyệt → đăng nhập sàn → quay về app.
 
-### F-T3. Quản lý nhân viên (T-20) ⚪
+### F-T3. Quản lý nhân viên (T-20) 🟡
 Danh sách Staff (tên, email, trạng thái) → Mời/Tạo Staff (email, mật khẩu tạm) → Vô hiệu hóa / kích hoạt lại. (Chưa chốt Staff có quyền con.)
 
 ### F-T4. Phát voucher cho khách (T-30) ⚪
