@@ -25,6 +25,7 @@ class Routes {
 
   // Merchant - màn hình con (mở toàn màn hình, che bottom navigation)
   static const merchantOrderDetail = '/m/order-detail';
+  static const merchantShippingLabel = '/m/order-detail/label';
   static const merchantProductCreate = '/m/product-new';
   static String merchantProductDetail(int id) => '/m/product/$id';
   static const merchantAi = '/m/ai';

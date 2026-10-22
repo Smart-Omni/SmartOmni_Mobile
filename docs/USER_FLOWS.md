@@ -39,7 +39,7 @@ flowchart TD
 | M-10 | Tổng quan (Staff: việc hôm nay / Admin: tổng quan cửa hàng) | Staff, Admin | ✅ (mock) |
 | M-20 | Danh sách đơn | Staff, Admin | ✅ |
 | M-21 | Chi tiết đơn | Staff, Admin | ✅ |
-| M-22 | In vận đơn | Staff, Admin | ⚪ |
+| M-22 | In vận đơn | Staff, Admin | 🟡 |
 | M-30 | Danh sách sản phẩm | Staff, Admin | ✅ (mock list) |
 | M-31 | Chi tiết sản phẩm + SKU | Staff, Admin | ✅ |
 | M-32 | Tạo / sửa sản phẩm | Staff, Admin | ✅ tạo (1 SKU) |
@@ -176,7 +176,7 @@ stateDiagram-v2
 | 1 | M-20 | Danh sách đơn: logo sàn, mã đơn, khách, thời gian, tổng tiền, trạng thái. Lọc theo trạng thái (chip). Kéo làm mới. (Sau: lọc theo sàn, tìm mã đơn, tải thêm khi cuộn) | ✅ `GET /api/orders` |
 | 2 | M-21 | Chi tiết: sàn, trạng thái, tổng tiền, khách, SĐT (che bớt), địa chỉ, danh sách sản phẩm | ✅ (items 🟡) |
 | 3 | M-21 | Nút **Chuyển sang "Chờ giao"** - chỉ hiện khi đơn PENDING | ✅ `PATCH /api/orders/{id}/status` |
-| 4 | M-22 | **In vận đơn** PDF → xem / chia sẻ / in | ⚪ |
+| 4 | M-22 | **In vận đơn** PDF → xem / chia sẻ / in (từ Chờ giao trở đi) | 🟡 |
 | 5 | M-21 | **Ghi nhận hoàn/trả**: hộp thoại nhập lý do | ✅ `POST /api/returns` |
 
 Quy tắc: Staff **không** tự đánh dấu Hoàn tất / Trả hàng / Hủy (đồng bộ từ sàn) - giao diện không có nút cho các trạng thái này.

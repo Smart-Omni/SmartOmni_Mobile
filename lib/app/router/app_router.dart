@@ -25,6 +25,7 @@ import '../../features/merchant_more/presentation/merchant_more_screen.dart';
 import '../../features/orders/domain/order.dart';
 import '../../features/orders/presentation/order_detail_screen.dart';
 import '../../features/orders/presentation/orders_screen.dart';
+import '../../features/orders/presentation/shipping_label_screen.dart';
 import '../../features/products/presentation/product_create_screen.dart';
 import '../../features/products/presentation/product_detail_screen.dart';
 import '../../features/products/presentation/products_screen.dart';
@@ -88,6 +89,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Routes.merchantOrderDetail,
         builder: (_, state) => OrderDetailScreen(order: state.extra! as Order),
         // Mở lại app ở route này mà mất `extra` -> quay về danh sách.
+        redirect: (_, state) =>
+            state.extra is Order ? null : Routes.merchantOrders,
+      ),
+      GoRoute(
+        path: Routes.merchantShippingLabel,
+        builder: (_, state) =>
+            ShippingLabelScreen(order: state.extra! as Order),
         redirect: (_, state) =>
             state.extra is Order ? null : Routes.merchantOrders,
       ),

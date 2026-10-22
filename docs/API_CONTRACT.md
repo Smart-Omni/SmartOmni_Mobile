@@ -32,7 +32,7 @@ JWT payload: `{ sub: "<userId>", role, tenantId?, iat, exp }` (HS256, hạn 24h)
 | Chi tiết đơn | - (lấy từ danh sách) | - | ✅ | Đề xuất BE thêm `GET /api/orders/{id}` kèm `items` |
 | Chuyển trạng thái đơn | `PATCH /api/orders/{id}/status` | `?status=TO_SHIP` | ✅ | App chỉ cho `PENDING → TO_SHIP` |
 | Ghi nhận hoàn/trả | `POST /api/returns` | `{ orderId, reason }` | ✅ | |
-| In vận đơn | - | - | ⚪ | Đề xuất `GET /api/orders/{id}/shipping-label` (PDF) |
+| In vận đơn | - | - | 🟡 | Đề xuất `GET /api/orders/{id}/shipping-label` (PDF); app dùng tem mẫu |
 | Danh sách sản phẩm | - | - | 🟡 | Đề xuất `GET /api/products?page&size&keyword` |
 | Chi tiết sản phẩm | `GET /api/products/{id}` + `GET /api/products/{id}/skus` | - | ✅ | |
 | Tạo sản phẩm | `POST /api/products` | `{ name, description?, skus: [{ skuCode, variantName?, basePrice }] }` | ✅ | |
