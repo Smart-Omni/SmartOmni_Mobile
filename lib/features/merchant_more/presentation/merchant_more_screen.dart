@@ -51,25 +51,26 @@ class MerchantMoreScreen extends ConsumerWidget {
               ),
               if (isAdmin) ...[
                 const GroupTitle('Quản trị cửa hàng'),
-                const SoListGroup(
+                SoListGroup(
                   children: [
-                    _MarketplaceRow(),
+                    const _MarketplaceRow(),
                     SoListRow(
+                      key: const Key('menu_staff'),
                       icon: LucideIcons.users,
                       title: 'Quản lý nhân viên',
-                      comingSoon: true,
+                      onTap: () => context.push(Routes.merchantStaff),
                     ),
-                    SoListRow(
+                    const SoListRow(
                       icon: LucideIcons.ticket,
                       title: 'Phát voucher cho khách',
                       comingSoon: true,
                     ),
-                    SoListRow(
+                    const SoListRow(
                       icon: LucideIcons.badgeCheck,
                       title: 'Gói dịch vụ',
                       comingSoon: true,
                     ),
-                    SoListRow(
+                    const SoListRow(
                       icon: LucideIcons.lifeBuoy,
                       title: 'Yêu cầu hỗ trợ',
                       comingSoon: true,

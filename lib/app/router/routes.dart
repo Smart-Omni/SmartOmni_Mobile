@@ -31,6 +31,7 @@ class Routes {
   static const merchantAi = '/m/ai';
   static String merchantAiForecast(int skuId) => '/m/ai/$skuId';
   static const merchantMarketplace = '/m/marketplace';
+  static const merchantStaff = '/m/staff';
   static const merchantInbox = '/m/inbox';
   static String merchantConversation(int id) => '/m/inbox/$id';
 
@@ -51,7 +52,7 @@ class Routes {
   static const devGallery = '/dev/gallery';
 
   /// Route chỉ Tenant Admin được vào.
-  static const tenantAdminOnly = [merchantMarketplace];
+  static const tenantAdminOnly = [merchantMarketplace, merchantStaff];
 
   /// Trang chủ theo role sau khi đăng nhập.
   static String homeFor(UserRole role) =>

@@ -74,6 +74,21 @@ void main() {
       );
     });
 
+    test('T-20 Quản lý nhân viên: chỉ Tenant Admin', () {
+      expect(
+        resolveRedirect(_as(UserRole.staff), Routes.merchantStaff),
+        Routes.merchantMore,
+      );
+      expect(
+        resolveRedirect(_as(UserRole.customer), Routes.merchantStaff),
+        Routes.customerShop,
+      );
+      expect(
+        resolveRedirect(_as(UserRole.tenantAdmin), Routes.merchantStaff),
+        isNull,
+      );
+    });
+
     test('route /dev/ chỉ vào được ở bản dev', () {
       const s = Unauthenticated();
       expect(
