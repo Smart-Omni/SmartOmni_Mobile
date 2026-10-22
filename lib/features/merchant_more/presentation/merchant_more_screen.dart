@@ -72,10 +72,11 @@ class MerchantMoreScreen extends ConsumerWidget {
                       title: 'Gói dịch vụ',
                       onTap: () => context.push(Routes.merchantSubscription),
                     ),
-                    const SoListRow(
+                    SoListRow(
+                      key: const Key('menu_support'),
                       icon: LucideIcons.lifeBuoy,
                       title: 'Yêu cầu hỗ trợ',
-                      comingSoon: true,
+                      onTap: () => context.push(Routes.merchantSupport),
                     ),
                   ],
                 ),

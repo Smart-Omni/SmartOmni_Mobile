@@ -34,6 +34,7 @@ class Routes {
   static const merchantStaff = '/m/staff';
   static const merchantVouchers = '/m/vouchers';
   static const merchantSubscription = '/m/subscription';
+  static const merchantSupport = '/m/support';
   static const merchantInbox = '/m/inbox';
   static String merchantConversation(int id) => '/m/inbox/$id';
 
@@ -59,6 +60,7 @@ class Routes {
     merchantStaff,
     merchantVouchers,
     merchantSubscription,
+    merchantSupport,
   ];
 
   /// Trang chủ theo role sau khi đăng nhập.
