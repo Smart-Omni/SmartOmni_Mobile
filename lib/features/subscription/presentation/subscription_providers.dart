@@ -12,7 +12,4 @@ final subscriptionRepositoryProvider = Provider<SubscriptionRepository>(
 final subscriptionOverviewProvider =
     FutureProvider.autoDispose<SubscriptionOverview>(
       (ref) => ref.watch(subscriptionRepositoryProvider).overview(),
-      // Không tự thử lại (mặc định Riverpod thử 10 lần, ~38 giây skeleton):
-      // hiện lỗi ngay, người dùng bấm "Thử lại".
-      retry: (_, _) => null,
     );
