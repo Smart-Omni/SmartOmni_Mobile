@@ -151,7 +151,8 @@ class _Body extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SoListGroup(children: [for (final m in owners) _StaffRow(member: m)]),
+        if (owners.isNotEmpty)
+          SoListGroup(children: [for (final m in owners) _StaffRow(member: m)]),
         GroupTitle('Nhân viên · ${staff.length}'),
         if (staff.isEmpty)
           Text(
@@ -302,6 +303,9 @@ class _AddStaffSheetState extends ConsumerState<_AddStaffSheet> {
               label: 'Email',
               controller: _email,
               errorText: _emailError,
+              onChanged: (_) {
+                if (_emailError != null) setState(() => _emailError = null);
+              },
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.next,
               autofillHints: const [AutofillHints.email],
