@@ -11,7 +11,4 @@ final supportRepositoryProvider = Provider<SupportRepository>(
 
 final supportTicketsProvider = FutureProvider.autoDispose<List<SupportTicket>>(
   (ref) => ref.watch(supportRepositoryProvider).list(),
-  // Không tự thử lại (mặc định Riverpod thử 10 lần, ~38 giây skeleton):
-  // hiện lỗi ngay, người dùng bấm "Thử lại".
-  retry: (_, _) => null,
 );
