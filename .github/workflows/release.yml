@@ -4,8 +4,12 @@
 #
 # - Job "github-release" (BẬT sẵn, miễn phí): build APK prod và đính kèm vào
 #   GitHub Release để ai cũng tải được.
+#   + Tag v0.x (bản demo): build với USE_MOCK=true (dữ liệu mẫu, có tài khoản
+#     demo), Release đánh dấu pre-release kèm ghi chú "Bản demo…".
+#   + Tag từ v1.x: bản prod gọi API thật, Release thường.
 # - Job "google-play" (CD MỨC 3, ĐANG TẮT): đẩy AAB lên Google Play kênh Internal.
 #   Cần tài khoản Google Play Console (phí 25 USD một lần). Xem docs/CICD.md.
+#   Không chạy cho tag v0.x (bản demo không lên Play).
 # =============================================================================
 name: Release
 
@@ -23,6 +27,8 @@ jobs:
     timeout-minutes: 30
     env:
       HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+      # Tag v0.x = bản demo chạy dữ liệu mẫu.
+      DEMO: ${{ startsWith(github.ref, 'refs/tags/v0.') }}
     steps:
       - uses: actions/checkout@v4
 
@@ -53,7 +59,10 @@ jobs:
       - run: flutter pub get
 
       - name: Build APK prod
-        run: flutter build apk --release --flavor prod -t lib/main_prod.dart --build-number=${{ github.run_number }}
+        run: >-
+          flutter build apk --release --flavor prod -t lib/main_prod.dart
+          --build-number=${{ github.run_number }}
+          ${{ env.DEMO == 'true' && '--dart-define=USE_MOCK=true' || '' }}
 
       - name: Tạo GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
@@ -61,9 +70,13 @@ jobs:
         with:
           files: build/app/outputs/flutter-apk/app-prod-release.apk
           generate_release_notes: true
+          prerelease: ${{ env.DEMO == 'true' }}
+          body: ${{ env.DEMO == 'true' && 'Bản demo, chạy dữ liệu mẫu, đăng nhập bằng tài khoản demo.' || '' }}
 
   google-play:
-    if: vars.ENABLE_PLAY_RELEASE == 'true' && startsWith(github.ref, 'refs/tags/')
+    if: >-
+      vars.ENABLE_PLAY_RELEASE == 'true' && startsWith(github.ref, 'refs/tags/')
+      && !startsWith(github.ref, 'refs/tags/v0.')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
