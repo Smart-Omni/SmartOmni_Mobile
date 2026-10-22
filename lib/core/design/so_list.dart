@@ -34,6 +34,8 @@ class SoListGroup extends StatelessWidget {
 ///
 /// - Có [onTap] và không có [trailing]: hiện mũi tên ">".
 /// - [comingSoon]: mờ đi, không bấm được, nhãn "Sắp có".
+/// - [enabled] `false`: mờ đi, không bấm được, không nhãn (lý do ghi ở
+///   [subtitle]).
 /// - [destructive]: chữ và icon màu danger (vd. Đăng xuất).
 class SoListRow extends StatelessWidget {
   const SoListRow({
@@ -44,6 +46,7 @@ class SoListRow extends StatelessWidget {
     this.trailing,
     this.onTap,
     this.comingSoon = false,
+    this.enabled = true,
     this.destructive = false,
   });
 
@@ -53,21 +56,23 @@ class SoListRow extends StatelessWidget {
   final Widget? trailing;
   final VoidCallback? onTap;
   final bool comingSoon;
+  final bool enabled;
   final bool destructive;
 
   @override
   Widget build(BuildContext context) {
     final c = context.soColors;
+    final disabled = comingSoon || !enabled;
     final fg = destructive
         ? c.danger
-        : comingSoon
+        : disabled
         ? c.muted
         : c.ink;
     final end =
         trailing ??
         (comingSoon
             ? const SoStatusTag(label: 'Sắp có', status: SoStatus.neutral)
-            : onTap != null
+            : onTap != null && enabled
             ? Icon(
                 LucideIcons.chevronRight,
                 size: SoSize.iconSmall,
@@ -78,7 +83,7 @@ class SoListRow extends StatelessWidget {
     return Material(
       color: c.surface,
       child: InkWell(
-        onTap: comingSoon ? null : onTap,
+        onTap: disabled ? null : onTap,
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: SoSize.touch + 8),
           child: Padding(

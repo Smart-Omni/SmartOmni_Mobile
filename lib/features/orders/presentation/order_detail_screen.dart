@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../app/router/routes.dart';
 import '../../../core/design/design.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/state_views.dart';
@@ -107,8 +109,10 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: SoSpace.s16),
-              const _ShippingLabelRow(),
+              if (labelAvailability(o.status) != LabelAvailability.none) ...[
+                const SizedBox(height: SoSpace.s16),
+                _ShippingLabelRow(order: o),
+              ],
             ],
           ),
         ),
@@ -311,27 +315,27 @@ class _CustomerCard extends StatelessWidget {
   }
 }
 
-/// In vận đơn PDF: backend chưa có API (M-22) -> hiện "Sắp có", không bấm được.
+/// Lối vào M-22. Tem chỉ có sau khi "Chuẩn bị hàng"; đơn đã xong / hủy / trả
+/// thì không hiện hàng này.
 class _ShippingLabelRow extends StatelessWidget {
-  const _ShippingLabelRow();
+  const _ShippingLabelRow({required this.order});
+
+  final Order order;
 
   @override
   Widget build(BuildContext context) {
-    final c = context.soColors;
-    return _Card(
-      child: Row(
-        children: [
-          Icon(LucideIcons.printer, color: c.muted),
-          const SizedBox(width: SoSpace.s12),
-          Expanded(
-            child: Text(
-              'In vận đơn PDF',
-              style: context.textTheme.titleMedium?.copyWith(color: c.muted),
-            ),
-          ),
-          const SoStatusTag(label: 'Sắp có', status: SoStatus.neutral),
-        ],
-      ),
+    final ready = labelAvailability(order.status) == LabelAvailability.ready;
+    return SoListGroup(
+      children: [
+        SoListRow(
+          key: const Key('order_label'),
+          icon: LucideIcons.printer,
+          title: 'In vận đơn',
+          subtitle: ready ? null : 'Có sau khi Chuẩn bị hàng',
+          enabled: ready,
+          onTap: () => context.push(Routes.merchantShippingLabel, extra: order),
+        ),
+      ],
     );
   }
 }

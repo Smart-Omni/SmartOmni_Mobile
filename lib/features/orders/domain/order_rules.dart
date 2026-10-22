@@ -80,6 +80,28 @@ enum ReturnReason {
 bool canRecordReturn(OrderStatus status) =>
     status != OrderStatus.cancelled && status != OrderStatus.returned;
 
+/// Tem vận đơn ở M-21 / M-22.
+enum LabelAvailability {
+  /// Mở được M-22: sàn đã tạo tem.
+  ready,
+
+  /// Chưa có tem: sàn chỉ tạo sau khi nhân viên "Chuẩn bị hàng".
+  afterPrepare,
+
+  /// Đơn đã xong / hủy / trả: không cần in tem, ẩn lối vào.
+  none,
+}
+
+LabelAvailability labelAvailability(OrderStatus status) => switch (status) {
+  OrderStatus.toShip ||
+  OrderStatus.shipped ||
+  OrderStatus.delivering => LabelAvailability.ready,
+  OrderStatus.pending => LabelAvailability.afterPrepare,
+  OrderStatus.completed ||
+  OrderStatus.cancelled ||
+  OrderStatus.returned => LabelAvailability.none,
+};
+
 /// Lọc đơn theo từ khóa: mã đơn hoặc tên khách, không phân biệt dấu/hoa thường.
 bool orderMatches(Order order, String query) {
   final q = foldVietnamese(query.trim());
