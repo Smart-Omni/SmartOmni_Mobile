@@ -182,7 +182,9 @@ class _TierCard extends StatelessWidget {
                   children: [
                     for (final (i, value) in segments.indexed) ...[
                       if (i > 0) const SizedBox(width: SoSpace.s4),
-                      Expanded(child: _Segment(value: value)),
+                      Expanded(
+                        child: SoProgressBar(value: value, onGlass: true),
+                      ),
                     ],
                   ],
                 ),
@@ -225,32 +227,6 @@ class _TierCard extends StatelessWidget {
             style: ink2,
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Một nấc của thanh hạng: rãnh fillStrong, phần đã đạt màu brand.
-class _Segment extends StatelessWidget {
-  const _Segment({required this.value});
-
-  final double value;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.soColors;
-    final shape = SoShape.squircle(SoRadius.capsuleAll);
-    return Container(
-      height: 8,
-      clipBehavior: Clip.antiAlias,
-      decoration: ShapeDecoration(color: c.fillStrong, shape: shape),
-      alignment: Alignment.centerLeft,
-      child: FractionallySizedBox(
-        widthFactor: value,
-        heightFactor: 1,
-        child: DecoratedBox(
-          decoration: ShapeDecoration(color: c.brand, shape: shape),
-        ),
       ),
     );
   }
