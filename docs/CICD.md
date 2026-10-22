@@ -27,9 +27,9 @@ flowchart LR
 |---|---|---|---|
 | `ci.yml` | PR / push vào `develop`, `main`; bấm tay | Format, analyze, test + coverage; build APK dev & staging (chỉ khi push/bấm tay, không chạy cho PR) | ✅ **Bật** (mức 1) |
 | `build-ios.yml` | Bấm tay; push `main` có sửa `ios/` | Build iOS `--no-codesign` trên macOS để chắc chắn compile được | ✅ Bật (chạy tay) |
-| `release.yml` → job `github-release` | Push tag `v*.*.*` | Build APK prod, tạo **GitHub Release** đính kèm APK | ✅ Bật (miễn phí) |
+| `release.yml` → job `github-release` | Push tag `v*.*.*` | Build APK prod, tạo **GitHub Release** đính kèm APK (tag v0.x: bản demo dữ liệu mẫu, pre-release) | ✅ Bật (miễn phí) |
 | `distribute-firebase.yml` | Push `develop` | Gửi APK staging cho tester qua Firebase App Distribution | ⏸️ **Tắt** (mức 2) |
-| `release.yml` → job `google-play` | Push tag `v*.*.*` | Đẩy AAB lên Google Play kênh Internal | ⏸️ **Tắt** (mức 3) |
+| `release.yml` → job `google-play` | Push tag `v*.*.*` (trừ v0.x) | Đẩy AAB lên Google Play kênh Internal | ⏸️ **Tắt** (mức 3) |
 | `dependabot.yml` | Hàng tuần | Tự mở PR nâng cấp thư viện | ✅ Bật |
 
 ### Xem kết quả và tải APK
@@ -55,6 +55,10 @@ git tag v0.2.0
 git push origin v0.2.0
 ```
 → Workflow **Release** chạy → trang **Releases** của repo có file `app-prod-release.apk` để tải.
+
+**Quy ước tag:**
+- Tag v0.x = bản demo chạy dữ liệu mẫu (USE_MOCK=true, pre-release, không lên Google Play).
+- Tag từ v1.0.0 = bản prod gọi API thật, chỉ gắn khi đã nối backend thật.
 
 ## 4. Tạo keystore (chữ ký app) - cần cho mức 2 và 3
 

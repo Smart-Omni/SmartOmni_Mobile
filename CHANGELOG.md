@@ -6,6 +6,8 @@ Ghi theo [Keep a Changelog](https://keepachangelog.com/vi/1.1.0/), phiên bản 
 
 Bản đầu tiên: đủ giao diện 29 màn (bản 2 Glass, `docs/DESIGN.md`). Chức năng backend chưa có API chạy bằng dữ liệu mẫu và hiện dải "Dữ liệu mẫu"; danh sách API đang chờ ở `docs/API_CONTRACT.md` mục 4.
 
+Bản demo: chạy dữ liệu mẫu, đăng nhập bằng tài khoản demo (xem docs/CICD.md).
+
 ### Chung
 - A-01 Splash, A-02 Đăng nhập (4 trạng thái lỗi), A-03 Quên mật khẩu, A-04 Đặt lại mật khẩu: API thật.
 - Điều hướng theo role (Customer / Staff / Tenant Admin), chặn route ở `resolveRedirect()`.
