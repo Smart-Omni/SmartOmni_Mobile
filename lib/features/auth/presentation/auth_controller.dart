@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/config/api_availability.dart';
@@ -84,26 +83,44 @@ class AuthController extends Notifier<AuthState> {
   TokenStorage get _storage => ref.read(tokenStorageProvider);
   AuthRepository get _repo => ref.read(authRepositoryProvider);
 
+  /// Mở app: dựng lại phiên đã lưu. Luôn rời [AuthUnknown], kể cả khi đọc
+  /// token hay gia hạn gặp lỗi bất ngờ (lúc đó về đăng nhập, không xóa token).
   Future<void> _restore() async {
-    var session = await _readSession();
-    // Access token hết hạn nhưng còn refresh token: gia hạn thay vì đăng xuất.
-    if (session != null && session.isExpired()) {
-      try {
-        final fresh = await ref.read(tokenRefresherProvider).refresh();
-        session = fresh == null ? null : await _readSession();
-      } on DioException {
-        session = null;
-      }
+    AuthState next;
+    try {
+      next = await _restoredState();
+    } catch (_) {
+      next = const Unauthenticated();
     }
-    if (!ref.mounted) return;
-    if (session == null ||
-        session.isExpired() ||
-        !session.role.isSupportedOnMobile) {
-      await _storage.clear();
-      state = const Unauthenticated();
-      return;
+    if (ref.mounted) state = next;
+  }
+
+  Future<AuthState> _restoredState() async {
+    final session = await _readSession();
+    if (session == null || !session.role.isSupportedOnMobile) {
+      return _signedOut();
     }
-    state = Authenticated(session);
+    if (!session.isExpired()) return Authenticated(session);
+
+    // Access token hết hạn: gia hạn thay vì đăng xuất.
+    final String? fresh;
+    try {
+      fresh = await ref.read(tokenRefresherProvider).refresh();
+    } on TemporaryRefreshFailure {
+      // Mất mạng / BE lỗi tạm: giữ phiên cũ và token, interceptor gia hạn ở
+      // request sau.
+      return Authenticated(session);
+    }
+    if (fresh == null) return _signedOut(); // BE từ chối refresh token.
+    final renewed = await _readSession();
+    return renewed == null || !renewed.role.isSupportedOnMobile
+        ? _signedOut()
+        : Authenticated(renewed);
+  }
+
+  Future<AuthState> _signedOut() async {
+    await _storage.clear();
+    return const Unauthenticated();
   }
 
   Future<Session?> _readSession() async {

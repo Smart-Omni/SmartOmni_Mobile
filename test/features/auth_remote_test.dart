@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartomni_mobile/app/config/app_config.dart';
@@ -248,5 +249,42 @@ void main() {
       expect(await storage.readToken(), isNull);
       expect(await storage.readRefreshToken(), isNull);
     });
+
+    group('mở lại app: lỗi tạm thời → vẫn vào app, giữ token', () {
+      for (final (name, reply) in [
+        ('mất mạng', offline),
+        (
+          'BE trả 502',
+          (RequestOptions o) async => (502, apiError('Bad Gateway')),
+        ),
+        ('trang HTML 200', (RequestOptions o) async => captivePortal),
+      ]) {
+        test(name, () async {
+          final expired = _jwt('TENANT_ADMIN', const Duration(minutes: -5));
+          final storage = InMemoryTokenStorage(expired, 'r1');
+          final state = await settled(container(FakeBackend(reply), storage));
+
+          expect(state, isA<Authenticated>());
+          expect(await storage.readToken(), expired);
+          expect(await storage.readRefreshToken(), 'r1');
+        });
+      }
+    });
+
+    test(
+      'mở lại app: đọc token lỗi → về đăng nhập, không kẹt splash',
+      () async {
+        final state = await settled(
+          container(FakeBackend((o) async => (200, ok())), _BrokenStorage()),
+        );
+        expect(state, isA<Unauthenticated>());
+      },
+    );
   });
+}
+
+/// Secure storage hỏng (vd. Keystore lỗi sau khi khôi phục máy).
+class _BrokenStorage extends InMemoryTokenStorage {
+  @override
+  Future<String?> readToken() async => throw Exception('keystore');
 }

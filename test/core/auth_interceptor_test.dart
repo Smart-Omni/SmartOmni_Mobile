@@ -26,12 +26,14 @@ class _Harness {
     required String access,
     bool refreshOk = true,
     bool rejectAll = false,
+    Future<(int, Object?)> Function(RequestOptions o)? onRefresh,
   }) {
     storage = InMemoryTokenStorage(access, 'r1');
     backend = FakeBackend((o) async {
       if (o.path == ApiPaths.refresh) {
         // Chậm một chút để các request cùng lúc chồng lên nhau.
         await Future<void>.delayed(const Duration(milliseconds: 20));
+        if (onRefresh != null) return onRefresh(o);
         return refreshOk
             ? (200, ok({'access_token': _fresh, 'refresh_token': 'r2'}))
             : (401, apiError('Refresh token không hợp lệ hoặc đã hết hạn'));
@@ -130,6 +132,61 @@ void main() {
     expect(h.backend.calls(ApiPaths.refresh), 1);
     expect(h.backend.calls(_me), 2);
     expect(h.expiredEvents, 1);
+  });
+
+  group('lỗi tạm thời khi refresh: không đăng xuất, giữ token', () {
+    Future<void> expectKeptSession(_Harness h) async {
+      expect(h.expiredEvents, 0);
+      expect(await h.storage.readToken(), isNotNull);
+      expect(await h.storage.readRefreshToken(), 'r1');
+    }
+
+    test('refresh trả 502 (BE đang khởi động lại)', () async {
+      final h = _Harness(
+        access: _old,
+        onRefresh: (o) async => (502, apiError('Bad Gateway')),
+      );
+      await expectLater(h.dio.get<Object?>(_me), throwsA(isA<DioException>()));
+      await expectKeptSession(h);
+    });
+
+    test('refresh trả trang HTML 200 (wifi công cộng)', () async {
+      final h = _Harness(access: _old, onRefresh: (o) async => captivePortal);
+      await expectLater(h.dio.get<Object?>(_me), throwsA(isA<DioException>()));
+      await expectKeptSession(h);
+    });
+
+    test('refresh thiếu access_token', () async {
+      final h = _Harness(
+        access: _old,
+        onRefresh: (o) async => (200, ok({'refresh_token': 'r2'})),
+      );
+      await expectLater(h.dio.get<Object?>(_me), throwsA(isA<DioException>()));
+      await expectKeptSession(h);
+    });
+
+    test('mất mạng khi refresh trước lúc gửi: vẫn gửi bằng token cũ', () async {
+      final h = _Harness(access: _expired, onRefresh: offline);
+      await expectLater(h.dio.get<Object?>(_me), throwsA(isA<DioException>()));
+      final sent = h.backend.requests.where((r) => r.path == _me).single;
+      expect(sent.headers['Authorization'], 'Bearer $_expired');
+      await expectKeptSession(h);
+    });
+
+    test('400/403 từ refresh thì coi là bị từ chối', () async {
+      for (final status in [400, 403]) {
+        final h = _Harness(
+          access: _old,
+          onRefresh: (o) async =>
+              (status, apiError('Refresh token không hợp lệ')),
+        );
+        await expectLater(
+          h.dio.get<Object?>(_me),
+          throwsA(isA<DioException>()),
+        );
+        expect(h.expiredEvents, 1, reason: '$status');
+      }
+    });
   });
 
   test('đường công khai không gắn token', () async {

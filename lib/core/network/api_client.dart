@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/config/app_config.dart';
 import '../auth/jwt_decoder.dart';
 import '../storage/token_storage.dart';
+import 'api_exception.dart';
 import 'api_paths.dart';
 import 'api_response.dart';
 
@@ -70,9 +71,10 @@ class TokenRefresher {
   final TokenStorage storage;
   Future<String?>? _inFlight;
 
-  /// Trả access token mới, hoặc `null` nếu phiên không gia hạn được (không có
-  /// refresh token / BE từ chối). Lỗi mạng thì ném [DioException] (giữ phiên).
-  /// Nhiều lời gọi cùng lúc dùng chung một request.
+  /// Trả access token mới, hoặc `null` khi phiên hết thật (không có refresh
+  /// token / BE từ chối với 400, 401, 403). Lỗi tạm thời (mất mạng, 5xx, phản
+  /// hồi sai định dạng) thì ném [TemporaryRefreshFailure]: giữ phiên, thử lại
+  /// sau. Nhiều lời gọi cùng lúc dùng chung một request.
   Future<String?> refresh() =>
       _inFlight ??= _refresh().whenComplete(() => _inFlight = null);
 
@@ -94,10 +96,26 @@ class TokenRefresher {
       await storage.writeTokens(access: access, refresh: refresh);
       return access;
     } on DioException catch (e) {
-      if (e.type == DioExceptionType.badResponse) return null;
-      rethrow;
+      if (const {400, 401, 403}.contains(e.response?.statusCode)) return null;
+      throw TemporaryRefreshFailure(e);
+    } on ApiException catch (e) {
+      // Body không phải ApiResponse (vd. trang HTML của wifi công cộng).
+      throw TemporaryRefreshFailure(e);
+    } on TypeError catch (e) {
+      // Thiếu `access_token` / sai kiểu.
+      throw TemporaryRefreshFailure(e);
     }
   }
+}
+
+/// Gia hạn phiên chưa được vì lỗi tạm thời. Không đăng xuất, không xóa token.
+class TemporaryRefreshFailure implements Exception {
+  const TemporaryRefreshFailure(this.cause);
+
+  final Object cause;
+
+  @override
+  String toString() => 'TemporaryRefreshFailure($cause)';
 }
 
 /// Gắn `Authorization: Bearer <token>` vào mọi request và gia hạn phiên:
@@ -179,14 +197,14 @@ class AuthInterceptor extends Interceptor {
     }
   }
 
-  /// Token mới, hoặc `null` khi không gia hạn được (đã báo [onUnauthorized])
-  /// hoặc lỗi mạng (giữ phiên, để request tự báo lỗi).
+  /// Token mới, hoặc `null` khi BE từ chối (đã báo [onUnauthorized]) hoặc lỗi
+  /// tạm thời (giữ phiên, để request tự báo lỗi).
   Future<String?> _refreshOrNull() async {
     try {
       final token = await refresher.refresh();
       if (token == null) onUnauthorized();
       return token;
-    } on DioException {
+    } on TemporaryRefreshFailure {
       return null;
     }
   }
