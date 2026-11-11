@@ -1,3 +1,6 @@
+import '../../../core/network/api_response.dart';
+import '../../products/domain/product.dart';
+
 /// Mức tồn để hiển thị: Hết hàng (có thể bán ≤ 0), Sắp hết (≤ 5), Còn hàng.
 enum StockLevel { ok, low, out }
 
@@ -21,6 +24,9 @@ class InventoryItem {
   final String? variantName;
   final int quantityOnHand;
   final int reservedQuantity;
+
+  /// Mã để hiện: SKU không khớp sản phẩm nào (mã rỗng) thì `SKU #<id>`.
+  String get displayCode => skuCode.isEmpty ? 'SKU #$skuId' : skuCode;
 
   /// Có thể bán = tồn thực tế - đang giữ chỗ.
   int get available => quantityOnHand - reservedQuantity;
@@ -75,10 +81,64 @@ enum InventoryFilter {
 }
 
 abstract class InventoryRepository {
-  /// ⚠️ Backend CHƯA có API xem danh sách tồn kho -> mock.
-  Future<List<InventoryItem>> listInventory();
+  /// Tồn từng SKU. Remote: `GET /api/v1/inventory` ghép với [products]
+  /// (lấy mã SKU, tên sản phẩm). Mock: bỏ qua [products].
+  Future<List<InventoryItem>> listInventory(List<Product> products);
 
-  /// POST /api/inventory/{skuId}/adjust?quantity=
+  /// POST /api/v1/inventory/{skuId}/adjust?quantity=
   /// Lưu ý: backend đặt `quantity` thành số tồn MỚI (không phải cộng/trừ).
   Future<void> setStock({required int skuId, required int newQuantity});
+}
+
+/// Một dòng entity `Inventory` của BE (camelCase).
+class InventoryRow {
+  const InventoryRow({
+    required this.skuId,
+    required this.quantityOnHand,
+    required this.reservedQuantity,
+  });
+
+  factory InventoryRow.fromJson(JsonMap json) => InventoryRow(
+    skuId: Json.asInt(json['skuId']) ?? 0,
+    quantityOnHand: Json.asInt(json['quantityOnHand']) ?? 0,
+    reservedQuantity: Json.asInt(json['reservedQuantity']) ?? 0,
+  );
+
+  final int skuId;
+  final int quantityOnHand;
+  final int reservedQuantity;
+}
+
+/// Ghép dòng tồn của BE với SKU của [products] (theo thứ tự sản phẩm):
+/// - SKU chưa có dòng tồn (BE chỉ tạo dòng khi đặt tồn lần đầu) vẫn hiện với
+///   tồn 0 / giữ 0, để đặt tồn được ngay.
+/// - Dòng tồn không khớp SKU nào: tên `SKU #<id>`, không có mã SKU.
+List<InventoryItem> buildInventoryItems(
+  List<InventoryRow> rows,
+  List<Product> products,
+) {
+  final bySku = {for (final r in rows) r.skuId: r};
+  final known = <int>{};
+  return [
+    for (final p in products)
+      for (final sku in p.skus)
+        if (known.add(sku.id))
+          InventoryItem(
+            skuId: sku.id,
+            skuCode: sku.skuCode,
+            productName: p.name,
+            variantName: sku.variantName,
+            quantityOnHand: bySku[sku.id]?.quantityOnHand ?? 0,
+            reservedQuantity: bySku[sku.id]?.reservedQuantity ?? 0,
+          ),
+    for (final r in rows)
+      if (!known.contains(r.skuId))
+        InventoryItem(
+          skuId: r.skuId,
+          skuCode: '',
+          productName: 'SKU #${r.skuId}',
+          quantityOnHand: r.quantityOnHand,
+          reservedQuantity: r.reservedQuantity,
+        ),
+  ];
 }

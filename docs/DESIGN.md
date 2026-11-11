@@ -247,7 +247,7 @@ Mockup đầy đủ 41 màn: https://claude.ai/artifact/WE5CeBwvbjgsRvMcrewpCQ (
 | T-10 OAuth | Sheet: 3 bước, danh sách quyền sẽ được đọc (Đơn hàng, Sản phẩm, Tồn kho, Tin nhắn), công tắc tự nhập, nút "Mở TikTok Shop", link "Nhập App Key thủ công". Chỉ dùng khi backend có OAuth. |
 | T-10 xong | Thẻ kính: dấu tích, "Đã kết nối …", Shop ID, tiến độ nhập sản phẩm (x / y), nút Xong. |
 | T-10 App Key | Sheet: chọn sàn (segmented), App Key (mono), App Secret (ẩn/hiện), công tắc tự nhập, Hủy / Kết nối. |
-| T-20 | Danh sách: chủ cửa hàng (bạn) + Staff (tên, email, trạng thái Đang hoạt động / Đã khóa). Chạm để vô hiệu hóa / kích hoạt lại. Thanh dưới: **Thêm nhân viên** (email + mật khẩu tạm). |
+| T-20 | Danh sách: chủ cửa hàng (bạn) + Staff (tên, email, trạng thái Đang hoạt động / Đã khóa). Chạm để vô hiệu hóa / kích hoạt lại. Thanh dưới: **Thêm nhân viên** (họ tên + email + mật khẩu tạm; họ tên bắt buộc, tối đa 100 ký tự, đặt trên ô Email). |
 | T-30 | Thẻ form: Phát cho (chip hạng có số khách + "Chọn từng khách"), Sàn (segmented), Giá trị giảm, Đơn tối thiểu, Hạn dùng; ghi chú "chỉ gửi email khi sàn xác nhận tạo thành công". Nhóm "Đợt phát gần đây" với trạng thái Đang tạo / Thành công / Lỗi / Chưa rõ · đối soát. Thanh dưới: "Phát cho N khách …" (chống bấm lặp). |
 | T-40 | Thẻ kính gói hiện tại (tên gói, hạn) + mức đã dùng: Số SKU, Kết nối sàn, Dung lượng ảnh (thanh capsule). Nhóm "Hóa đơn" (mã mono, số tiền, Đã/Chưa thanh toán). Hai nút: Đổi gói / Thanh toán. Tên gói, giá, hạn mức chờ backend. |
 | T-50 | Segmented "Chưa xong / Đã giải quyết". Hàng ticket: mã mono, thời gian, tiêu đề, dòng cuối; nhãn Mở / Đang xử lý / Đã giải quyết. Thanh dưới: **Tạo yêu cầu** (tiêu đề, mô tả). |

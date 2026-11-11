@@ -5,33 +5,57 @@ import '../../../core/models/platform.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/api_paths.dart';
 import '../../../core/network/api_response.dart';
+import '../../../core/utils/map_with_limit.dart';
 import '../../../core/utils/mock_delay.dart';
 import '../domain/product.dart';
 import '../domain/products_repository.dart';
 
-/// Gọi API thật của Catalog Service. Endpoint nào backend chưa có thì
-/// chuyển cho [_fallback] (mock).
+/// Gọi API thật của Catalog Service. BE trả thẳng entity (camelCase):
+/// `Product { id, name, description, status }`, SKU lấy riêng ở `/{id}/skus`.
+/// BE không trả link sàn, nên [Product.marketplaceUrls] luôn rỗng.
 class ProductsRemoteRepository implements ProductsRepository {
-  ProductsRemoteRepository(this._dio, this._fallback);
+  ProductsRemoteRepository(this._dio);
 
   final Dio _dio;
-  final ProductsRepository _fallback;
 
   @override
-  Future<List<Product>> listProducts() => _fallback.listProducts();
+  Future<List<Product>> listProducts() async {
+    try {
+      // shortcut: chỉ tải trang đầu 100 sản phẩm, rồi mỗi sản phẩm một lần
+      // gọi SKU (N+1, tối đa 4 cùng lúc). BE chưa có API trả kèm SKU.
+      final res = await _dio.get<Object?>(
+        ApiPaths.products,
+        queryParameters: {'page': 0, 'size': 100, 'sort': 'createdAt,desc'},
+      );
+      final products = unwrapResponse<List<Product>>(
+        res.data,
+        (data) => PageResult.fromJson(data, Product.fromJson).items,
+      );
+      return await mapWithLimit(
+        products,
+        (p) async => p.copyWith(skus: await _skus(p.id)),
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<List<Sku>> _skus(int productId) async {
+    final res = await _dio.get<Object?>(ApiPaths.productSkus(productId));
+    return unwrapResponse<List<Sku>>(
+      res.data,
+      (data) => [
+        for (final s in (data as List<dynamic>? ?? const []))
+          Sku.fromJson(s as JsonMap),
+      ],
+    );
+  }
 
   @override
   Future<Product> getProduct(int id) async {
     try {
       final productRes = await _dio.get<Object?>(ApiPaths.product(id));
-      final skusRes = await _dio.get<Object?>(ApiPaths.productSkus(id));
-      final skus = unwrapResponse(
-        skusRes.data,
-        (data) => [
-          for (final s in (data as List<dynamic>? ?? const []))
-            Sku.fromJson(s as JsonMap),
-        ],
-      );
+      final skus = await _skus(id);
       return unwrapResponse<Product>(
         productRes.data,
         (data) => Product.fromJson(data! as JsonMap, skus: skus),

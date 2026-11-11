@@ -7,6 +7,7 @@ import '../../../app/config/app_config.dart';
 import '../../../core/design/design.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/utils/clock.dart';
 import '../../../core/utils/formatters.dart';
 import '../../account/presentation/account_widgets.dart';
 import '../../inventory/domain/inventory_item.dart';
@@ -16,21 +17,27 @@ import '../data/ai_repositories.dart';
 import '../domain/demand_forecast.dart';
 
 final aiRepositoryProvider = Provider<AiRepository>((ref) {
-  return ref.watch(appConfigProvider).usesRemote(ApiFeature.aiForecast)
+  return ref.watch(forecastUseRemoteProvider)
       ? AiRemoteRepository(ref.watch(dioProvider))
-      : AiMockRepository();
+      : AiMockRepository(clock: ref.watch(clockProvider));
 });
 
+/// `false`: dự báo là dữ liệu mẫu.
+final forecastUseRemoteProvider = Provider<bool>(
+  (ref) => ref.watch(appConfigProvider).usesRemote(ApiFeature.aiForecast),
+);
+
+/// Dự báo 7 ngày tới (từ hôm nay) của một SKU.
 final skuForecastProvider = FutureProvider.autoDispose
-    .family<List<DemandForecast>, int>(
-      (ref, skuId) => ref.watch(aiRepositoryProvider).forecastForSku(skuId),
-    );
+    .family<List<DemandForecast>, int>((ref, skuId) async {
+      final days = await ref.watch(aiRepositoryProvider).forecastForSku(skuId);
+      return upcomingForecast(days, ref.watch(clockProvider)());
+    });
 
 /// M-51 Dự báo nhu cầu 7 ngày tới của một SKU (DESIGN.md mục 8b).
 ///
 /// Vào từ M-31 thì đã có [skuId]; vào từ M-50 thì chưa, màn tự mở sheet
-/// "Chọn SKU". Danh sách SKU và số "có thể bán" lấy từ tồn kho (dữ liệu mẫu,
-/// backend chưa có API danh sách tồn).
+/// "Chọn SKU". Danh sách SKU và số "có thể bán" lấy từ tồn kho (M-40).
 class SkuForecastScreen extends ConsumerStatefulWidget {
   const SkuForecastScreen({super.key, this.skuId});
 
@@ -64,9 +71,10 @@ class _SkuForecastScreenState extends ConsumerState<SkuForecastScreen> {
   @override
   Widget build(BuildContext context) {
     final skuId = _skuId;
-    final forecastRemote = ref
-        .watch(appConfigProvider)
-        .usesRemote(ApiFeature.aiForecast);
+    // Còn dữ liệu mẫu trên màn khi dự báo hoặc tồn kho chưa nối BE.
+    final mock =
+        !ref.watch(forecastUseRemoteProvider) ||
+        !ref.watch(inventoryUseRemoteProvider);
     final stock = ref.watch(inventoryListProvider);
     final item = stock.value?.where((i) => i.skuId == skuId).firstOrNull;
 
@@ -85,13 +93,13 @@ class _SkuForecastScreenState extends ConsumerState<SkuForecastScreen> {
           padding: SoSpace.page,
           sliver: SliverList.list(
             children: [
-              SoMockBanner(
-                message: forecastRemote
-                    ? 'Danh sách SKU và số tồn là dữ liệu mẫu, backend chưa '
-                          'có API.'
-                    : 'Dự báo, danh sách SKU và số tồn đang là dữ liệu mẫu.',
-              ),
-              const SizedBox(height: SoSpace.s16),
+              if (mock) ...[
+                const SoMockBanner(
+                  message:
+                      'Dự báo, danh sách SKU và số tồn đang là dữ liệu mẫu.',
+                ),
+                const SizedBox(height: SoSpace.s16),
+              ],
               _SkuCard(
                 skuId: skuId,
                 item: item,
@@ -161,7 +169,7 @@ class _SkuCard extends StatelessWidget {
             runSpacing: SoSpace.s4,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              SoCodeTag(item.skuCode),
+              SoCodeTag(item.displayCode),
               StockLevelTag(level: item.level),
             ],
           ),
@@ -443,7 +451,7 @@ class _SkuPickerSheet extends ConsumerWidget {
         ),
         AsyncError() => SoEmptyState.error(
           title: 'Không tải được danh sách SKU',
-          onAction: () => ref.invalidate(inventoryListProvider),
+          onAction: () => reloadInventory(ref),
         ),
         _ => const SoListGroup(children: [SoSkeletonList(count: 3)]),
       },
@@ -488,7 +496,7 @@ class _PickerRow extends StatelessWidget {
                         runSpacing: SoSpace.s4,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          SoCodeTag(item.skuCode),
+                          SoCodeTag(item.displayCode),
                           StockLevelTag(level: item.level),
                         ],
                       ),

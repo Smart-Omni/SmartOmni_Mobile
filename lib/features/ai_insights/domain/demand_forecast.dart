@@ -12,16 +12,38 @@ class DemandForecast {
   final int predictedQuantity;
   final int? recommendedReorderQty;
 
-  factory DemandForecast.fromJson(JsonMap json) => DemandForecast(
-    forecastDate: Json.asDate(json['forecastDate']) ?? DateTime.now(),
-    predictedQuantity: Json.asInt(json['predictedQuantity']) ?? 0,
-    recommendedReorderQty: Json.asInt(json['recommendedReorderQty']),
-  );
+  /// Entity `DemandForecast` của BE (camelCase, `forecastDate` dạng
+  /// "2026-11-12"). Không đọc được ngày thì trả `null` (bỏ dòng đó).
+  static DemandForecast? tryFromJson(JsonMap json) {
+    final date = Json.asDate(json['forecastDate']);
+    if (date == null) return null;
+    return DemandForecast(
+      forecastDate: date,
+      predictedQuantity: Json.asInt(json['predictedQuantity']) ?? 0,
+      recommendedReorderQty: Json.asInt(json['recommendedReorderQty']),
+    );
+  }
 }
 
 abstract class AiRepository {
-  /// GET /api/ai/forecast/{skuId}
+  /// GET /api/v1/ai/forecast/{skuId}. BE trả mọi dòng của SKU, không sắp xếp
+  /// (có thể gồm ngày đã qua): lọc bằng [upcomingForecast].
   Future<List<DemandForecast>> forecastForSku(int skuId);
+}
+
+/// Số ngày M-51 hiển thị.
+const forecastDays = 7;
+
+/// Dự báo từ [today] trở đi, sắp xếp theo ngày, tối đa [forecastDays] ngày.
+List<DemandForecast> upcomingForecast(
+  Iterable<DemandForecast> days,
+  DateTime today,
+) {
+  final start = DateTime(today.year, today.month, today.day);
+  return ([...days.where((d) => !d.forecastDate.isBefore(start))]
+        ..sort((a, b) => a.forecastDate.compareTo(b.forecastDate)))
+      .take(forecastDays)
+      .toList();
 }
 
 /// Tổng hợp cho thẻ số liệu M-51.

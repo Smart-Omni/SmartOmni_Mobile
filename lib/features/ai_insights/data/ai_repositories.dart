@@ -20,7 +20,7 @@ class AiRemoteRepository implements AiRepository {
         res.data,
         (data) => [
           for (final e in (data as List<dynamic>? ?? const []))
-            DemandForecast.fromJson(e as JsonMap),
+            ?DemandForecast.tryFromJson(e as JsonMap),
         ],
       );
     } on DioException catch (e) {
@@ -30,6 +30,11 @@ class AiRemoteRepository implements AiRepository {
 }
 
 class AiMockRepository implements AiRepository {
+  AiMockRepository({DateTime Function()? clock})
+    : _clock = clock ?? DateTime.now;
+
+  final DateTime Function() _clock;
+
   @override
   Future<List<DemandForecast>> forecastForSku(int skuId) async {
     await MockDelay.short();
@@ -37,7 +42,7 @@ class AiMockRepository implements AiRepository {
     return [
       for (var d = 1; d <= 7; d++)
         DemandForecast(
-          forecastDate: DateTime.now().add(Duration(days: d)),
+          forecastDate: _clock().add(Duration(days: d)),
           predictedQuantity: 2 + (skuId + d) % 5,
           recommendedReorderQty: stock < 10 && d == 1 ? 30 : null,
         ),

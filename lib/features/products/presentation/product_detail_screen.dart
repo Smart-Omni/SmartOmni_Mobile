@@ -17,7 +17,8 @@ import '../domain/product.dart';
 import 'products_providers.dart';
 
 /// M-31 Chi tiết sản phẩm (Merchant), bố cục theo M-21: thẻ đầu, nhóm SKU
-/// (chạm để xem dự báo AI), nhóm liên kết sàn.
+/// (chạm để xem dự báo AI), nhóm liên kết sàn (ẩn khi dùng BE thật: BE chưa
+/// trả link sàn).
 class ProductDetailScreen extends ConsumerWidget {
   const ProductDetailScreen({super.key, required this.productId});
 
@@ -28,7 +29,9 @@ class ProductDetailScreen extends ConsumerWidget {
     final productAsync = ref.watch(productDetailProvider(productId));
     // Tồn kho chỉ để gắn nhãn hết/sắp hết: đang tải hoặc lỗi thì ẩn nhãn,
     // không kéo cả màn sang trạng thái lỗi.
-    final stock = ref.watch(inventoryListProvider).value ?? const [];
+    final stock = ref.watch(showStockLabelsProvider)
+        ? ref.watch(inventoryListProvider).value ?? const <InventoryItem>[]
+        : const <InventoryItem>[];
     final productRemote = ref.watch(productsUseRemoteProvider);
     final product = productAsync.value;
 
@@ -47,10 +50,10 @@ class ProductDetailScreen extends ConsumerWidget {
             AsyncData(:final value) => _Body(
               product: value,
               stock: stock,
-              // Nhãn tồn kho luôn là mẫu (backend chưa có GET /api/inventory).
               mockNote: productRemote
-                  ? 'Nhãn tồn kho là dữ liệu mẫu, backend chưa có API.'
+                  ? null
                   : 'Sản phẩm và tồn kho đang là dữ liệu mẫu.',
+              showLinks: !productRemote,
             ),
             AsyncError(:final error) => SliverToBoxAdapter(
               child: SoEmptyState.error(
@@ -74,11 +77,15 @@ class _Body extends StatelessWidget {
     required this.product,
     required this.stock,
     required this.mockNote,
+    required this.showLinks,
   });
 
   final Product product;
   final List<InventoryItem> stock;
-  final String mockNote;
+
+  /// `null`: không có dữ liệu mẫu trên màn, không hiện banner.
+  final String? mockNote;
+  final bool showLinks;
 
   @override
   Widget build(BuildContext context) {
@@ -86,8 +93,10 @@ class _Body extends StatelessWidget {
     final levels = {for (final item in stock) item.skuId: item.level};
     return SliverList.list(
       children: [
-        SoMockBanner(message: mockNote),
-        const SizedBox(height: SoSpace.s16),
+        if (mockNote != null) ...[
+          SoMockBanner(message: mockNote),
+          const SizedBox(height: SoSpace.s16),
+        ],
         _HeaderCard(product: p),
         GroupTitle('SKU · ${p.skus.length}'),
         if (p.skus.isNotEmpty) ...[
@@ -100,8 +109,10 @@ class _Body extends StatelessWidget {
           const SizedBox(height: SoSpace.sectionTitle),
         ],
         _SkuCard(skus: p.skus, levels: levels),
-        const GroupTitle('Liên kết sàn'),
-        _LinksCard(urls: p.marketplaceUrls),
+        if (showLinks) ...[
+          const GroupTitle('Liên kết sàn'),
+          _LinksCard(urls: p.marketplaceUrls),
+        ],
       ],
     );
   }

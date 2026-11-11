@@ -7,7 +7,6 @@ import '../../../core/widgets/state_views.dart';
 import '../../../l10n/l10n.dart';
 import '../../orders/domain/order.dart';
 import '../../orders/presentation/order_ui.dart';
-import '../../orders/presentation/orders_providers.dart';
 import '../domain/inbox.dart';
 import 'inbox_providers.dart';
 
@@ -71,7 +70,7 @@ class _AttachOrderSheetState extends ConsumerState<AttachOrderSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final async = ref.watch(ordersPageProvider);
+    final async = ref.watch(inboxOrdersProvider);
     final candidates =
         [
           for (final o in async.value?.items ?? const <Order>[])
@@ -172,7 +171,7 @@ class _AttachOrderSheetState extends ConsumerState<AttachOrderSheet> {
                   AsyncError(:final error) => SoEmptyState.error(
                     title: 'Không tải được danh sách đơn',
                     message: AsyncValueView.errorMessage(error),
-                    onAction: () => ref.invalidate(ordersPageProvider),
+                    onAction: () => ref.invalidate(inboxOrdersProvider),
                   ),
                   _ => const SoSkeletonList(count: 3),
                 },

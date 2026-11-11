@@ -30,8 +30,17 @@ class OrdersRemoteRepository implements OrdersRepository {
     }
   }
 
+  /// BE nhận mọi chuyển trạng thái (chỉ ghi log), nên app tự chặn: chỉ
+  /// được chuyển sang TO_SHIP ("Chuẩn bị hàng", từ PENDING).
   @override
   Future<Order> updateStatus(int orderId, OrderStatus status) async {
+    if (status != OrderStatus.toShip) {
+      throw ArgumentError.value(
+        status,
+        'status',
+        'Chỉ được chuyển sang TO_SHIP',
+      );
+    }
     try {
       final res = await _dio.patch<Object?>(
         ApiPaths.orderStatus(orderId),

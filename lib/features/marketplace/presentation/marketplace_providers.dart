@@ -7,14 +7,13 @@ import '../data/marketplace_repositories.dart';
 import '../domain/marketplace_connection.dart';
 
 final marketplaceRepositoryProvider = Provider<MarketplaceRepository>((ref) {
-  final mock = MarketplaceMockRepository();
   return ref.watch(marketplaceUseRemoteProvider)
-      ? MarketplaceRemoteRepository(ref.watch(dioProvider), mock)
-      : mock;
+      ? MarketplaceRemoteRepository(ref.watch(dioProvider))
+      : MarketplaceMockRepository();
 });
 
-/// `false`: kết nối bằng App Key là mẫu. Danh sách, ngắt kết nối, tự nhập
-/// luôn là mẫu (chưa có API).
+/// `false`: T-10 là dữ liệu mẫu (có form App Key). `true`: trạng thái và ngắt
+/// kết nối gọi BE thật; kết nối qua OAuth chưa làm; công tắc tự nhập vẫn mẫu.
 final marketplaceUseRemoteProvider = Provider<bool>(
   (ref) => ref.watch(appConfigProvider).usesRemote(ApiFeature.marketplace),
 );

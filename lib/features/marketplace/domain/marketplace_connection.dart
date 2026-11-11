@@ -39,6 +39,27 @@ class MarketplaceConnection {
     autoImportProducts: autoImportProducts ?? this.autoImportProducts,
   );
 
+  /// `ShopeeConnectionDto` / `TiktokConnectionDto` của BE (camelCase).
+  /// `MISSING_SCOPE`, `REFRESH_FAILED`, `REVOKED` (`needsReconnect`) = lỗi kết
+  /// nối. DTO không có giờ đồng bộ và `autoImportProducts`.
+  factory MarketplaceConnection.fromConnectionDto(
+    JsonMap json,
+    Platform platform,
+  ) {
+    final status = (json['status'] as String?)?.toUpperCase();
+    return MarketplaceConnection(
+      id: Json.asInt(json['id']) ?? 0,
+      platform: platform,
+      shopId: Json.asString(json['shopId']),
+      shopName: Json.asString(json['shopName']),
+      status: status == 'CONNECTED' && json['needsReconnect'] != true
+          ? ConnectionStatus.connected
+          : status == 'DISCONNECTED'
+          ? ConnectionStatus.disconnected
+          : ConnectionStatus.error,
+    );
+  }
+
   factory MarketplaceConnection.fromJson(JsonMap json) => MarketplaceConnection(
     id: Json.asInt(json['id']) ?? 0,
     platform: Platform.fromBackend(json['platform'] as String?),
@@ -68,10 +89,11 @@ bool canConnect(
 ) => connectionFor(connections, platform)?.status != ConnectionStatus.connected;
 
 abstract class MarketplaceRepository {
-  /// ⚠️ Backend CHƯA có API xem danh sách kết nối -> mock.
+  /// GET /api/v1/marketplace-connections/{shopee,tiktok-shop}
   Future<List<MarketplaceConnection>> listConnections();
 
-  /// POST /api/marketplace-connections
+  /// POST /api/v1/marketplace-connections. BE hiện luôn trả 400 cho cả hai
+  /// sàn (bắt dùng OAuth): T-10 chỉ mở form này ở chế độ mock.
   /// { platform, appKey, appSecret, autoImportProducts }
   Future<MarketplaceConnection> connect({
     required Platform platform,

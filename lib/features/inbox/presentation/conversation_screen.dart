@@ -236,7 +236,7 @@ class _RelatedOrder extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (orderId == null) return _NoOrderCard(onAttach: onAttach);
-    final async = ref.watch(ordersPageProvider);
+    final async = ref.watch(inboxOrdersProvider);
     return switch (async) {
       AsyncData(:final value) => switch (value.items.where(
         (o) => o.id == orderId,
@@ -253,15 +253,18 @@ class _RelatedOrder extends ConsumerWidget {
   }
 }
 
-class _OrderCard extends StatelessWidget {
+class _OrderCard extends ConsumerWidget {
   const _OrderCard({required this.order, required this.onAttach});
 
   final Order order;
   final VoidCallback onAttach;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.soColors;
+    // Đơn ở đây là đơn mẫu. Khi M-21 đã gọi BE thật, không mở M-21 từ đây:
+    // "Chuẩn bị hàng" sẽ gửi id đơn mẫu lên BE.
+    final canOpen = !ref.watch(ordersUseRemoteProvider);
     return Container(
       key: const Key('conversation_order'),
       clipBehavior: Clip.antiAlias,
@@ -269,7 +272,9 @@ class _OrderCard extends StatelessWidget {
       child: Material(
         color: c.surface,
         child: InkWell(
-          onTap: () => context.push(Routes.merchantOrderDetail, extra: order),
+          onTap: canOpen
+              ? () => context.push(Routes.merchantOrderDetail, extra: order)
+              : null,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
               SoSpace.s16,

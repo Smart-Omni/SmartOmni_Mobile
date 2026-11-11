@@ -80,8 +80,7 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
       ref.invalidate(productsListProvider);
       if (!mounted) return;
       showSoToast(context, 'Đã tạo sản phẩm');
-      // Mở chi tiết (API thật) thay vì về M-30: ở bản thật danh sách M-30
-      // còn là dữ liệu mẫu nên sản phẩm mới chưa hiện ở đó.
+      // Mở chi tiết sản phẩm mới; quay lại thì M-30 đã tải lại.
       context.pushReplacement(Routes.merchantProductDetail(created.id));
     } catch (e) {
       if (!mounted) return;

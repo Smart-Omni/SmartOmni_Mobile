@@ -7,15 +7,38 @@ import '../../../core/network/api_response.dart';
 import '../../../core/utils/mock_delay.dart';
 import '../domain/marketplace_connection.dart';
 
+/// Integration Service. Công tắc "tự nhập" vẫn là mẫu: BE chưa có API, giá
+/// trị chỉ giữ trong phiên chạy app.
 class MarketplaceRemoteRepository implements MarketplaceRepository {
-  MarketplaceRemoteRepository(this._dio, this._fallback);
+  MarketplaceRemoteRepository(this._dio);
 
   final Dio _dio;
-  final MarketplaceRepository _fallback;
+  final _autoImport = <Platform, bool>{};
 
   @override
-  Future<List<MarketplaceConnection>> listConnections() =>
-      _fallback.listConnections();
+  Future<List<MarketplaceConnection>> listConnections() async {
+    try {
+      final all = await Future.wait(Platform.values.map(_current));
+      return [
+        for (final c in all)
+          if (c != null)
+            c.copyWith(autoImportProducts: _autoImport[c.platform] ?? false),
+      ];
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  /// Chưa từng kết nối: BE trả `data: null`.
+  Future<MarketplaceConnection?> _current(Platform p) async {
+    final res = await _dio.get<Object?>(ApiPaths.marketplaceConnection(p));
+    return unwrapResponse<MarketplaceConnection?>(
+      res.data,
+      (data) => data is JsonMap
+          ? MarketplaceConnection.fromConnectionDto(data, p)
+          : null,
+    );
+  }
 
   @override
   Future<MarketplaceConnection> connect({
@@ -44,11 +67,18 @@ class MarketplaceRemoteRepository implements MarketplaceRepository {
   }
 
   @override
-  Future<void> disconnect(Platform platform) => _fallback.disconnect(platform);
+  Future<void> disconnect(Platform platform) async {
+    try {
+      await _dio.post<Object?>(ApiPaths.marketplaceDisconnect(platform));
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
 
   @override
-  Future<void> setAutoImport(Platform platform, {required bool enabled}) =>
-      _fallback.setAutoImport(platform, enabled: enabled);
+  Future<void> setAutoImport(Platform platform, {required bool enabled}) async {
+    _autoImport[platform] = enabled;
+  }
 }
 
 class MarketplaceMockRepository implements MarketplaceRepository {

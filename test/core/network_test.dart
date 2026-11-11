@@ -33,7 +33,7 @@ void main() {
   });
 
   group('PageResult.fromJson', () {
-    test('đọc kiểu Page cũ của Spring', () {
+    test('đọc kiểu Page mặc định của Spring (products, inventory, orders)', () {
       final page = PageResult.fromJson({
         'content': [
           {'id': 1},
@@ -59,6 +59,29 @@ void main() {
       expect(page.items, [9]);
       expect(page.page, 1);
       expect(page.hasMore, isFalse);
+    });
+
+    test('đọc PageResponse snake_case của /api/v1/users', () {
+      final page = PageResult.fromJson({
+        'content': [
+          {'id': 4},
+          {'id': 5},
+        ],
+        'total_elements': 12,
+        'total_pages': 2,
+        'page_number': 0,
+        'page_size': 10,
+        'first': true,
+        'last': false,
+        'has_next': true,
+        'has_previous': false,
+      }, (j) => j['id']);
+      expect(page.items, [4, 5]);
+      expect(page.page, 0);
+      expect(page.size, 10);
+      expect(page.totalElements, 12);
+      expect(page.totalPages, 2);
+      expect(page.hasMore, isTrue);
     });
   });
 

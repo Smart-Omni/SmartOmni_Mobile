@@ -6,6 +6,7 @@ enum ApiFeature {
   auth,
   register,
   account,
+  staff,
   orders,
   products,
   inventory,
@@ -19,6 +20,12 @@ const connectedFeatures = {
   ApiFeature.auth,
   ApiFeature.register,
   ApiFeature.account,
+  ApiFeature.staff,
+  ApiFeature.products,
+  ApiFeature.inventory,
+  ApiFeature.orders,
+  ApiFeature.aiForecast,
+  ApiFeature.marketplace,
 };
 
 extension ApiAvailability on AppConfig {

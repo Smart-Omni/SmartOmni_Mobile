@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/design/design.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/utils/validators.dart';
 import '../../account/presentation/account_widgets.dart';
 import '../domain/staff.dart';
@@ -11,8 +13,8 @@ import 'staff_providers.dart';
 /// T-20 Quản lý nhân viên (chỉ Tenant Admin, chặn ở `resolveRedirect`).
 ///
 /// Chủ cửa hàng ("Bạn") đứng đầu, không bấm được. Chạm một nhân viên để khóa
-/// / mở khóa qua sheet xác nhận. Thanh dưới: Thêm nhân viên (email + mật
-/// khẩu tạm). Chưa có phân quyền con (USER_FLOWS F-T3).
+/// / mở khóa qua sheet xác nhận. Thanh dưới: Thêm nhân viên (họ tên + email +
+/// mật khẩu tạm). Chưa có phân quyền con (USER_FLOWS F-T3).
 class StaffScreen extends ConsumerStatefulWidget {
   const StaffScreen({super.key});
 
@@ -70,13 +72,14 @@ class _StaffScreenState extends ConsumerState<StaffScreen> {
           lock ? 'Đã khóa ${m.displayName}' : 'Đã mở khóa ${m.displayName}',
         );
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
+        final reason = e is ApiException
+            ? e.message
+            : 'Kiểm tra kết nối mạng rồi thử lại.';
         showSoToast(
           context,
-          lock
-              ? 'Chưa khóa được. Kiểm tra kết nối mạng rồi thử lại.'
-              : 'Chưa mở khóa được. Kiểm tra kết nối mạng rồi thử lại.',
+          lock ? 'Chưa khóa được. $reason' : 'Chưa mở khóa được. $reason',
         );
       }
     } finally {
@@ -115,10 +118,12 @@ class _StaffScreenState extends ConsumerState<StaffScreen> {
           padding: SoSpace.page,
           sliver: SliverList.list(
             children: [
-              const SoMockBanner(
-                message: 'Danh sách mẫu, backend chưa có API nhân viên.',
-              ),
-              const SizedBox(height: SoSpace.s16),
+              if (!ref.watch(staffUseRemoteProvider)) ...[
+                const SoMockBanner(
+                  message: 'Danh sách mẫu, backend chưa có API nhân viên.',
+                ),
+                const SizedBox(height: SoSpace.s16),
+              ],
               if (staff != null)
                 _Body(members: staff, onTap: _busy ? null : _toggle)
               else if (async.hasError && !async.isLoading)
@@ -218,7 +223,8 @@ class _StaffRow extends StatelessWidget {
   }
 }
 
-/// Sheet "Thêm nhân viên": email + mật khẩu tạm (6–100 ký tự).
+/// Sheet "Thêm nhân viên": họ tên (≤ 100 ký tự) + email + mật khẩu tạm
+/// (6–100 ký tự).
 class _AddStaffSheet extends ConsumerStatefulWidget {
   const _AddStaffSheet();
 
@@ -228,6 +234,7 @@ class _AddStaffSheet extends ConsumerStatefulWidget {
 
 class _AddStaffSheetState extends ConsumerState<_AddStaffSheet> {
   final _formKey = GlobalKey<FormState>();
+  final _name = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _obscure = true;
@@ -237,6 +244,7 @@ class _AddStaffSheetState extends ConsumerState<_AddStaffSheet> {
 
   @override
   void dispose() {
+    _name.dispose();
     _email.dispose();
     _password.dispose();
     super.dispose();
@@ -253,16 +261,24 @@ class _AddStaffSheetState extends ConsumerState<_AddStaffSheet> {
     try {
       final added = await ref
           .read(staffRepositoryProvider)
-          .add(email: _email.text.trim(), password: _password.text);
+          .add(
+            name: _name.text,
+            email: _email.text.trim(),
+            password: _password.text,
+          );
       ref.invalidate(staffListProvider);
       if (mounted) Navigator.pop(context, added);
     } on DuplicateStaffEmailException {
       if (mounted) {
         setState(() => _emailError = 'Email này đã có trong cửa hàng');
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
-        setState(() => _error = 'Kiểm tra kết nối mạng rồi thử lại.');
+        setState(
+          () => _error = e is ApiException
+              ? e.message
+              : 'Kiểm tra kết nối mạng rồi thử lại.',
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -298,6 +314,16 @@ class _AddStaffSheetState extends ConsumerState<_AddStaffSheet> {
               ),
               const SizedBox(height: SoSpace.s16),
             ],
+            SoTextField(
+              key: const Key('staff_name'),
+              label: 'Họ tên',
+              controller: _name,
+              textInputAction: TextInputAction.next,
+              autofillHints: const [AutofillHints.name],
+              inputFormatters: [LengthLimitingTextInputFormatter(100)],
+              validator: (v) => Validators.required(v, field: 'Họ tên'),
+            ),
+            const SizedBox(height: SoSpace.s16),
             SoTextField(
               key: const Key('staff_email'),
               label: 'Email',

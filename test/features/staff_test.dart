@@ -24,8 +24,11 @@ class _FlakyStaff implements StaffRepository {
   }
 
   @override
-  Future<StaffMember> add({required String email, required String password}) =>
-      throw UnimplementedError();
+  Future<StaffMember> add({
+    required String name,
+    required String email,
+    required String password,
+  }) => throw UnimplementedError();
 
   @override
   Future<StaffMember> setActive(int id, {required bool active}) =>
@@ -65,8 +68,10 @@ String _tag(WidgetTester tester, int id) => tester
 Future<void> _addStaff(
   WidgetTester tester,
   String email,
-  String password,
-) async {
+  String password, {
+  String name = 'Nguyễn Văn Mới',
+}) async {
+  await tester.enterText(find.byKey(const Key('staff_name')), name);
   await tester.enterText(find.byKey(const Key('staff_email')), email);
   await tester.enterText(find.byKey(const Key('staff_password')), password);
   await tester.tap(find.byKey(const Key('staff_add_submit')));
@@ -94,12 +99,16 @@ void main() {
   test('mock: email trùng (không phân biệt hoa thường) bị từ chối', () async {
     final repo = StaffMockRepository();
     await expectLater(
-      repo.add(email: ' STAFF@demo.vn ', password: '12345678'),
+      repo.add(name: 'A', email: ' STAFF@demo.vn ', password: '12345678'),
       throwsA(isA<DuplicateStaffEmailException>()),
     );
-    final added = await repo.add(email: 'Moi@Demo.vn', password: '12345678');
+    final added = await repo.add(
+      name: ' Nguyễn Văn Mới ',
+      email: 'Moi@Demo.vn',
+      password: '12345678',
+    );
     expect(added.email, 'moi@demo.vn');
-    expect(added.name, isNull);
+    expect(added.name, 'Nguyễn Văn Mới');
     expect(added.active, isTrue);
   });
 
@@ -189,7 +198,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Thêm nhân viên'), findsWidgets);
 
-    await _addStaff(tester, 'khong-hop-le', '123');
+    await _addStaff(tester, 'khong-hop-le', '123', name: ' ');
+    expect(find.text('Họ tên không được để trống'), findsOneWidget);
     expect(find.text('Email không hợp lệ'), findsOneWidget);
     expect(find.text('Mật khẩu phải từ 6 đến 100 ký tự'), findsOneWidget);
 
@@ -204,6 +214,7 @@ void main() {
     expect(find.byType(SoBottomSheet), findsNothing);
     expect(find.text('Đã thêm moi@demo.vn'), findsOneWidget);
     expect(find.text('Nhân viên · 4'), findsOneWidget);
+    expect(find.text('Nguyễn Văn Mới'), findsOneWidget);
     expect(_tag(tester, 7), 'Đang hoạt động');
   });
 
