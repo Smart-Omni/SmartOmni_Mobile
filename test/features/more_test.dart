@@ -30,8 +30,9 @@ void main() {
   ) async {
     await _openMore(tester, 'staff@demo.vn');
 
+    expect(find.text('Lê Nhân Viên'), findsOneWidget);
     expect(find.text('staff@demo.vn'), findsOneWidget);
-    expect(find.text('Nhân viên · Cửa hàng #1'), findsOneWidget);
+    expect(find.text('Nhân viên · Shop Demo'), findsOneWidget);
     expect(find.text('TENANT-1'), findsOneWidget);
     expect(find.text('Công cụ'), findsOneWidget);
     expect(find.text('Quản trị cửa hàng'), findsNothing);

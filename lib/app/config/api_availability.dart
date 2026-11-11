@@ -5,6 +5,7 @@ import 'app_config.dart';
 enum ApiFeature {
   auth,
   register,
+  account,
   orders,
   products,
   inventory,
@@ -14,7 +15,11 @@ enum ApiFeature {
 
 /// Chức năng đã nối được với BE `develop` @ `d4ea062` (docs/API_CONTRACT.md
 /// mục 0). BE sửa xong chức năng nào thì thêm vào đây là app gọi API thật.
-const connectedFeatures = {ApiFeature.auth, ApiFeature.register};
+const connectedFeatures = {
+  ApiFeature.auth,
+  ApiFeature.register,
+  ApiFeature.account,
+};
 
 extension ApiAvailability on AppConfig {
   /// `true`: gọi Remote. `false`: dùng Mock và màn hiện `SoMockBanner`.

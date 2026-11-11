@@ -144,10 +144,12 @@ class AuthController extends Notifier<AuthState> {
     state = Authenticated(session);
   }
 
-  Future<void> logout() async {
+  /// Đăng xuất, xóa cả access token và refresh token. [reason] hiện ở màn
+  /// đăng nhập (vd. sau khi đổi mật khẩu).
+  Future<void> logout({String? reason}) async {
     await _repo.logout();
     await _storage.clear();
-    state = const Unauthenticated();
+    state = Unauthenticated(reason: reason);
   }
 
   Future<void> _expire() async {

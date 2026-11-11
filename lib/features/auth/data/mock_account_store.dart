@@ -29,6 +29,9 @@ class MockAccountStore {
   final _pending = <String, MockCustomerAccount>{};
   final _attemptsLeft = <String, int>{};
 
+  /// Mật khẩu đã đổi (Đổi mật khẩu ở C-40), áp cho cả tài khoản demo.
+  final _changedPasswords = <String, String>{};
+
   static String _key(String email) => email.trim().toLowerCase();
 
   MockCustomerAccount? find(String? email) =>
@@ -63,4 +66,11 @@ class MockAccountStore {
 
   /// Id cho tài khoản mới, không trùng tài khoản demo.
   int nextUserId() => 100 + _accounts.length + _pending.length;
+
+  /// Mật khẩu hiện tại của [email]: đã đổi > lúc đăng ký > mật khẩu demo.
+  String passwordFor(String email, {required String fallback}) =>
+      _changedPasswords[_key(email)] ?? find(email)?.password ?? fallback;
+
+  void changePassword(String email, String password) =>
+      _changedPasswords[_key(email)] = password;
 }

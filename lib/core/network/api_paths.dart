@@ -12,6 +12,7 @@ abstract final class ApiPaths {
   static const register = '/api/v1/auth/register';
   static const forgotPassword = '/api/v1/auth/forgot-password';
   static const resetPassword = '/api/v1/auth/reset-password';
+  static const changePassword = '/api/v1/auth/change-password';
 
   /// Các endpoint không gắn token (khớp `permitAll` trong `SecurityConfig`
   /// của BE). `logout` vẫn gắn token: BE cần header để thu hồi phiên.
@@ -22,6 +23,10 @@ abstract final class ApiPaths {
     forgotPassword,
     resetPassword,
   ];
+
+  // Tài khoản
+  static const usersMe = '/api/v1/users/me';
+  static const tenantsMe = '/api/v1/tenants/me';
 
   // Đơn hàng
   static const orders = '/api/orders';

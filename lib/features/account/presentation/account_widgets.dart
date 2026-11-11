@@ -6,8 +6,10 @@ import '../../../app/config/app_config.dart';
 import '../../../core/design/design.dart';
 import '../../../l10n/l10n.dart';
 import '../../auth/presentation/auth_controller.dart';
+import 'account_providers.dart';
 
-/// Thẻ hồ sơ: ô chữ cái brand, email, "vai trò · cửa hàng", mã tenant.
+/// Thẻ hồ sơ M-50: ô chữ cái brand, họ tên, email, "vai trò · tên cửa hàng",
+/// mã tenant. Hồ sơ chưa tải xong (hoặc lỗi) thì dùng tạm dữ liệu trong phiên.
 class ProfileCard extends ConsumerWidget {
   const ProfileCard({super.key});
 
@@ -15,10 +17,17 @@ class ProfileCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.soColors;
     final session = ref.watch(currentSessionProvider);
+    final profile = ref.watch(accountProfileProvider).value;
     final config = ref.watch(appConfigProvider);
-    final email = session?.email ?? 'Người dùng #${session?.userId ?? ''}';
-    final initial = email.isEmpty ? '?' : email.characters.first.toUpperCase();
+    final email =
+        profile?.email ??
+        session?.email ??
+        'Người dùng #${session?.userId ?? ''}';
+    final name = profile?.fullName ?? session?.fullName;
+    final title = name ?? email;
+    final initial = title.isEmpty ? '?' : title.characters.first.toUpperCase();
     final tenantId = session?.tenantId;
+    final storeName = profile?.storeName;
 
     return Container(
       key: const Key('profile_card'),
@@ -46,15 +55,26 @@ class ProfileCard extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  email,
+                  title,
+                  key: const Key('profile_name'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: context.textTheme.titleMedium,
                 ),
+                if (name != null)
+                  Text(
+                    email,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.textTheme.bodySmall,
+                  ),
                 Text(
                   [
                     ?session?.role.label,
-                    if (tenantId != null) 'Cửa hàng #$tenantId',
+                    if (storeName != null)
+                      storeName
+                    else if (tenantId != null)
+                      'Cửa hàng #$tenantId',
                   ].join(' · '),
                   style: context.textTheme.bodyMedium?.copyWith(color: c.ink2),
                 ),

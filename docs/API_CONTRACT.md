@@ -58,6 +58,9 @@ Khi `USE_MOCK=false`, chức năng nào gọi API thật được chọn ở `li
 | Quên mật khẩu | `POST /api/v1/auth/forgot-password` | `{ email }` | ✅ | |
 | Đặt lại mật khẩu | `POST /api/v1/auth/reset-password` | `{ token, new_password, confirm_password }` (6–100 ký tự) | ✅ | |
 | Đăng ký khách (A-05) | `POST /api/v1/auth/register` | `{ email, password (6–100), full_name, phone, subdomain }` → `AuthResponse` (201) | ✅ | Không có OTP: vào thẳng app. Ô "Mã cửa hàng" chỉ kiểm `^[a-z0-9-]{3,30}$` (chữ thường) rồi gửi làm `subdomain`; BE hiện bỏ qua trường này. Email trùng: 409. Mock vẫn có OTP |
+| Hồ sơ (M-50, C-40) | `GET /api/v1/users/me` | → `UserProfileResponse` (snake_case): `{ id, email, full_name, phone, avatar, role, status, tenant_id, subdomain, created_at, updated_at }` | ✅ | Thẻ hồ sơ hiện họ tên, email |
+| Tên cửa hàng (M-50) | `GET /api/v1/tenants/me` | → `TenantProfileResponse` (camelCase): `{ id, companyName, subdomain, status, …, storefront: { storeName, logoUrl, … } }` | ✅ | Chỉ gọi khi có `tenant_id`. Tên = `storefront.storeName`, trống thì `companyName`. Lỗi thì thẻ vẫn hiện tên, email |
+| Đổi mật khẩu (C-40) | `POST /api/v1/auth/change-password` | `{ current_password, new_password (6–100), confirm_password }` | ✅ | Cần token. Lỗi 400 kèm `message` (sai mật khẩu hiện tại / trùng / không khớp). BE thu hồi refresh token nên app đăng xuất ngay, báo "Đã đổi mật khẩu, vui lòng đăng nhập lại." |
 | Đăng ký tenant | `POST /api/tenants/onboarding` | `{ businessName, subdomain, adminEmail, adminPassword, initialPlanName }` | - | Chỉ làm trên web portal, không làm trên mobile (chốt 22/10/2026) |
 
 `AuthResponse` (tên trường snake_case theo `@JsonProperty`): `{ access_token, refresh_token, token_type: "Bearer", expires_in, user_info: { id, email, full_name, phone, avatar, role, tenant_id, subdomain } }`.
