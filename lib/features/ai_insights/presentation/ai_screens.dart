@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../app/config/api_availability.dart';
 import '../../../app/config/app_config.dart';
 import '../../../core/design/design.dart';
 import '../../../core/network/api_client.dart';
@@ -15,10 +16,9 @@ import '../data/ai_repositories.dart';
 import '../domain/demand_forecast.dart';
 
 final aiRepositoryProvider = Provider<AiRepository>((ref) {
-  final config = ref.watch(appConfigProvider);
-  return config.useMock
-      ? AiMockRepository()
-      : AiRemoteRepository(ref.watch(dioProvider));
+  return ref.watch(appConfigProvider).usesRemote(ApiFeature.aiForecast)
+      ? AiRemoteRepository(ref.watch(dioProvider))
+      : AiMockRepository();
 });
 
 final skuForecastProvider = FutureProvider.autoDispose
@@ -64,7 +64,9 @@ class _SkuForecastScreenState extends ConsumerState<SkuForecastScreen> {
   @override
   Widget build(BuildContext context) {
     final skuId = _skuId;
-    final useMock = ref.watch(appConfigProvider).useMock;
+    final forecastRemote = ref
+        .watch(appConfigProvider)
+        .usesRemote(ApiFeature.aiForecast);
     final stock = ref.watch(inventoryListProvider);
     final item = stock.value?.where((i) => i.skuId == skuId).firstOrNull;
 
@@ -84,10 +86,10 @@ class _SkuForecastScreenState extends ConsumerState<SkuForecastScreen> {
           sliver: SliverList.list(
             children: [
               SoMockBanner(
-                message: useMock
-                    ? 'Dự báo, danh sách SKU và số tồn đang là dữ liệu mẫu.'
-                    : 'Danh sách SKU và số tồn là dữ liệu mẫu, backend chưa '
-                          'có API.',
+                message: forecastRemote
+                    ? 'Danh sách SKU và số tồn là dữ liệu mẫu, backend chưa '
+                          'có API.'
+                    : 'Dự báo, danh sách SKU và số tồn đang là dữ liệu mẫu.',
               ),
               const SizedBox(height: SoSpace.s16),
               _SkuCard(

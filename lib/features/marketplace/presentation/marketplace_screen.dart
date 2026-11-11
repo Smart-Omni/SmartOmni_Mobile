@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../app/config/app_config.dart';
 import '../../../core/design/design.dart';
 import '../../../core/models/platform.dart';
 import '../../../core/network/api_exception.dart';
@@ -21,7 +20,7 @@ class MarketplaceScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(connectionsProvider);
-    final useMock = ref.watch(appConfigProvider).useMock;
+    final connectRemote = ref.watch(marketplaceUseRemoteProvider);
     // Giữ dữ liệu cũ khi đang tải lại (sau khi bật/tắt, ngắt kết nối).
     final connections = async.value;
 
@@ -35,10 +34,10 @@ class MarketplaceScreen extends ConsumerWidget {
               ? SliverList.list(
                   children: [
                     SoMockBanner(
-                      message: useMock
-                          ? 'Kết nối sàn đang là dữ liệu mẫu.'
-                          : 'Trạng thái sàn là dữ liệu mẫu, backend chưa có '
-                                'API. Kết nối bằng App Key gọi API thật.',
+                      message: connectRemote
+                          ? 'Trạng thái sàn là dữ liệu mẫu, backend chưa có '
+                                'API. Kết nối bằng App Key gọi API thật.'
+                          : 'Kết nối sàn đang là dữ liệu mẫu.',
                     ),
                     const SizedBox(height: SoSpace.s16),
                     for (final (i, platform) in Platform.values.indexed) ...[

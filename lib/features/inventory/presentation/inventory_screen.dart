@@ -47,6 +47,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
             filter: _filter,
             onFilter: (f) => setState(() => _filter = f),
             onTap: _adjust,
+            stockRemote: ref.watch(inventoryUseRemoteProvider),
           ),
           AsyncError(:final error) => SliverToBoxAdapter(
             child: SoEmptyState.error(
@@ -73,12 +74,16 @@ class _InventoryBody extends StatelessWidget {
     required this.filter,
     required this.onFilter,
     required this.onTap,
+    required this.stockRemote,
   });
 
   final List<InventoryItem> items;
   final InventoryFilter filter;
   final ValueChanged<InventoryFilter> onFilter;
   final ValueChanged<InventoryItem> onTap;
+
+  /// Lưu số tồn gọi API thật (danh sách vẫn là mẫu).
+  final bool stockRemote;
 
   @override
   Widget build(BuildContext context) {
@@ -88,17 +93,17 @@ class _InventoryBody extends StatelessWidget {
 
     return SliverList.list(
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
             SoSpace.screen,
             SoSpace.s8,
             SoSpace.screen,
             0,
           ),
           child: SoMockBanner(
-            message:
-                'Danh sách tồn kho là dữ liệu mẫu. Lưu số tồn gọi API thật '
-                'khi tắt chế độ mock.',
+            message: stockRemote
+                ? 'Danh sách tồn kho là dữ liệu mẫu. Lưu số tồn gọi API thật.'
+                : 'Tồn kho đang là dữ liệu mẫu.',
           ),
         ),
         Padding(

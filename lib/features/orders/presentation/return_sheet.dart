@@ -96,6 +96,13 @@ class _ReturnSheetState extends ConsumerState<ReturnSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (!ref.watch(ordersUseRemoteProvider)) ...[
+              const SoMockBanner(
+                key: Key('return_mock_banner'),
+                message: 'Ghi nhận hoàn/trả chỉ lưu vào dữ liệu mẫu.',
+              ),
+              const SizedBox(height: SoSpace.s16),
+            ],
             Wrap(
               spacing: SoSpace.s8,
               runSpacing: SoSpace.s8,

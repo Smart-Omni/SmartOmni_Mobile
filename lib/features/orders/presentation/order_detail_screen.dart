@@ -85,6 +85,13 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
           padding: SoSpace.page,
           sliver: SliverList.list(
             children: [
+              if (!ref.watch(ordersUseRemoteProvider)) ...[
+                const SoMockBanner(
+                  key: Key('order_mock_banner'),
+                  message: 'Đơn hàng và hoàn/trả đang là dữ liệu mẫu.',
+                ),
+                const SizedBox(height: SoSpace.s16),
+              ],
               if (o.status == OrderStatus.pending) ...[
                 const SoBanner(
                   key: Key('order_pending_banner'),

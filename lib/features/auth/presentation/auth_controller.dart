@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/config/api_availability.dart';
 import '../../../app/config/app_config.dart';
 import '../../../core/auth/session.dart';
 import '../../../core/auth/user_role.dart';
@@ -22,12 +23,11 @@ final mockAccountStoreProvider = Provider<MockAccountStore>(
   (ref) => MockAccountStore(),
 );
 
-/// Chọn repository thật hoặc mock theo cấu hình `USE_MOCK`.
+/// Chọn repository thật hoặc mock theo `api_availability.dart`.
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  final config = ref.watch(appConfigProvider);
-  return config.useMock
-      ? AuthMockRepository(store: ref.watch(mockAccountStoreProvider))
-      : AuthRemoteRepository(ref.watch(dioProvider));
+  return ref.watch(appConfigProvider).usesRemote(ApiFeature.auth)
+      ? AuthRemoteRepository(ref.watch(dioProvider))
+      : AuthMockRepository(store: ref.watch(mockAccountStoreProvider));
 });
 
 /// Backend chưa có API đăng ký khách -> luôn dùng mock, kể cả khi

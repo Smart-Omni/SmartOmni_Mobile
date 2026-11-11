@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/config/app_config.dart';
 import '../storage/token_storage.dart';
+import 'api_paths.dart';
 
 /// Phát sự kiện khi backend trả 401 (token hết hạn / không hợp lệ).
 /// `AuthController` lắng nghe để đăng xuất và đưa người dùng về màn đăng nhập.
@@ -54,12 +55,7 @@ class AuthInterceptor extends Interceptor {
   final TokenStorage tokenStorage;
   final VoidCallback onUnauthorized;
 
-  /// Các endpoint không cần token.
-  static const _publicPaths = [
-    '/api/auth/login',
-    '/api/auth/forgot-password',
-    '/api/auth/reset-password',
-  ];
+  static const _publicPaths = ApiPaths.public;
 
   @override
   Future<void> onRequest(

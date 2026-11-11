@@ -14,6 +14,8 @@ Chú thích cột **Trạng thái**:
 
 ## 0. Tình trạng nối API (BE `develop` @ `d4ea062`)
 
+Khi `USE_MOCK=false`, chức năng nào gọi API thật được chọn ở `lib/app/config/api_availability.dart` (`connectedFeatures`); chức năng chưa nối được dùng Mock và hiện `SoMockBanner`. Mọi đường dẫn API nằm ở `lib/core/network/api_paths.dart`. BE sửa xong: sửa đường dẫn (nếu đổi) rồi thêm chức năng vào `connectedFeatures`.
+
 ### ✅ Nối được ngay
 
 | Màn | API BE | Ghi chú |

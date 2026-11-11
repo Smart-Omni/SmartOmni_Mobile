@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../app/config/app_config.dart';
 import '../../../app/router/routes.dart';
 import '../../../core/design/design.dart';
 import '../../../core/models/platform.dart';
@@ -30,7 +29,7 @@ class ProductDetailScreen extends ConsumerWidget {
     // Tồn kho chỉ để gắn nhãn hết/sắp hết: đang tải hoặc lỗi thì ẩn nhãn,
     // không kéo cả màn sang trạng thái lỗi.
     final stock = ref.watch(inventoryListProvider).value ?? const [];
-    final useMock = ref.watch(appConfigProvider).useMock;
+    final productRemote = ref.watch(productsUseRemoteProvider);
     final product = productAsync.value;
 
     return SoScaffold(
@@ -48,11 +47,10 @@ class ProductDetailScreen extends ConsumerWidget {
             AsyncData(:final value) => _Body(
               product: value,
               stock: stock,
-              // Chi tiết sản phẩm có API thật; nhãn tồn kho thì luôn là mẫu
-              // (backend chưa có GET /api/inventory).
-              mockNote: useMock
-                  ? 'Sản phẩm và tồn kho đang là dữ liệu mẫu.'
-                  : 'Nhãn tồn kho là dữ liệu mẫu, backend chưa có API.',
+              // Nhãn tồn kho luôn là mẫu (backend chưa có GET /api/inventory).
+              mockNote: productRemote
+                  ? 'Nhãn tồn kho là dữ liệu mẫu, backend chưa có API.'
+                  : 'Sản phẩm và tồn kho đang là dữ liệu mẫu.',
             ),
             AsyncError(:final error) => SliverToBoxAdapter(
               child: SoEmptyState.error(

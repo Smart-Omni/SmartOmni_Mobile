@@ -4,10 +4,11 @@ import '../../../core/auth/jwt_decoder.dart';
 import '../../../core/auth/session.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/network/api_paths.dart';
 import '../../../core/network/api_response.dart';
 import '../domain/auth_repository.dart';
 
-/// Gọi API thật của Auth Service (qua Nginx: `/api/auth/*`).
+/// Gọi API thật của Auth Service (đường dẫn ở [ApiPaths]).
 class AuthRemoteRepository implements AuthRepository {
   AuthRemoteRepository(this._dio);
 
@@ -20,7 +21,7 @@ class AuthRemoteRepository implements AuthRepository {
   }) async {
     try {
       final res = await _dio.post<Object?>(
-        '/api/auth/login',
+        ApiPaths.login,
         data: {'email': email, 'password': password},
       );
       // data: { accessToken, role, tenantId, userId }
@@ -44,7 +45,7 @@ class AuthRemoteRepository implements AuthRepository {
   @override
   Future<void> logout() async {
     try {
-      await _dio.post<Object?>('/api/auth/logout');
+      await _dio.post<Object?>(ApiPaths.logout);
     } on DioException {
       // JWT là stateless: dù gọi logout lỗi, app vẫn xóa token ở máy.
     }
@@ -53,10 +54,7 @@ class AuthRemoteRepository implements AuthRepository {
   @override
   Future<void> forgotPassword(String email) async {
     try {
-      await _dio.post<Object?>(
-        '/api/auth/forgot-password',
-        data: {'email': email},
-      );
+      await _dio.post<Object?>(ApiPaths.forgotPassword, data: {'email': email});
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
@@ -69,7 +67,7 @@ class AuthRemoteRepository implements AuthRepository {
   }) async {
     try {
       await _dio.post<Object?>(
-        '/api/auth/reset-password',
+        ApiPaths.resetPassword,
         data: {'token': token, 'newPassword': newPassword},
       );
     } on DioException catch (e) {

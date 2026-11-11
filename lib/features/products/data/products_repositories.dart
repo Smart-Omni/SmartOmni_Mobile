@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../core/mock/mock_data.dart';
 import '../../../core/models/platform.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/network/api_paths.dart';
 import '../../../core/network/api_response.dart';
 import '../../../core/utils/mock_delay.dart';
 import '../domain/product.dart';
@@ -22,8 +23,8 @@ class ProductsRemoteRepository implements ProductsRepository {
   @override
   Future<Product> getProduct(int id) async {
     try {
-      final productRes = await _dio.get<Object?>('/api/products/$id');
-      final skusRes = await _dio.get<Object?>('/api/products/$id/skus');
+      final productRes = await _dio.get<Object?>(ApiPaths.product(id));
+      final skusRes = await _dio.get<Object?>(ApiPaths.productSkus(id));
       final skus = unwrapResponse(
         skusRes.data,
         (data) => [
@@ -44,7 +45,7 @@ class ProductsRemoteRepository implements ProductsRepository {
   Future<Product> createProduct(CreateProductInput input) async {
     try {
       final res = await _dio.post<Object?>(
-        '/api/products',
+        ApiPaths.products,
         data: input.toJson(),
       );
       return unwrapResponse<Product>(

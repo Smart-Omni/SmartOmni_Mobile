@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/config/api_availability.dart';
 import '../../../app/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_response.dart';
@@ -14,11 +15,15 @@ import '../domain/orders_repository.dart';
 import '../domain/shipping_label_repository.dart';
 
 final ordersRepositoryProvider = Provider<OrdersRepository>((ref) {
-  final config = ref.watch(appConfigProvider);
-  return config.useMock
-      ? OrdersMockRepository(clock: ref.watch(clockProvider))
-      : OrdersRemoteRepository(ref.watch(dioProvider));
+  return ref.watch(ordersUseRemoteProvider)
+      ? OrdersRemoteRepository(ref.watch(dioProvider))
+      : OrdersMockRepository(clock: ref.watch(clockProvider));
 });
+
+/// `false`: đơn hàng (kể cả hoàn/trả) là dữ liệu mẫu, màn hiện `SoMockBanner`.
+final ordersUseRemoteProvider = Provider<bool>(
+  (ref) => ref.watch(appConfigProvider).usesRemote(ApiFeature.orders),
+);
 
 /// Trang đầu danh sách đơn. Kéo để làm mới = `ref.invalidate(ordersPageProvider)`.
 /// TODO(pagination): tải thêm trang khi cuộn cuối danh sách.

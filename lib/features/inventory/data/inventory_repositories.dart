@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../../core/mock/mock_data.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/network/api_paths.dart';
 import '../../../core/utils/mock_delay.dart';
 import '../domain/inventory_item.dart';
 
@@ -18,7 +19,7 @@ class InventoryRemoteRepository implements InventoryRepository {
   Future<void> setStock({required int skuId, required int newQuantity}) async {
     try {
       await _dio.post<Object?>(
-        '/api/inventory/$skuId/adjust',
+        ApiPaths.inventoryAdjust(skuId),
         queryParameters: {'quantity': newQuantity},
       );
     } on DioException catch (e) {
