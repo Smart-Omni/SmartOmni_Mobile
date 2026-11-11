@@ -22,11 +22,14 @@ class Validators {
     return null;
   }
 
-  /// Backend yêu cầu mật khẩu mới tối thiểu 8 ký tự.
+  /// Khớp `@Size(min = 6, max = 100)` của BE (ResetPasswordRequest,
+  /// RegisterRequest, ChangePasswordRequest, CreateUserRequest).
   static String? newPassword(String? value) {
     final empty = required(value, field: 'Mật khẩu');
     if (empty != null) return empty;
-    if (value!.length < 8) return 'Mật khẩu phải có ít nhất 8 ký tự';
+    if (value!.length < 6 || value.length > 100) {
+      return 'Mật khẩu phải từ 6 đến 100 ký tự';
+    }
     return null;
   }
 

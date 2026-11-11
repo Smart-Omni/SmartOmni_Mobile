@@ -11,9 +11,11 @@ void main() {
       expect(Validators.email('a@b.vn'), isNull);
     });
 
-    test('mật khẩu mới tối thiểu 8 ký tự (khớp backend)', () {
-      expect(Validators.newPassword('1234567'), isNotNull);
-      expect(Validators.newPassword('12345678'), isNull);
+    test('mật khẩu mới 6–100 ký tự (khớp backend)', () {
+      expect(Validators.newPassword('12345'), isNotNull);
+      expect(Validators.newPassword('123456'), isNull);
+      expect(Validators.newPassword('a' * 100), isNull);
+      expect(Validators.newPassword('a' * 101), isNotNull);
     });
 
     test('số điện thoại: 10 số, bắt đầu bằng 0', () {

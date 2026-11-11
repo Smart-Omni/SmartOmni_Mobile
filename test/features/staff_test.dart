@@ -191,7 +191,7 @@ void main() {
 
     await _addStaff(tester, 'khong-hop-le', '123');
     expect(find.text('Email không hợp lệ'), findsOneWidget);
-    expect(find.text('Mật khẩu phải có ít nhất 8 ký tự'), findsOneWidget);
+    expect(find.text('Mật khẩu phải từ 6 đến 100 ký tự'), findsOneWidget);
 
     await _addStaff(tester, 'staff@demo.vn', '12345678');
     expect(find.text('Email này đã có trong cửa hàng'), findsOneWidget);

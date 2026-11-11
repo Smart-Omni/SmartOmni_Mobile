@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/config/api_availability.dart';
@@ -78,8 +79,16 @@ class AuthController extends Notifier<AuthState> {
   AuthRepository get _repo => ref.read(authRepositoryProvider);
 
   Future<void> _restore() async {
-    final token = await _storage.readToken();
-    final session = token == null ? null : Session.fromToken(token);
+    var session = await _readSession();
+    // Access token hết hạn nhưng còn refresh token: gia hạn thay vì đăng xuất.
+    if (session != null && session.isExpired()) {
+      try {
+        final fresh = await ref.read(tokenRefresherProvider).refresh();
+        session = fresh == null ? null : await _readSession();
+      } on DioException {
+        session = null;
+      }
+    }
     if (!ref.mounted) return;
     if (session == null ||
         session.isExpired() ||
@@ -89,6 +98,15 @@ class AuthController extends Notifier<AuthState> {
       return;
     }
     state = Authenticated(session);
+  }
+
+  Future<Session?> _readSession() async {
+    final token = await _storage.readToken();
+    if (token == null) return null;
+    return Session.fromToken(
+      token,
+      refreshToken: await _storage.readRefreshToken(),
+    );
   }
 
   /// Đăng nhập. Ném [LoginFailure] (đã phân loại) để màn hình hiển thị lỗi.
@@ -113,7 +131,10 @@ class AuthController extends Notifier<AuthState> {
 
   /// Vào app bằng phiên đã có (vd. sau khi xác minh OTP đăng ký).
   Future<void> signIn(Session session) async {
-    await _storage.writeToken(session.accessToken);
+    await _storage.writeTokens(
+      access: session.accessToken,
+      refresh: session.refreshToken,
+    );
     state = Authenticated(session);
   }
 

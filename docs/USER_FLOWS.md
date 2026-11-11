@@ -79,7 +79,7 @@ Cần thiết kế: logo, ô nhập có icon hiện/ẩn mật khẩu, link "Qu�
 
 ### F-A3. Quên / đặt lại mật khẩu
 1. **A-03**: nhập email → `POST /api/auth/forgot-password` ✅ → luôn báo "Nếu email tồn tại, hướng dẫn đã được gửi" (không tiết lộ email có tồn tại).
-2. **A-04**: nhập **mã xác nhận** (token trong email) + mật khẩu mới ≥ 8 ký tự → `POST /api/auth/reset-password` ✅.
+2. **A-04**: nhập **mã xác nhận** (token trong email) + mật khẩu mới 6–100 ký tự + nhập lại → `POST /api/v1/auth/reset-password` ✅.
 3. Thành công → về A-02 với thông báo "Đã đặt lại mật khẩu".
 4. Lỗi: mã sai / đã dùng / hết hạn (30 phút).
 

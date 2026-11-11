@@ -64,7 +64,7 @@
   "resetSentTitle": "Kiểm tra hộp thư",
   "resetHaveCode": "Tôi đã có mã",
   "resetPasswordHint": "Nhập mã trong email và đặt mật khẩu mới.",
-  "newPasswordHelper": "Ít nhất 8 ký tự.",
+  "newPasswordHelper": "Từ 6 đến 100 ký tự.",
   "confirmPassword": "Nhập lại mật khẩu mới",
   "resetCodeExpiredTitle": "Mã đặt lại đã hết hạn",
   "resetCodeExpiredMessage": "Mã chỉ dùng được trong 30 phút. Gửi lại mã để nhận mã mới.",

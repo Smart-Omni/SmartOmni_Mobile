@@ -154,6 +154,7 @@ class AuthMockRepository implements AuthRepository {
   Future<void> resetPassword({
     required String token,
     required String newPassword,
+    required String confirmPassword,
   }) async {
     await MockDelay.short();
     if (token == MockAccounts.expiredResetCode) {

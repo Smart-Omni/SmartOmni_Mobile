@@ -6,13 +6,22 @@
 /// `lib/app/config/api_availability.dart`.
 abstract final class ApiPaths {
   // Xác thực
-  static const login = '/api/auth/login';
-  static const logout = '/api/auth/logout';
-  static const forgotPassword = '/api/auth/forgot-password';
-  static const resetPassword = '/api/auth/reset-password';
+  static const login = '/api/v1/auth/login';
+  static const logout = '/api/v1/auth/logout';
+  static const refresh = '/api/v1/auth/refresh';
+  static const register = '/api/v1/auth/register';
+  static const forgotPassword = '/api/v1/auth/forgot-password';
+  static const resetPassword = '/api/v1/auth/reset-password';
 
-  /// Các endpoint không gắn token.
-  static const public = [login, forgotPassword, resetPassword];
+  /// Các endpoint không gắn token (khớp `permitAll` trong `SecurityConfig`
+  /// của BE). `logout` vẫn gắn token: BE cần header để thu hồi phiên.
+  static const public = [
+    login,
+    register,
+    refresh,
+    forgotPassword,
+    resetPassword,
+  ];
 
   // Đơn hàng
   static const orders = '/api/orders';

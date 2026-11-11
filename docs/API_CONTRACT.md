@@ -42,6 +42,7 @@ Khi `USE_MOCK=false`, chức năng nào gọi API thật được chọn ở `li
 | M-22 In vận đơn Shopee | `/api/marketplace-connections/shopee/...` | 404 | Như trên |
 | T-20 Nhân viên | `/api/v1/users` | 403 | `UserController` chỉ cho role `ADMIN` hoặc `TENANT_OWNER`. Không có role `TENANT_OWNER`, chủ cửa hàng là `TENANT_ADMIN` nên bị chặn |
 | M-10, M-60/61, T-30, T-40, T-50, C-00, C-10, C-11, C-12, C-20, C-30 | - | Chưa có API | BE chưa làm các chức năng này |
+| Mọi màn cần đăng nhập | - | Token hết hạn trả 403 (body rỗng) thay vì 401 | `SecurityConfig` chưa có `authenticationEntryPoint`. App đang tự refresh trước khi token hết hạn (đọc `exp`) để né lỗi này |
 | Mọi màn khi có lỗi | - | Thông báo lỗi chung chung | Body lỗi chưa có `errorCode` (`GlobalExceptionHandler` chỉ gửi `message`) |
 | Chạy thử | - | Không có sẵn tài khoản | BE chưa có dữ liệu demo. Phải tự tạo: mở cửa hàng qua web FE (`/api/v1/tenants/onboarding`) và đăng ký khách qua app |
 
@@ -49,14 +50,19 @@ Khi `USE_MOCK=false`, chức năng nào gọi API thật được chọn ở `li
 
 | Màn hình | Method & Path | Body / Query | Trạng thái | Ghi chú |
 |---|---|---|---|---|
-| Đăng nhập | `POST /api/auth/login` | `{ email, password }` → `{ accessToken, role, tenantId, userId }` | ✅ | Role: `ADMIN`, `MANAGER`, `SUPER_ADMIN`. **Cần BE bổ sung `CUSTOMER`** |
-| Đăng xuất | `POST /api/auth/logout` | - | ✅ | Lỗi vẫn xóa token ở máy |
-| Quên mật khẩu | `POST /api/auth/forgot-password` | `{ email }` | ✅ | BE chưa gửi email thật (TODO) |
-| Đặt lại mật khẩu | `POST /api/auth/reset-password` | `{ token, newPassword }` (≥ 8 ký tự) | ✅ | |
+| Đăng nhập | `POST /api/v1/auth/login` | `{ email, password }` → `AuthResponse` (dưới bảng) | ✅ | Role: `SUPER_ADMIN` (app từ chối), `ADMIN`, `TENANT_ADMIN`, `MANAGER`, `CUSTOMER` |
+| Gia hạn phiên | `POST /api/v1/auth/refresh` | `{ refresh_token }` → `AuthResponse` | ✅ | BE xoay vòng refresh token: luôn lưu token mới. App refresh trước khi gửi nếu `exp` còn < 30 giây, và khi gặp 401 (gọi lại request một lần) |
+| Đăng xuất | `POST /api/v1/auth/logout` | header `Authorization` | ✅ | BE blacklist access token, xóa refresh token. Lỗi vẫn xóa token ở máy |
+| Quên mật khẩu | `POST /api/v1/auth/forgot-password` | `{ email }` | ✅ | |
+| Đặt lại mật khẩu | `POST /api/v1/auth/reset-password` | `{ token, new_password, confirm_password }` (6–100 ký tự) | ✅ | |
 | Đăng ký khách | - | - | ⚪ | Đề xuất `POST /api/customers/register` |
 | Đăng ký tenant | `POST /api/tenants/onboarding` | `{ businessName, subdomain, adminEmail, adminPassword, initialPlanName }` | - | Chỉ làm trên web portal, không làm trên mobile (chốt 22/10/2026) |
 
-JWT payload: `{ sub: "<userId>", role, tenantId?, iat, exp }` (HS256, hạn 24h).
+`AuthResponse` (tên trường snake_case theo `@JsonProperty`): `{ access_token, refresh_token, token_type: "Bearer", expires_in, user_info: { id, email, full_name, phone, avatar, role, tenant_id, subdomain } }`.
+
+JWT payload: `{ sub: "<userId>", role, tenantId?, tenant_id?, subdomain?, iat, exp }` (HS256, hạn 24h; refresh token hạn 7 ngày, lưu ở Redis). Không có email.
+
+Đường không cần token (`permitAll`): `login`, `register`, `refresh`, `forgot-password`, `reset-password`, `/api/v1/tenants/onboarding`.
 
 ## 2. Merchant (Staff + Tenant Admin)
 
@@ -157,7 +163,7 @@ Mọi API `/api/customer/*` và `/api/storefront/*` nhận cửa hàng đang xem
 
 ### 4.5. Yêu cầu chung
 
-1. **Thêm role `CUSTOMER`** vào `/api/auth/login` (hoặc endpoint riêng `/api/customer/auth/login`) - app đang dùng chung màn đăng nhập.
+1. ~~Thêm role `CUSTOMER` vào login~~: đã có ở BE `develop` (`/api/v1/auth/login`).
 2. **Trả DTO thay vì entity** (README backend đã nêu nguyên tắc này) để tránh lộ trường như `appSecretEncrypted`.
 3. Giữ định dạng lỗi `{ success: false, message }` cho mọi lỗi (kể cả 401/403 từ Spring Security) để app hiển thị đúng.
 4. Cấu hình CORS không cần cho mobile, nhưng cần cho web portal sau này.

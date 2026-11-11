@@ -13,7 +13,7 @@ import '../data/auth_mock_repository.dart';
 import '../domain/auth_failure.dart';
 import 'auth_controller.dart';
 
-/// A-04 Đặt lại mật khẩu: mã trong email + mật khẩu mới (≥ 8 ký tự).
+/// A-04 Đặt lại mật khẩu: mã trong email + mật khẩu mới (6–100 ký tự).
 /// Thành công -> về A-02 kèm toast "Đã đặt lại mật khẩu".
 class ResetPasswordScreen extends ConsumerStatefulWidget {
   const ResetPasswordScreen({super.key});
@@ -51,6 +51,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
           .resetPassword(
             token: _codeCtrl.text.trim(),
             newPassword: _passwordCtrl.text,
+            confirmPassword: _confirmCtrl.text,
           );
       if (!mounted) return;
       showSoToast(context, context.l10n.resetPasswordDone);
