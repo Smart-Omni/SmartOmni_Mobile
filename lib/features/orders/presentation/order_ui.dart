@@ -12,7 +12,7 @@ extension OrderStatusUi on OrderStatus {
     OrderStatus.toShip => SoStatus.brand,
     OrderStatus.shipped || OrderStatus.delivering => SoStatus.info,
     OrderStatus.completed => SoStatus.success,
-    OrderStatus.cancelled => SoStatus.neutral,
+    OrderStatus.cancelled || OrderStatus.onHold => SoStatus.neutral,
     OrderStatus.returned => SoStatus.danger,
   };
 }

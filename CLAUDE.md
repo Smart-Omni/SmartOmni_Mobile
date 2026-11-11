@@ -1,6 +1,6 @@
 # SmartOmni Mobile — hướng dẫn cho Claude Code
 
-App Flutter (Android trước, iOS dùng chung code) cho nền tảng SaaS bán hàng đa kênh SmartOmni. Backend: https://github.com/Hxvf123/SmartOmmi_BE (Spring Boot, Nginx `:8080`). Trả lời người dùng bằng **tiếng Việt**; người dùng là dev mới, giải thích ngắn gọn khi làm điều không hiển nhiên.
+App Flutter (Android trước, iOS dùng chung code) cho nền tảng SaaS bán hàng đa kênh SmartOmni. Backend: https://github.com/Smart-Omni/SmartOmni_BE, nhánh `develop` (Spring Boot, Nginx `:8080`). Trả lời người dùng bằng **tiếng Việt**; người dùng là dev mới, giải thích ngắn gọn khi làm điều không hiển nhiên.
 
 ## Đọc trước khi code
 

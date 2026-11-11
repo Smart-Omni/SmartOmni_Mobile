@@ -22,11 +22,27 @@ class Validators {
     return null;
   }
 
-  /// Backend yêu cầu mật khẩu mới tối thiểu 8 ký tự.
+  /// Khớp `@Size(min = 6, max = 100)` của BE (ResetPasswordRequest,
+  /// RegisterRequest, ChangePasswordRequest, CreateUserRequest).
   static String? newPassword(String? value) {
     final empty = required(value, field: 'Mật khẩu');
     if (empty != null) return empty;
-    if (value!.length < 8) return 'Mật khẩu phải có ít nhất 8 ký tự';
+    if (value!.length < 6 || value.length > 100) {
+      return 'Mật khẩu phải từ 6 đến 100 ký tự';
+    }
+    return null;
+  }
+
+  static final _subdomainRegex = RegExp(r'^[a-z0-9-]{3,30}$');
+
+  /// Mã cửa hàng gửi BE làm subdomain (khớp `TenantOnboardingRequest`):
+  /// đổi sang chữ thường rồi kiểm tra `^[a-z0-9-]{3,30}$`.
+  static String? subdomain(String? value) {
+    final empty = required(value, field: 'Mã cửa hàng');
+    if (empty != null) return empty;
+    if (!_subdomainRegex.hasMatch(value!.trim().toLowerCase())) {
+      return 'Mã cửa hàng gồm 3–30 chữ thường, số hoặc dấu gạch ngang';
+    }
     return null;
   }
 

@@ -1,5 +1,7 @@
 # Hợp đồng API (màn hình ↔ backend)
 
+Backend: [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/SmartOmni_BE), nhánh `develop`, đối chiếu ở commit `d4ea062`.
+
 - Mọi request đi qua **Nginx Gateway** `:8080`, header `Authorization: Bearer <JWT>` (trừ login/quên mật khẩu).
 - Response chuẩn: `{ "success": bool, "message": string?, "data": T, "timestamp": ISO-8601 }`.
 - Phân trang theo Spring: `?page=0&size=20&sort=createdAt,desc` → `data: { content: [...], totalElements, totalPages, number, size }`.
@@ -10,18 +12,62 @@ Chú thích cột **Trạng thái**:
 - 🟡 **Mock** - backend chưa có API, app luôn dùng dữ liệu mẫu (màn hình có dải "Dữ liệu mẫu").
 - ⚪ **Chưa làm** - chưa có màn hình (mục "Sắp có").
 
+## 0. Tình trạng nối API (BE `develop` @ `d4ea062`)
+
+Khi `USE_MOCK=false`, chức năng nào gọi API thật được chọn ở `lib/app/config/api_availability.dart` (`connectedFeatures`); chức năng chưa nối được dùng Mock và hiện `SoMockBanner`. Mọi đường dẫn API nằm ở `lib/core/network/api_paths.dart`. BE sửa xong: sửa đường dẫn (nếu đổi) rồi thêm chức năng vào `connectedFeatures`.
+
+### ✅ Nối được ngay
+
+| Màn | API BE | Ghi chú |
+|---|---|---|
+| A-02 Đăng nhập | `POST /api/v1/auth/login` | Đọc dạng mới: vai trò nằm trong `userInfo` |
+| Đăng xuất | `POST /api/v1/auth/logout` | |
+| A-03 Quên mật khẩu | `POST /api/v1/auth/forgot-password` | |
+| A-04 Đặt lại mật khẩu | `POST /api/v1/auth/reset-password` | Gửi thêm ô nhập lại mật khẩu |
+| Tự gia hạn phiên | `POST /api/v1/auth/refresh` | Không bị đá ra khi token hết hạn |
+| A-05 Đăng ký khách | `POST /api/v1/auth/register` | Bỏ OTP khi dùng BE thật; mã cửa hàng gửi làm `subdomain` |
+| M-50 Thông tin tài khoản | `GET /api/v1/users/me`, `GET /api/v1/tenants/me` | Tên, email, tên cửa hàng thật |
+| Đổi mật khẩu (C-40, M-50 đang ghi "Sắp có") | `POST /api/v1/auth/change-password` | Bật lên được vì API đã có |
+
+### ❌ Chưa nối được: lỗi và nguyên nhân (gửi BE)
+
+| Màn trong app | API | Lỗi | Nguyên nhân |
+|---|---|---|---|
+| M-20, M-21 Đơn hàng, đổi trạng thái | `/api/orders` | 404 | Nginx chỉ cho qua `/api/v1/...`, còn `OrderController` vẫn nhận `/api/orders`. Gọi kiểu nào cũng không tới |
+| Hoàn/trả (sheet ở M-21) | `/api/returns` | 404 | Như trên (`ReturnRefundController`) |
+| M-30, M-31, M-32 Sản phẩm | `/api/products` | 404 | Như trên (`ProductController`). Ngoài ra chưa có API danh sách sản phẩm |
+| M-40 Tồn kho | `/api/inventory` | 404 | Như trên (`InventoryController`). Chưa có API danh sách tồn |
+| M-51 Dự báo AI | `/api/ai/forecast` | 404 | Như trên (`DemandForecastController`) |
+| T-10 Kết nối sàn | `/api/marketplace-connections` | 404 | Như trên (`MarketplaceConnection`, `Shopee*`, `TiktokConnectionController`) |
+| M-22 In vận đơn Shopee | `/api/marketplace-connections/shopee/...` | 404 | Như trên |
+| T-20 Nhân viên | `/api/v1/users` | 403 | `UserController` chỉ cho role `ADMIN` hoặc `TENANT_OWNER`. Không có role `TENANT_OWNER`, chủ cửa hàng là `TENANT_ADMIN` nên bị chặn |
+| M-10, M-60/61, T-30, T-40, T-50, C-00, C-10, C-11, C-12, C-20, C-30 | - | Chưa có API | BE chưa làm các chức năng này |
+| A-05 Đăng ký khách | `/api/v1/auth/register` | Khách không gắn cửa hàng | `AuthServiceImpl.register` bỏ qua `subdomain`/`tenant_id`, khách tạo ra không gắn cửa hàng nào |
+| A-05 Ô mã cửa hàng | `GET /api/v1/tenants/public/by-subdomain/{subdomain}` | 404 | Trả 404 cho khách chưa đăng nhập kể cả cửa hàng có thật (RLS chưa thiết lập ngữ cảnh đọc công khai). App chỉ kiểm định dạng mã |
+| Mọi màn cần đăng nhập | - | Token hết hạn trả 403 (body rỗng) thay vì 401 | `SecurityConfig` chưa có `authenticationEntryPoint`. App đang tự refresh trước khi token hết hạn (đọc `exp`) để né lỗi này |
+| Mọi màn khi có lỗi | - | Thông báo lỗi chung chung | Body lỗi chưa có `errorCode` (`GlobalExceptionHandler` chỉ gửi `message`) |
+| Chạy thử | - | Không có sẵn tài khoản | BE chưa có dữ liệu demo. Phải tự tạo: mở cửa hàng qua web FE (`/api/v1/tenants/onboarding`) và đăng ký khách qua app |
+
 ## 1. Xác thực
 
 | Màn hình | Method & Path | Body / Query | Trạng thái | Ghi chú |
 |---|---|---|---|---|
-| Đăng nhập | `POST /api/auth/login` | `{ email, password }` → `{ accessToken, role, tenantId, userId }` | ✅ | Role: `ADMIN`, `MANAGER`, `SUPER_ADMIN`. **Cần BE bổ sung `CUSTOMER`** |
-| Đăng xuất | `POST /api/auth/logout` | - | ✅ | Lỗi vẫn xóa token ở máy |
-| Quên mật khẩu | `POST /api/auth/forgot-password` | `{ email }` | ✅ | BE chưa gửi email thật (TODO) |
-| Đặt lại mật khẩu | `POST /api/auth/reset-password` | `{ token, newPassword }` (≥ 8 ký tự) | ✅ | |
-| Đăng ký khách | - | - | ⚪ | Đề xuất `POST /api/customers/register` |
+| Đăng nhập | `POST /api/v1/auth/login` | `{ email, password }` → `AuthResponse` (dưới bảng) | ✅ | Role: `SUPER_ADMIN` (app từ chối), `ADMIN`, `TENANT_ADMIN`, `MANAGER`, `CUSTOMER` |
+| Gia hạn phiên | `POST /api/v1/auth/refresh` | `{ refresh_token }` → `AuthResponse` | ✅ | BE xoay vòng refresh token: luôn lưu token mới. App refresh trước khi gửi nếu `exp` còn < 30 giây, và khi gặp 401 (gọi lại request một lần) |
+| Đăng xuất | `POST /api/v1/auth/logout` | header `Authorization` | ✅ | BE blacklist access token, xóa refresh token. Lỗi vẫn xóa token ở máy |
+| Quên mật khẩu | `POST /api/v1/auth/forgot-password` | `{ email }` | ✅ | |
+| Đặt lại mật khẩu | `POST /api/v1/auth/reset-password` | `{ token, new_password, confirm_password }` (6–100 ký tự) | ✅ | |
+| Đăng ký khách (A-05) | `POST /api/v1/auth/register` | `{ email, password (6–100), full_name, phone, subdomain }` → `AuthResponse` (201) | ✅ | Không có OTP: vào thẳng app. Ô "Mã cửa hàng" chỉ kiểm `^[a-z0-9-]{3,30}$` (chữ thường) rồi gửi làm `subdomain`; BE hiện bỏ qua trường này. Email trùng: 409. Mock vẫn có OTP |
+| Hồ sơ (M-50, C-40) | `GET /api/v1/users/me` | → `UserProfileResponse` (snake_case): `{ id, email, full_name, phone, avatar, role, status, tenant_id, subdomain, created_at, updated_at }` | ✅ | Thẻ hồ sơ hiện họ tên, email |
+| Tên cửa hàng (M-50) | `GET /api/v1/tenants/me` | → `TenantProfileResponse` (camelCase): `{ id, companyName, subdomain, status, …, storefront: { storeName, logoUrl, … } }` | ✅ | Chỉ gọi khi có `tenant_id`. Tên = `storefront.storeName`, trống thì `companyName`. Lỗi thì thẻ vẫn hiện tên, email |
+| Đổi mật khẩu (C-40) | `POST /api/v1/auth/change-password` | `{ current_password, new_password (6–100), confirm_password }` | ✅ | Cần token. Lỗi 400 kèm `message` (sai mật khẩu hiện tại / trùng / không khớp). BE thu hồi refresh token nên app đăng xuất ngay, báo "Đã đổi mật khẩu, vui lòng đăng nhập lại." |
 | Đăng ký tenant | `POST /api/tenants/onboarding` | `{ businessName, subdomain, adminEmail, adminPassword, initialPlanName }` | - | Chỉ làm trên web portal, không làm trên mobile (chốt 22/10/2026) |
 
-JWT payload: `{ sub: "<userId>", role, tenantId?, iat, exp }` (HS256, hạn 24h).
+`AuthResponse` (tên trường snake_case theo `@JsonProperty`): `{ access_token, refresh_token, token_type: "Bearer", expires_in, user_info: { id, email, full_name, phone, avatar, role, tenant_id, subdomain } }`.
+
+JWT payload: `{ sub: "<userId>", role, tenantId?, tenant_id?, subdomain?, iat, exp }` (HS256, hạn 24h; refresh token hạn 7 ngày, lưu ở Redis). Không có email.
+
+Đường không cần token (`permitAll`): `login`, `register`, `refresh`, `forgot-password`, `reset-password`, `/api/v1/tenants/onboarding`.
 
 ## 2. Merchant (Staff + Tenant Admin)
 
@@ -64,7 +110,7 @@ JWT payload: `{ sub: "<userId>", role, tenantId?, iat, exp }` (HS256, hạn 24h)
 | Voucher | `GET /api/customer/vouchers` → `[{ code, platform, description, expiresAt }]` | 🟡 |
 | Claim đơn | `POST /api/customer/claims` `{ platform, orderCode }` → `{ points }`; lỗi trả `message` rõ lý do (chưa hoàn tất / chưa đủ 15 ngày / đã claim / không tìm thấy) | 🟡 |
 | Chatbot | `POST /api/storefront/chat` | ⚪ |
-| Đăng ký khách (A-05) | `POST /api/customers/register` `{ shopCode, fullName, email, phone, password }` → gửi OTP; `POST /api/customers/verify-email` `{ email, otp }` → `{ accessToken }` | ⚪ (mock) |
+| Đăng ký khách (A-05) | Đã có `POST /api/v1/auth/register` (mục 1). Còn chờ: gắn khách vào cửa hàng theo `subdomain`; OTP xác minh email nếu cần | ✅ (không OTP) |
 | Cửa hàng của khách (C-00) | `GET /api/customer/shops` → `[{ tenantId, name, logoUrl, tier, points }]`; `GET /api/storefront/shops/{shopCode}` (xem trước); `POST /api/customer/shops` `{ shopCode }` (tham gia) | ⚪ (mock) |
 
 **Nhiều cửa hàng:** mọi API `/api/customer/*` và `/api/storefront/*` nhận cửa hàng đang xem qua header `X-Tenant-Id` (đề xuất). JWT của khách không mang `tenantId` cố định.
@@ -80,8 +126,8 @@ Quy ước chung: response `{ success, message, data, timestamp }`, enum viết 
 | Màn hình | Endpoint đề xuất | Mock đang thay thế |
 |---|---|---|
 | A-02 Đăng nhập (khách) | `POST /api/auth/login` trả thêm role `CUSTOMER` (hoặc `POST /api/customer/auth/login`) | `AuthMockRepository` (tài khoản demo) |
-| A-05 Đăng ký khách | `POST /api/customers/register` `{ shopCode, fullName, email, phone, password }` → gửi OTP | `RegistrationMockRepository.register` |
-| A-05 OTP | `POST /api/customers/verify-email` `{ email, otp }` → `{ accessToken, role, userId }`; `POST /api/customers/resend-otp` `{ email }` | `RegistrationMockRepository.verifyEmail`, `.resendOtp` |
+| A-05 Đăng ký khách | Đã nối `POST /api/v1/auth/register` (`RegistrationRemoteRepository`). Chờ BE gắn khách vào cửa hàng theo `subdomain` | - |
+| A-05 OTP | `POST /api/customers/verify-email` `{ email, otp }`, `POST /api/customers/resend-otp` `{ email }` (BE chưa có OTP; app bỏ bước này khi dùng BE thật) | `RegistrationMockRepository.verifyEmail`, `.resendOtp` (chỉ chế độ mock) |
 
 ### 4.2. Merchant (Staff + Tenant Admin)
 
@@ -122,7 +168,7 @@ Mọi API `/api/customer/*` và `/api/storefront/*` nhận cửa hàng đang xem
 
 ### 4.5. Yêu cầu chung
 
-1. **Thêm role `CUSTOMER`** vào `/api/auth/login` (hoặc endpoint riêng `/api/customer/auth/login`) - app đang dùng chung màn đăng nhập.
+1. ~~Thêm role `CUSTOMER` vào login~~: đã có ở BE `develop` (`/api/v1/auth/login`).
 2. **Trả DTO thay vì entity** (README backend đã nêu nguyên tắc này) để tránh lộ trường như `appSecretEncrypted`.
 3. Giữ định dạng lỗi `{ success: false, message }` cho mọi lỗi (kể cả 401/403 từ Spring Security) để app hiển thị đúng.
 4. Cấu hình CORS không cần cho mobile, nhưng cần cho web portal sau này.

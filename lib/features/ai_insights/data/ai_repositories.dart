@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../../core/mock/mock_data.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/network/api_paths.dart';
 import '../../../core/network/api_response.dart';
 import '../../../core/utils/mock_delay.dart';
 import '../domain/demand_forecast.dart';
@@ -14,7 +15,7 @@ class AiRemoteRepository implements AiRepository {
   @override
   Future<List<DemandForecast>> forecastForSku(int skuId) async {
     try {
-      final res = await _dio.get<Object?>('/api/ai/forecast/$skuId');
+      final res = await _dio.get<Object?>(ApiPaths.forecast(skuId));
       return unwrapResponse<List<DemandForecast>>(
         res.data,
         (data) => [

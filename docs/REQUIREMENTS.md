@@ -1,6 +1,6 @@
 # Yêu cầu dự án SmartOmni (góc nhìn app mobile)
 
-> Tổng hợp từ repo backend [SmartOmmi_BE](https://github.com/Hxvf123/SmartOmmi_BE): `README.md`, `docs/project-context.md`,
+> Tổng hợp từ repo backend [SmartOmni_BE](https://github.com/Smart-Omni/SmartOmni_BE): `README.md`, `docs/project-context.md`,
 > `docs/architecture.md`, `docs/SmartOmni_Additional_Flows_Detailed.md`, `docs/erd.dbml` và mã nguồn controller/DTO/entity.
 > Khi backend thay đổi, cập nhật file này và [API_CONTRACT.md](API_CONTRACT.md).
 
@@ -32,7 +32,7 @@ Quyết định cho mobile:
 |---|---|---|
 | AUTH-1 | Đăng nhập bằng email + mật khẩu, nhận JWT (hạn 24h) | `POST /api/auth/login` |
 | AUTH-2 | Khóa tạm tài khoản 15 phút sau 5 lần sai mật khẩu (BE xử lý, app hiển thị thông báo) | `AuthService` |
-| AUTH-3 | Quên mật khẩu → nhận token (hạn 30 phút) → đặt mật khẩu mới ≥ 8 ký tự | `forgot-password`, `reset-password` |
+| AUTH-3 | Quên mật khẩu → nhận token (hạn 30 phút) → đặt mật khẩu mới 6–100 ký tự | `forgot-password`, `reset-password` |
 | AUTH-4 | Đăng xuất (JWT stateless: xóa token ở máy) | `POST /api/auth/logout` |
 | AUTH-5 | Tự đăng xuất khi token hết hạn / server trả 401 | - |
 | AUTH-6 | Tenant bị khóa không được đăng nhập (BE: TODO FR-003) | - |

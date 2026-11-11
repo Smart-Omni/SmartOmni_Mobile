@@ -57,7 +57,7 @@
   "resetSentTitle": "Check your inbox",
   "resetHaveCode": "I have a code",
   "resetPasswordHint": "Enter the code from the email and set a new password.",
-  "newPasswordHelper": "At least 8 characters.",
+  "newPasswordHelper": "6 to 100 characters.",
   "confirmPassword": "Repeat new password",
   "resetCodeExpiredTitle": "Reset code expired",
   "resetCodeExpiredMessage": "Codes are valid for 30 minutes. Send a new code.",

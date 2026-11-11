@@ -218,7 +218,7 @@ class _StaffRow extends StatelessWidget {
   }
 }
 
-/// Sheet "Thêm nhân viên": email + mật khẩu tạm (≥ 8 ký tự).
+/// Sheet "Thêm nhân viên": email + mật khẩu tạm (6–100 ký tự).
 class _AddStaffSheet extends ConsumerStatefulWidget {
   const _AddStaffSheet();
 
@@ -315,7 +315,7 @@ class _AddStaffSheetState extends ConsumerState<_AddStaffSheet> {
             SoTextField(
               key: const Key('staff_password'),
               label: 'Mật khẩu tạm',
-              helper: 'Ít nhất 8 ký tự',
+              helper: 'Từ 6 đến 100 ký tự',
               controller: _password,
               obscureText: _obscure,
               textInputAction: TextInputAction.done,

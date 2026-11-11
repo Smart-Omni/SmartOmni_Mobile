@@ -113,7 +113,7 @@ class AuthMockRepository implements AuthRepository {
         statusCode: 403,
       );
     }
-    if (password != (registered?.password ?? MockAccounts.password)) {
+    if (password != _store.passwordFor(key, fallback: MockAccounts.password)) {
       final count = (_failedAttempts[key] ?? 0) + 1;
       _failedAttempts[key] = count;
       if (count >= MockAccounts.maxFailedAttempts) {
@@ -154,6 +154,7 @@ class AuthMockRepository implements AuthRepository {
   Future<void> resetPassword({
     required String token,
     required String newPassword,
+    required String confirmPassword,
   }) async {
     await MockDelay.short();
     if (token == MockAccounts.expiredResetCode) {

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../../core/models/platform.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/network/api_paths.dart';
 import '../../../core/network/api_response.dart';
 import '../../../core/utils/mock_delay.dart';
 import '../domain/marketplace_connection.dart';
@@ -25,7 +26,7 @@ class MarketplaceRemoteRepository implements MarketplaceRepository {
   }) async {
     try {
       final res = await _dio.post<Object?>(
-        '/api/marketplace-connections',
+        ApiPaths.marketplaceConnections,
         data: {
           'platform': platform.backendValue,
           'appKey': appKey,

@@ -4,10 +4,29 @@ import '../../../core/auth/jwt_decoder.dart';
 import '../../../core/auth/session.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/network/api_paths.dart';
 import '../../../core/network/api_response.dart';
 import '../domain/auth_repository.dart';
 
-/// Gọi API thật của Auth Service (qua Nginx: `/api/auth/*`).
+/// Đọc `AuthResponse` của BE (login, register, refresh), tên trường snake_case:
+/// `{ access_token, refresh_token, token_type, expires_in, user_info: { id,
+/// email, full_name, phone, avatar, role, tenant_id, subdomain } }`.
+Session sessionFromAuthResponse(JsonMap json) {
+  final token = json['access_token'] as String;
+  final info = json['user_info'] as JsonMap? ?? const {};
+  return Session(
+    accessToken: token,
+    refreshToken: json['refresh_token'] as String?,
+    userId: Json.asInt(info['id']) ?? 0,
+    role: UserRole.fromBackend(info['role'] as String?),
+    tenantId: Json.asInt(info['tenant_id']),
+    email: info['email'] as String?,
+    fullName: info['full_name'] as String?,
+    expiresAt: JwtDecoder.expiry(token),
+  );
+}
+
+/// Gọi API thật của Auth Service (đường dẫn ở [ApiPaths]).
 class AuthRemoteRepository implements AuthRepository {
   AuthRemoteRepository(this._dio);
 
@@ -20,22 +39,13 @@ class AuthRemoteRepository implements AuthRepository {
   }) async {
     try {
       final res = await _dio.post<Object?>(
-        '/api/auth/login',
+        ApiPaths.login,
         data: {'email': email, 'password': password},
       );
-      // data: { accessToken, role, tenantId, userId }
-      return unwrapResponse<Session>(res.data, (data) {
-        final json = data! as JsonMap;
-        final token = json['accessToken'] as String;
-        return Session(
-          accessToken: token,
-          userId: Json.asInt(json['userId']) ?? 0,
-          role: UserRole.fromBackend(json['role'] as String?),
-          tenantId: Json.asInt(json['tenantId']),
-          email: email,
-          expiresAt: JwtDecoder.expiry(token),
-        );
-      });
+      return unwrapResponse<Session>(
+        res.data,
+        (data) => sessionFromAuthResponse(data! as JsonMap),
+      );
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
@@ -44,19 +54,16 @@ class AuthRemoteRepository implements AuthRepository {
   @override
   Future<void> logout() async {
     try {
-      await _dio.post<Object?>('/api/auth/logout');
+      await _dio.post<Object?>(ApiPaths.logout);
     } on DioException {
-      // JWT là stateless: dù gọi logout lỗi, app vẫn xóa token ở máy.
+      // Dù gọi logout lỗi, app vẫn xóa token ở máy.
     }
   }
 
   @override
   Future<void> forgotPassword(String email) async {
     try {
-      await _dio.post<Object?>(
-        '/api/auth/forgot-password',
-        data: {'email': email},
-      );
+      await _dio.post<Object?>(ApiPaths.forgotPassword, data: {'email': email});
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
@@ -66,11 +73,16 @@ class AuthRemoteRepository implements AuthRepository {
   Future<void> resetPassword({
     required String token,
     required String newPassword,
+    required String confirmPassword,
   }) async {
     try {
       await _dio.post<Object?>(
-        '/api/auth/reset-password',
-        data: {'token': token, 'newPassword': newPassword},
+        ApiPaths.resetPassword,
+        data: {
+          'token': token,
+          'new_password': newPassword,
+          'confirm_password': confirmPassword,
+        },
       );
     } on DioException catch (e) {
       throw ApiException.fromDio(e);

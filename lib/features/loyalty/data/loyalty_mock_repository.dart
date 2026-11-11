@@ -6,7 +6,7 @@ import '../domain/loyalty_rules.dart';
 
 /// Mock theo cửa hàng, khớp số điểm với C-00: Shop Demo (1) 620 điểm và 2
 /// voucher; Hoa Mộc (2) 120 điểm; cửa hàng khác chưa có gì. Đơn claim được
-/// (`MockData.claimableOrders`) thuộc Shop Demo.
+/// (`MockData.claimableOrdersAt`) thuộc Shop Demo.
 class LoyaltyMockRepository implements LoyaltyRepository {
   /// [demoData] = false cho tài khoản đăng ký mới: chưa có điểm, voucher.
   LoyaltyMockRepository({DateTime Function()? clock, bool demoData = true})
@@ -104,7 +104,7 @@ class LoyaltyMockRepository implements LoyaltyRepository {
     final code = orderCode.trim().toUpperCase();
     final match = tenantId != 1
         ? null
-        : MockData.claimableOrders
+        : MockData.claimableOrdersAt(now)
               .where((o) => o.$1.toUpperCase() == code && o.$2 == platform)
               .firstOrNull;
     final claimed = (_history[tenantId] ?? const <PointEntry>[])

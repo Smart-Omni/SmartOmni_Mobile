@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../../core/mock/mock_data.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/network/api_paths.dart';
 import '../../../core/network/api_response.dart';
 import '../../../core/utils/mock_delay.dart';
 import '../domain/order.dart';
@@ -17,7 +18,7 @@ class OrdersRemoteRepository implements OrdersRepository {
   Future<PageResult<Order>> fetchOrders({int page = 0, int size = 20}) async {
     try {
       final res = await _dio.get<Object?>(
-        '/api/orders',
+        ApiPaths.orders,
         queryParameters: {'page': page, 'size': size, 'sort': 'createdAt,desc'},
       );
       return unwrapResponse<PageResult<Order>>(
@@ -33,7 +34,7 @@ class OrdersRemoteRepository implements OrdersRepository {
   Future<Order> updateStatus(int orderId, OrderStatus status) async {
     try {
       final res = await _dio.patch<Object?>(
-        '/api/orders/$orderId/status',
+        ApiPaths.orderStatus(orderId),
         queryParameters: {'status': status.backendValue},
       );
       return unwrapResponse<Order>(
@@ -52,7 +53,7 @@ class OrdersRemoteRepository implements OrdersRepository {
   }) async {
     try {
       await _dio.post<Object?>(
-        '/api/returns',
+        ApiPaths.returns,
         data: {'orderId': orderId, 'reason': reason},
       );
     } on DioException catch (e) {

@@ -218,16 +218,33 @@ class MockData {
         source: OrderSource.webhook,
         createdAt: ago(6),
       ),
+      // Khách TikTok đang yêu cầu hủy: sàn tạm giữ đơn.
+      Order(
+        id: 1008,
+        platform: Platform.tiktokShop,
+        platformOrderId: '5779000033334444',
+        status: OrderStatus.onHold,
+        totalAmount: 259000,
+        customerName: 'Võ F',
+        source: OrderSource.webhook,
+        createdAt: ago(1),
+      ),
     ];
   }
 
   // ------------------------------------------------- Đơn để khách claim điểm
   /// Đơn trên sàn mà khách có thể nhập mã để claim.
   /// (mã đơn, sàn, tiền hàng thực trả - không gồm ship/thuế, thời điểm hoàn tất)
-  static final claimableOrders = <(String, Platform, double, DateTime?)>[
-    ('240920SHOP01', Platform.shopee, 520000, daysAgo(20)),
-    ('5779000099998888', Platform.tiktokShop, 1250000, daysAgo(30)),
-    ('241008SHOP02', Platform.shopee, 300000, daysAgo(5)), // chưa đủ 15 ngày
-    ('241012SHOP03', Platform.shopee, 450000, null), // chưa hoàn tất
-  ];
+  /// Ngày hoàn tất tính lùi từ [now] (đồng hồ của repository, để test cố định).
+  static List<(String, Platform, double, DateTime?)> claimableOrdersAt(
+    DateTime now,
+  ) {
+    DateTime ago(int days) => now.subtract(Duration(days: days));
+    return [
+      ('240920SHOP01', Platform.shopee, 520000, ago(20)),
+      ('5779000099998888', Platform.tiktokShop, 1250000, ago(30)),
+      ('241008SHOP02', Platform.shopee, 300000, ago(5)), // chưa đủ 15 ngày
+      ('241012SHOP03', Platform.shopee, 450000, null), // chưa hoàn tất
+    ];
+  }
 }

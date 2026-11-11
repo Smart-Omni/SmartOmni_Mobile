@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/config/api_availability.dart';
 import '../../../app/config/app_config.dart';
 import '../../../core/auth/session.dart';
 import '../../../core/auth/user_role.dart';
@@ -12,6 +13,7 @@ import '../data/auth_mock_repository.dart';
 import '../data/auth_remote_repository.dart';
 import '../data/mock_account_store.dart';
 import '../data/registration_mock_repository.dart';
+import '../data/registration_remote_repository.dart';
 import '../domain/auth_failure.dart';
 import '../domain/auth_repository.dart';
 import '../domain/registration.dart';
@@ -22,18 +24,22 @@ final mockAccountStoreProvider = Provider<MockAccountStore>(
   (ref) => MockAccountStore(),
 );
 
-/// Chọn repository thật hoặc mock theo cấu hình `USE_MOCK`.
+/// Chọn repository thật hoặc mock theo `api_availability.dart`.
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  final config = ref.watch(appConfigProvider);
-  return config.useMock
-      ? AuthMockRepository(store: ref.watch(mockAccountStoreProvider))
-      : AuthRemoteRepository(ref.watch(dioProvider));
+  return ref.watch(appConfigProvider).usesRemote(ApiFeature.auth)
+      ? AuthRemoteRepository(ref.watch(dioProvider))
+      : AuthMockRepository(store: ref.watch(mockAccountStoreProvider));
 });
 
-/// Backend chưa có API đăng ký khách -> luôn dùng mock, kể cả khi
-/// USE_MOCK=false.
+/// `true`: A-05 gọi BE thật (không OTP, mã cửa hàng chỉ kiểm định dạng).
+final registerUseRemoteProvider = Provider<bool>(
+  (ref) => ref.watch(appConfigProvider).usesRemote(ApiFeature.register),
+);
+
 final registrationRepositoryProvider = Provider<RegistrationRepository>(
-  (ref) => RegistrationMockRepository(ref.watch(mockAccountStoreProvider)),
+  (ref) => ref.watch(registerUseRemoteProvider)
+      ? RegistrationRemoteRepository(ref.watch(dioProvider))
+      : RegistrationMockRepository(ref.watch(mockAccountStoreProvider)),
 );
 
 /// Trạng thái đăng nhập của app.
@@ -77,18 +83,53 @@ class AuthController extends Notifier<AuthState> {
   TokenStorage get _storage => ref.read(tokenStorageProvider);
   AuthRepository get _repo => ref.read(authRepositoryProvider);
 
+  /// Mở app: dựng lại phiên đã lưu. Luôn rời [AuthUnknown], kể cả khi đọc
+  /// token hay gia hạn gặp lỗi bất ngờ (lúc đó về đăng nhập, không xóa token).
   Future<void> _restore() async {
-    final token = await _storage.readToken();
-    final session = token == null ? null : Session.fromToken(token);
-    if (!ref.mounted) return;
-    if (session == null ||
-        session.isExpired() ||
-        !session.role.isSupportedOnMobile) {
-      await _storage.clear();
-      state = const Unauthenticated();
-      return;
+    AuthState next;
+    try {
+      next = await _restoredState();
+    } catch (_) {
+      next = const Unauthenticated();
     }
-    state = Authenticated(session);
+    if (ref.mounted) state = next;
+  }
+
+  Future<AuthState> _restoredState() async {
+    final session = await _readSession();
+    if (session == null || !session.role.isSupportedOnMobile) {
+      return _signedOut();
+    }
+    if (!session.isExpired()) return Authenticated(session);
+
+    // Access token hết hạn: gia hạn thay vì đăng xuất.
+    final String? fresh;
+    try {
+      fresh = await ref.read(tokenRefresherProvider).refresh();
+    } on TemporaryRefreshFailure {
+      // Mất mạng / BE lỗi tạm: giữ phiên cũ và token, interceptor gia hạn ở
+      // request sau.
+      return Authenticated(session);
+    }
+    if (fresh == null) return _signedOut(); // BE từ chối refresh token.
+    final renewed = await _readSession();
+    return renewed == null || !renewed.role.isSupportedOnMobile
+        ? _signedOut()
+        : Authenticated(renewed);
+  }
+
+  Future<AuthState> _signedOut() async {
+    await _storage.clear();
+    return const Unauthenticated();
+  }
+
+  Future<Session?> _readSession() async {
+    final token = await _storage.readToken();
+    if (token == null) return null;
+    return Session.fromToken(
+      token,
+      refreshToken: await _storage.readRefreshToken(),
+    );
   }
 
   /// Đăng nhập. Ném [LoginFailure] (đã phân loại) để màn hình hiển thị lỗi.
@@ -113,14 +154,19 @@ class AuthController extends Notifier<AuthState> {
 
   /// Vào app bằng phiên đã có (vd. sau khi xác minh OTP đăng ký).
   Future<void> signIn(Session session) async {
-    await _storage.writeToken(session.accessToken);
+    await _storage.writeTokens(
+      access: session.accessToken,
+      refresh: session.refreshToken,
+    );
     state = Authenticated(session);
   }
 
-  Future<void> logout() async {
+  /// Đăng xuất, xóa cả access token và refresh token. [reason] hiện ở màn
+  /// đăng nhập (vd. sau khi đổi mật khẩu).
+  Future<void> logout({String? reason}) async {
     await _repo.logout();
     await _storage.clear();
-    state = const Unauthenticated();
+    state = Unauthenticated(reason: reason);
   }
 
   Future<void> _expire() async {

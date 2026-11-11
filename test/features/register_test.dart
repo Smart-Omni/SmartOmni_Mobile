@@ -3,12 +3,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:smartomni_mobile/app/router/routes.dart';
 import 'package:smartomni_mobile/core/design/design.dart';
+import 'package:smartomni_mobile/core/auth/jwt_decoder.dart';
 import 'package:smartomni_mobile/features/auth/data/auth_mock_repository.dart';
+import 'package:smartomni_mobile/features/auth/data/registration_remote_repository.dart';
+import 'package:smartomni_mobile/features/auth/presentation/auth_controller.dart';
 import 'package:smartomni_mobile/features/auth/presentation/login_screen.dart';
 import 'package:smartomni_mobile/features/auth/presentation/register_otp_screen.dart';
 import 'package:smartomni_mobile/features/auth/presentation/register_screen.dart';
 import 'package:smartomni_mobile/features/storefront/presentation/storefront_screens.dart';
 
+import '../helpers/fake_backend.dart';
 import '../helpers/test_app.dart';
 
 Future<void> _openRegister(WidgetTester tester) async {
@@ -221,6 +225,63 @@ void main() {
     await tester.tap(find.byKey(const Key('login_submit')));
     await tester.pumpAndSettle();
     expect(find.byType(StorefrontScreen), findsOneWidget);
+  });
+
+  testWidgets('BE thật: mã chỉ kiểm định dạng, đăng ký xong vào thẳng app, '
+      'không qua OTP', (tester) async {
+    final backend = FakeBackend((o) async {
+      final token = JwtDecoder.buildUnsigned({
+        'sub': '50',
+        'role': 'CUSTOMER',
+        'exp':
+            DateTime.now()
+                .add(const Duration(hours: 24))
+                .millisecondsSinceEpoch ~/
+            1000,
+      });
+      return (
+        201,
+        ok({
+          'access_token': token,
+          'refresh_token': 'r1',
+          'user_info': {'id': 50, 'email': 'moi@khach.vn', 'role': 'CUSTOMER'},
+        }),
+      );
+    });
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final storage = await pumpSmartOmniApp(
+      tester,
+      overrides: [
+        registerUseRemoteProvider.overrideWithValue(true),
+        registrationRepositoryProvider.overrideWithValue(
+          RegistrationRemoteRepository(fakeDio(backend)),
+        ),
+      ],
+    );
+    await tapVisible(tester, find.byKey(const Key('login_register')));
+    // Không có banner gợi ý mã mẫu, không tra danh sách mẫu.
+    expect(find.byType(SoMockBanner), findsNothing);
+
+    // Sai định dạng thì báo dưới ô, không gửi.
+    await _fill(tester, shop: 'ab');
+    await tapVisible(tester, find.byKey(const Key('register_terms')));
+    await tapVisible(tester, find.byKey(const Key('register_submit')));
+    expect(
+      find.text('Mã cửa hàng gồm 3–30 chữ thường, số hoặc dấu gạch ngang'),
+      findsOneWidget,
+    );
+    expect(backend.requests, isEmpty);
+
+    // Mã thật trên BE (không có trong danh sách mẫu) vẫn gửi được.
+    await tester.enterText(_field('register_shop_code'), 'Cua-Hang-That');
+    await tapVisible(tester, find.byKey(const Key('register_submit')));
+
+    expect(backend.requests.single.data['subdomain'], 'cua-hang-that');
+    expect(find.byType(RegisterOtpScreen), findsNothing);
+    expect(find.byType(StorefrontScreen), findsOneWidget);
+    expect(await storage.readRefreshToken(), 'r1');
   });
 
   testWidgets('OTP mở thẳng (không qua A-05) thì có nút Về Đăng ký', (

@@ -85,6 +85,13 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
           padding: SoSpace.page,
           sliver: SliverList.list(
             children: [
+              if (!ref.watch(ordersUseRemoteProvider)) ...[
+                const SoMockBanner(
+                  key: Key('order_mock_banner'),
+                  message: 'Đơn hàng và hoàn/trả đang là dữ liệu mẫu.',
+                ),
+                const SizedBox(height: SoSpace.s16),
+              ],
               if (o.status == OrderStatus.pending) ...[
                 const SoBanner(
                   key: Key('order_pending_banner'),
@@ -92,6 +99,17 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                   title: 'Đơn đang chờ xử lý',
                   message:
                       'Soạn hàng xong, bấm "Chuẩn bị hàng" để chuyển sang Chờ giao.',
+                ),
+                const SizedBox(height: SoSpace.s16),
+              ],
+              if (o.status == OrderStatus.onHold) ...[
+                const SoBanner(
+                  key: Key('order_on_hold_banner'),
+                  tone: SoBannerTone.info,
+                  title: 'Sàn đang tạm giữ đơn',
+                  message:
+                      'Thường do khách yêu cầu hủy hoặc đang xử lý trả hàng. '
+                      'Chờ sàn cập nhật, bạn không cần thao tác.',
                 ),
                 const SizedBox(height: SoSpace.s16),
               ],
