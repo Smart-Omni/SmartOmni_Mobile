@@ -2,6 +2,28 @@
 
 Ghi theo [Keep a Changelog](https://keepachangelog.com/vi/1.1.0/), phiên bản theo [SemVer](https://semver.org/lang/vi/).
 
+## [Unreleased]
+
+Nối app với BE [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/SmartOmni_BE) nhánh `develop` (đối chiếu commit `d4ea062`). Khi `USE_MOCK=false`, chức năng đã nối gọi API thật, chức năng chưa nối được tự dùng dữ liệu mẫu và hiện dải "Dữ liệu mẫu"; bật/tắt ở `lib/app/config/api_availability.dart`. Danh sách đã nối / chưa nối được (kèm lỗi, nguyên nhân) ở `docs/API_CONTRACT.md` mục 0.
+
+### Thêm
+- Tự gia hạn phiên bằng refresh token (`/api/v1/auth/refresh`): làm mới trước khi token hết hạn và khi gặp 401, nhiều request cùng lúc chỉ gia hạn một lần. Mất mạng hoặc BE lỗi tạm thời thì giữ phiên, không đăng xuất.
+- A-05 Đăng ký khách gọi API thật (`/api/v1/auth/register`), không còn bước OTP khi dùng BE thật; mã cửa hàng gửi làm `subdomain`. Chế độ mock giữ OTP.
+- M-50, C-40: thẻ hồ sơ hiện họ tên, email và tên cửa hàng thật (`/api/v1/users/me`, `/api/v1/tenants/me`).
+- C-40 Đổi mật khẩu (`/api/v1/auth/change-password`); đổi xong đăng xuất và báo đăng nhập lại.
+- Trạng thái đơn "Tạm giữ" (`ON_HOLD`): không có nút "Chuẩn bị hàng", không in vận đơn, vẫn ghi nhận hoàn/trả được.
+- M-20, M-21 và sheet hoàn/trả hiện dải "Dữ liệu mẫu" khi dữ liệu đơn là mẫu.
+
+### Thay đổi
+- Đăng nhập, đăng xuất, quên/đặt lại mật khẩu chuyển sang `/api/v1/auth/*` và đọc phản hồi dạng mới (`user_info`, tên trường snake_case). Đặt lại mật khẩu gửi thêm ô nhập lại.
+- Mật khẩu mới: 6–100 ký tự (trước: tối thiểu 8), khớp BE.
+- Đơn hàng, hoàn/trả, sản phẩm, tồn kho, dự báo AI, kết nối sàn dùng dữ liệu mẫu khi chạy BE thật (BE `develop` trả 404 cho các đường này).
+- Mọi đường dẫn API gom về `lib/core/network/api_paths.dart`.
+
+### Sửa lỗi
+- Đơn `ON_HOLD` từ BE bị hiện là "Chờ xử lý" và có nút "Chuẩn bị hàng".
+- Test claim điểm tự hỏng theo ngày do dữ liệu mẫu lấy giờ thật thay vì đồng hồ của test.
+
 ## [0.1.0] - 2026-10-22
 
 Bản đầu tiên: đủ giao diện 29 màn (bản 2 Glass, `docs/DESIGN.md`). Chức năng backend chưa có API chạy bằng dữ liệu mẫu và hiện dải "Dữ liệu mẫu"; danh sách API đang chờ ở `docs/API_CONTRACT.md` mục 4.
@@ -41,4 +63,5 @@ Bản demo: chạy dữ liệu mẫu, đăng nhập bằng tài khoản demo (xe
 ### Sửa lỗi
 - Màn tải lỗi hiện lỗi + "Thử lại" ngay, không còn skeleton ~38 giây do Riverpod tự thử lại.
 
+[Unreleased]: https://github.com/tuankiet710/SmartOmni_Mobile/compare/v0.1.0...develop
 [0.1.0]: https://github.com/tuankiet710/SmartOmni_Mobile/releases/tag/v0.1.0
