@@ -35,7 +35,7 @@ VS Code + extension **Flutter**, hoặc Android Studio + plugin **Flutter**.
 ## 2. Lấy code và chạy (chế độ mock - không cần backend)
 
 ```bash
-git clone https://github.com/tuankiet710/SmartOmni_Mobile.git
+git clone https://github.com/Smart-Omni/SmartOmni_Mobile.git
 cd SmartOmni_Mobile
 git switch develop
 flutter pub get

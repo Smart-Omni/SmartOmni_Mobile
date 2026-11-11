@@ -17,7 +17,7 @@ Một app duy nhất, **một màn hình đăng nhập chung**. Sau khi đăng n
 ## Chạy nhanh (5 phút)
 
 ```bash
-git clone https://github.com/tuankiet710/SmartOmni_Mobile.git
+git clone https://github.com/Smart-Omni/SmartOmni_Mobile.git
 cd SmartOmni_Mobile
 flutter pub get
 

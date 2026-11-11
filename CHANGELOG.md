@@ -63,5 +63,5 @@ Bản demo: chạy dữ liệu mẫu, đăng nhập bằng tài khoản demo (xe
 ### Sửa lỗi
 - Màn tải lỗi hiện lỗi + "Thử lại" ngay, không còn skeleton ~38 giây do Riverpod tự thử lại.
 
-[Unreleased]: https://github.com/tuankiet710/SmartOmni_Mobile/compare/v0.1.0...develop
-[0.1.0]: https://github.com/tuankiet710/SmartOmni_Mobile/releases/tag/v0.1.0
+[Unreleased]: https://github.com/Smart-Omni/SmartOmni_Mobile/compare/v0.1.0...develop
+[0.1.0]: https://github.com/Smart-Omni/SmartOmni_Mobile/releases/tag/v0.1.0
