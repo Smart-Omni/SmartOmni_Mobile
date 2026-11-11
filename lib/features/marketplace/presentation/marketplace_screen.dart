@@ -11,9 +11,11 @@ import '../domain/marketplace_connection.dart';
 import 'marketplace_providers.dart';
 
 /// T-10 Kết nối sàn (chỉ Tenant Admin), DESIGN.md mục 8b: hai thẻ sàn +
-/// hàng "Nâng cao: nhập App Key". Kết nối bằng App Key gọi API thật; danh
-/// sách, ngắt kết nối và công tắc tự nhập là mock (backend chưa có API).
-/// OAuth để sau.
+/// hàng "Nâng cao: nhập App Key".
+/// - Mock: mọi thứ là dữ liệu mẫu, kết nối bằng form App Key.
+/// - BE thật: trạng thái và ngắt kết nối gọi API. BE bắt kết nối qua OAuth
+///   (App Key luôn bị từ chối) nên ẩn form App Key, nút Kết nối tắt "Sắp có".
+///   Công tắc tự nhập vẫn là mẫu.
 class MarketplaceScreen extends ConsumerWidget {
   const MarketplaceScreen({super.key});
 
@@ -35,8 +37,8 @@ class MarketplaceScreen extends ConsumerWidget {
                   children: [
                     SoMockBanner(
                       message: connectRemote
-                          ? 'Trạng thái sàn là dữ liệu mẫu, backend chưa có '
-                                'API. Kết nối bằng App Key gọi API thật.'
+                          ? 'Công tắc tự nhập là dữ liệu mẫu, backend chưa có '
+                                'API.'
                           : 'Kết nối sàn đang là dữ liệu mẫu.',
                     ),
                     const SizedBox(height: SoSpace.s16),
@@ -47,23 +49,25 @@ class MarketplaceScreen extends ConsumerWidget {
                         connection: connectionFor(connections, platform),
                       ),
                     ],
-                    const SizedBox(height: SoSpace.group),
-                    SoListGroup(
-                      children: [
-                        SoListRow(
-                          key: const Key('marketplace_app_key'),
-                          icon: LucideIcons.keyRound,
-                          title: 'Nâng cao: nhập App Key',
-                          onTap: () => showAppKeySheet(
-                            context,
-                            platform: Platform.values.firstWhere(
-                              (p) => canConnect(connections, p),
-                              orElse: () => Platform.shopee,
+                    if (!connectRemote) ...[
+                      const SizedBox(height: SoSpace.group),
+                      SoListGroup(
+                        children: [
+                          SoListRow(
+                            key: const Key('marketplace_app_key'),
+                            icon: LucideIcons.keyRound,
+                            title: 'Nâng cao: nhập App Key',
+                            onTap: () => showAppKeySheet(
+                              context,
+                              platform: Platform.values.firstWhere(
+                                (p) => canConnect(connections, p),
+                                orElse: () => Platform.shopee,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    ],
                   ],
                 )
               : async.hasError
@@ -178,9 +182,51 @@ class _PlatformCardState extends ConsumerState<_PlatformCard> {
     );
   }
 
+  /// Nút kết nối: mock mở form App Key; BE thật tắt kèm "Sắp có" (OAuth
+  /// chưa làm).
+  Widget _connectButton({
+    required Key key,
+    required String label,
+    required bool oauthOnly,
+  }) {
+    final button = SoButton(
+      key: key,
+      label: label,
+      size: SoButtonSize.small,
+      onPressed: oauthOnly || _busy
+          ? null
+          : () => showAppKeySheet(context, platform: _platform),
+    );
+    if (!oauthOnly) return button;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Flexible(child: button),
+            const SizedBox(width: SoSpace.s8),
+            SoStatusTag(
+              key: Key('connect_soon_${_platform.name}'),
+              label: 'Sắp có',
+              status: SoStatus.neutral,
+            ),
+          ],
+        ),
+        const SizedBox(height: SoSpace.s4),
+        Text(
+          'Kết nối qua ủy quyền của sàn sẽ có ở bản sau.',
+          style: context.textTheme.bodySmall?.copyWith(
+            color: context.soColors.ink2,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.soColors;
+    final oauthOnly = ref.watch(marketplaceUseRemoteProvider);
     final conn = widget.connection;
     final status = conn?.status;
     final (label, tone) = status.tag;
@@ -216,11 +262,10 @@ class _PlatformCardState extends ConsumerState<_PlatformCard> {
             const SizedBox(height: SoSpace.s12),
             Align(
               alignment: Alignment.centerLeft,
-              child: SoButton(
+              child: _connectButton(
                 key: Key('connect_$name'),
                 label: 'Kết nối',
-                size: SoButtonSize.small,
-                onPressed: () => showAppKeySheet(context, platform: _platform),
+                oauthOnly: oauthOnly,
               ),
             ),
           ] else ...[
@@ -271,9 +316,10 @@ class _PlatformCardState extends ConsumerState<_PlatformCard> {
                 key: Key('platform_error_$name'),
                 tone: SoBannerTone.danger,
                 title: 'Mất kết nối với ${_platform.label}',
-                message:
-                    'Đơn và tồn kho đang ngừng đồng bộ. Kết nối lại bằng App '
-                    'Key của shop.',
+                message: oauthOnly
+                    ? 'Đơn và tồn kho đang ngừng đồng bộ.'
+                    : 'Đơn và tồn kho đang ngừng đồng bộ. Kết nối lại bằng '
+                          'App Key của shop.',
               ),
               const SizedBox(height: SoSpace.s12),
               Row(
@@ -289,13 +335,10 @@ class _PlatformCardState extends ConsumerState<_PlatformCard> {
                   const SizedBox(width: SoSpace.s12),
                   Expanded(
                     flex: 2,
-                    child: SoButton(
+                    child: _connectButton(
                       key: Key('reconnect_$name'),
                       label: 'Kết nối lại',
-                      size: SoButtonSize.small,
-                      onPressed: _busy
-                          ? null
-                          : () => showAppKeySheet(context, platform: _platform),
+                      oauthOnly: oauthOnly,
                     ),
                   ),
                 ],

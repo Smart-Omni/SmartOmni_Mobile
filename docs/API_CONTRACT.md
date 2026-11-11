@@ -33,6 +33,7 @@ Khi `USE_MOCK=false`, chức năng nào gọi API thật được chọn ở `li
 | Đổi mật khẩu (C-40, M-50 đang ghi "Sắp có") | `POST /api/v1/auth/change-password` | Bật lên được vì API đã có |
 | M-30, M-31, M-32 Sản phẩm | `GET /api/v1/products`, `GET /api/v1/products/{id}`, `GET /api/v1/products/{id}/skus`, `POST /api/v1/products` | Danh sách gọi thêm `/skus` cho từng sản phẩm (tối đa 4 cùng lúc). BE không trả link sàn: ẩn chấm kênh ở M-30, ẩn nhóm "Liên kết sàn" ở M-31. Nhãn tồn kho ẩn tới khi nối tồn kho |
 | M-20, M-21 Đơn hàng, hoàn/trả | `GET /api/v1/orders`, `PATCH /api/v1/orders/{id}/status?status=TO_SHIP`, `POST /api/v1/returns` | M-21 lấy dữ liệu từ danh sách; thẻ "Sản phẩm" trống ("Chưa có danh sách sản phẩm cho đơn này."). App chỉ cho chuyển sang `TO_SHIP` (chặn cả ở repository). Hộp thư (còn mock) dùng đơn mẫu riêng và không mở M-21 từ thẻ đơn |
+| T-10 Kết nối sàn | `GET /api/v1/marketplace-connections/{shopee,tiktok-shop}`, `POST …/{shopee,tiktok-shop}/disconnect` | Trạng thái và ngắt kết nối. BE bắt kết nối qua OAuth nên app ẩn form App Key, nút "Kết nối"/"Kết nối lại" tắt "Sắp có". Công tắc tự nhập vẫn là mẫu |
 | M-51 Dự báo AI | `GET /api/v1/ai/forecast/{skuId}` | App sắp xếp theo ngày, chỉ lấy từ hôm nay, tối đa 7 ngày; dòng không đọc được ngày bị bỏ. Danh sách SKU để chọn lấy từ tồn kho (M-40) |
 | M-40 Tồn kho | `GET /api/v1/inventory`, `POST /api/v1/inventory/{skuId}/adjust` | Ghép với danh sách sản phẩm (dùng chung M-30) để có mã SKU, tên. SKU chưa có dòng tồn hiện tồn 0 / giữ 0 (Hết hàng), đặt tồn được ngay; dòng tồn không khớp SKU nào hiện "SKU #id". Nhãn tồn ở M-30, M-31 hiện lại |
 | T-20 Nhân viên | `GET /api/v1/users`, `POST /api/v1/users`, `PATCH /api/v1/users/{id}/status` | Danh sách, thêm (họ tên + email + mật khẩu tạm, role `MANAGER`), khóa / mở khóa. App chặn chủ cửa hàng tự khóa (BE không chặn) |
@@ -43,7 +44,6 @@ Trước `fda1ab2`, các đường dưới đây trả 404 (controller còn ở 
 
 | Màn | API BE | Bước |
 |---|---|---|
-| T-10 Kết nối sàn | `GET /api/v1/marketplace-connections/{shopee,tiktok-shop}`, `POST /api/v1/marketplace-connections`, `POST …/{shopee,tiktok-shop}/disconnect` | 6 |
 | M-22 In vận đơn | `/api/v1/marketplace-connections/shopee/...` | Để sau buổi review |
 
 ### ❌ Chưa nối được: lỗi và nguyên nhân (gửi BE)
@@ -63,6 +63,8 @@ Trước `fda1ab2`, các đường dưới đây trả 404 (controller còn ở 
 | M-21 Chuẩn bị hàng, hoàn/trả | `PATCH /api/v1/orders/{id}/status`, `POST /api/v1/returns` | Có thể sửa đơn của cửa hàng khác | `updateStatus` và `createReturnRequest` tìm đơn bằng `findById`, không lọc tenant. Nếu RLS không chặn thì đổi được đơn của tenant khác (app chưa kiểm tra được RLS) |
 | M-21 Chi tiết đơn | - | Không có sản phẩm của đơn | Entity `OrderItem` có nhưng không gắn vào `Order` và không có API đọc. Đề xuất `GET /api/v1/orders/{id}` kèm `items` |
 | M-51 Dự báo AI | `GET /api/v1/ai/forecast/{skuId}` | Trả cả ngày đã qua, không theo thứ tự | `findByTenantIdAndSkuId` không `ORDER BY` và không lọc ngày. App tự lọc. Đề xuất sắp xếp theo `forecastDate`, chỉ trả từ hôm nay (hoặc nhận `?from=&days=`) |
+| T-10 Kết nối bằng App Key | `POST /api/v1/marketplace-connections` | Luôn 400 | `MarketplaceConnectionService.connect` từ chối cả `SHOPEE` (`SHOPEE_USE_AUTHORIZATION_FLOW`) lẫn `TIKTOK_SHOP` (`TIKTOK_USE_AUTHORIZATION_FLOW`), mà enum chỉ có 2 sàn này. Đề xuất bỏ endpoint hoặc ghi rõ chỉ dùng OAuth |
+| T-10 Công tắc tự nhập | `GET /api/v1/marketplace-connections/{sàn}` | Không có `autoImportProducts`, không bật/tắt được | `ShopeeConnectionDto`, `TiktokConnectionDto` không có trường này và chưa có API đổi. App giữ công tắc ở dạng mẫu |
 | Mọi màn khi có lỗi | - | Thông báo lỗi chung chung | Body lỗi chưa có `errorCode` (`GlobalExceptionHandler` chỉ gửi `message`) |
 | Chạy thử | - | Không có sẵn tài khoản | BE chưa có dữ liệu demo. Phải tự tạo: mở cửa hàng qua web FE (`/api/v1/tenants/onboarding`) và đăng ký khách qua app |
 
@@ -111,8 +113,8 @@ JWT payload: `{ sub: "<userId>", role, tenantId?, tenant_id?, subdomain?, iat, e
 
 | Màn hình | Method & Path | Body / Query | Trạng thái | Ghi chú |
 |---|---|---|---|---|
-| Trạng thái kết nối sàn | `GET /api/v1/marketplace-connections/shopee`, `/tiktok-shop`; ngắt: `POST …/{shopee,tiktok-shop}/disconnect` | - | 🔜 | Công tắc tự nhập vẫn mock |
-| Kết nối sàn | `POST /api/v1/marketplace-connections` | `{ platform, appKey, appSecret, autoImportProducts }` | 🔜 | |
+| Trạng thái kết nối sàn | `GET /api/v1/marketplace-connections/shopee`, `/tiktok-shop` → `ShopeeConnectionDto` / `TiktokConnectionDto` (`id, status, needsReconnect, shopId, shopName, connectedAt, …`; chưa kết nối: `data: null`); ngắt: `POST …/{shopee,tiktok-shop}/disconnect` (chỉ Tenant Admin) | - | ✅ | `MISSING_SCOPE`/`REFRESH_FAILED`/`REVOKED`/`ERROR` = lỗi kết nối. Công tắc tự nhập vẫn mock |
+| Kết nối sàn | `POST /api/v1/marketplace-connections` | `{ platform, appKey, appSecret, autoImportProducts }` | 🟡 | BE luôn trả 400 (bắt OAuth); app chỉ dùng form App Key ở chế độ mock | |
 | Quản lý Staff | `GET /api/v1/users?page=0&size=100&sortBy=createdAt&sortDir=asc` → `PageResponse<UserProfileResponse>` (snake_case); `POST /api/v1/users` `{ email, password (6–100), full_name (bắt buộc, ≤ 100), role: "MANAGER" }` (409 `EMAIL_EXISTS`); `PATCH /api/v1/users/{id}/status` `{ status: ACTIVE\|DISABLED }` | | ✅ | `StaffRemoteRepository`. Chủ cửa hàng = role `TENANT_ADMIN`; chỉ hiện `TENANT_ADMIN`/`ADMIN`/`MANAGER`. Chỉ tải trang đầu 100 người |
 | Phát voucher | - | - | 🟡 | Phụ thuộc API tạo voucher của sàn; app dùng mock (`VoucherRepository`) |
 | Gói SaaS | - | - | 🟡 | `subscription_plans`, `tenant_invoices` đã có trong ERD; app dùng mock (`SubscriptionRepository`), chưa thanh toán trong app |
@@ -164,7 +166,7 @@ Quy ước chung: response `{ success, message, data, timestamp }`, enum viết 
 
 | Màn hình | Endpoint đề xuất | Mock đang thay thế |
 |---|---|---|
-| T-10 Kết nối sàn | `GET /api/v1/marketplace-connections`, `DELETE /api/v1/marketplace-connections/{platform}`, `PATCH /api/v1/marketplace-connections/{platform}` `{ autoImportProducts }` | `MarketplaceMockRepository.listConnections`, `.disconnect`, `.setAutoImport` (kết nối App Key đã gọi API thật) |
+| T-10 Kết nối sàn | Đã nối trạng thái + ngắt kết nối (mục 2). Còn chờ: OAuth (`/authorization`, `/callback`) cho app mobile, API bật/tắt tự nhập | `MarketplaceMockRepository` (chỉ chế độ mock) |
 | T-10 OAuth | Luồng OAuth của TikTok Shop / Shopee (chưa có đặc tả) | Chưa làm |
 | T-20 Nhân viên | Đã nối `/api/v1/users` (mục 2). Còn đề xuất: BE chặn chủ cửa hàng tự khóa mình | `StaffMockRepository` (chỉ chế độ mock) |
 | T-30 Phát voucher | `GET /api/customers?fields=id,name,email,tier` (khách của cửa hàng); `GET /api/vouchers/capabilities` → `{ SHOPEE: AVAILABLE\|UNSUPPORTED\|NOT_CONNECTED, … }`; `GET /api/voucher-batches`; `POST /api/voucher-batches` `{ platform, discount, minOrder, expiresAt, customerIds }` → đợt `CREATING`, sau đó `SUCCESS` / `FAILED` (+ `failureReason`) / `UNKNOWN`. Chỉ gửi email khi sàn xác nhận tạo thành công; đợt `UNKNOWN` cần đối soát, không tạo lại | `VoucherMockRepository` |

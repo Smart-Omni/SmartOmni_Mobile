@@ -25,6 +25,7 @@ const connectedFeatures = {
   ApiFeature.inventory,
   ApiFeature.orders,
   ApiFeature.aiForecast,
+  ApiFeature.marketplace,
 };
 
 extension ApiAvailability on AppConfig {

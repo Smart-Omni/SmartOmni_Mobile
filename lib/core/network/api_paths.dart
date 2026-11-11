@@ -1,3 +1,5 @@
+import '../models/platform.dart';
+
 /// Mọi đường dẫn API của app, đi qua Nginx Gateway (:8080), đều ở `/api/v1`.
 /// Chức năng nào gọi API thật thì bật trong
 /// `lib/app/config/api_availability.dart`.
@@ -48,4 +50,15 @@ abstract final class ApiPaths {
 
   // Kết nối sàn
   static const marketplaceConnections = '/api/v1/marketplace-connections';
+
+  /// Trạng thái kết nối một sàn (`ShopeeConnectionDto` / `TiktokConnectionDto`).
+  static String marketplaceConnection(Platform p) =>
+      '$marketplaceConnections/${_slug(p)}';
+  static String marketplaceDisconnect(Platform p) =>
+      '${marketplaceConnection(p)}/disconnect';
+
+  static String _slug(Platform p) => switch (p) {
+    Platform.shopee => 'shopee',
+    Platform.tiktokShop => 'tiktok-shop',
+  };
 }
