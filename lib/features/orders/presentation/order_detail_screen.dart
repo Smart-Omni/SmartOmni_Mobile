@@ -102,6 +102,17 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                 ),
                 const SizedBox(height: SoSpace.s16),
               ],
+              if (o.status == OrderStatus.onHold) ...[
+                const SoBanner(
+                  key: Key('order_on_hold_banner'),
+                  tone: SoBannerTone.info,
+                  title: 'Sàn đang tạm giữ đơn',
+                  message:
+                      'Thường do khách yêu cầu hủy hoặc đang xử lý trả hàng. '
+                      'Chờ sàn cập nhật, bạn không cần thao tác.',
+                ),
+                const SizedBox(height: SoSpace.s16),
+              ],
               _HeaderCard(order: o),
               const _GroupTitle('Sản phẩm'),
               _ItemsCard(order: o),

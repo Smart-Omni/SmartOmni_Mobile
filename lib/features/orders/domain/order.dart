@@ -9,7 +9,11 @@ enum OrderStatus {
   delivering('DELIVERING', 'Đang giao'),
   completed('COMPLETED', 'Hoàn tất'),
   cancelled('CANCELLED', 'Đã hủy'),
-  returned('RETURNED', 'Trả hàng');
+  returned('RETURNED', 'Trả hàng'),
+
+  /// Sàn tạm giữ đơn (TikTok `IN_CANCEL`/`ON_HOLD`, đang xử lý trả hàng).
+  /// Sàn tự chuyển tiếp sang Chờ giao hoặc Đã hủy, người bán không thao tác.
+  onHold('ON_HOLD', 'Tạm giữ');
 
   const OrderStatus(this.backendValue, this.label);
 

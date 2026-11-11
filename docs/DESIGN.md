@@ -179,6 +179,7 @@ Giữ nguyên tên và tham số của bản 1 để màn hình không phải s�
 | COMPLETED | Hoàn tất | success |
 | CANCELLED | Đã hủy | neutral (nền `fill`, chữ ink2) |
 | RETURNED | Trả hàng | danger |
+| ON_HOLD | Tạm giữ | neutral (như CANCELLED: không cần người bán thao tác) |
 
 `SoStatus.kraft` của bản 1 đổi thành `SoStatus.brand`.
 

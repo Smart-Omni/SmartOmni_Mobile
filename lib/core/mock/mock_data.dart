@@ -218,6 +218,17 @@ class MockData {
         source: OrderSource.webhook,
         createdAt: ago(6),
       ),
+      // Khách TikTok đang yêu cầu hủy: sàn tạm giữ đơn.
+      Order(
+        id: 1008,
+        platform: Platform.tiktokShop,
+        platformOrderId: '5779000033334444',
+        status: OrderStatus.onHold,
+        totalAmount: 259000,
+        customerName: 'Võ F',
+        source: OrderSource.webhook,
+        createdAt: ago(1),
+      ),
     ];
   }
 

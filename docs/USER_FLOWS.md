@@ -269,7 +269,7 @@ Chỉ làm trên web portal, không làm trên mobile (chốt 22/10/2026). A-02 
 | Trạng thái màn hình | Mỗi màn có 4 trạng thái: đang tải (skeleton), có dữ liệu, rỗng, lỗi + Thử lại |
 | Thao tác ghi | Nút khóa khi đang gửi; thông báo thành công/thất bại (SnackBar); hỏi xác nhận với thao tác quan trọng |
 | Phân biệt sàn | Màu/logo riêng cho Shopee và TikTok Shop xuyên suốt (đơn, sản phẩm, voucher, hội thoại) |
-| Trạng thái đơn | Bộ màu badge cho 7 trạng thái |
+| Trạng thái đơn | Bộ màu badge cho 8 trạng thái |
 | Hạng khách | Bộ màu/biểu tượng cho 4 hạng |
 | Tiền tệ, ngày | `1.250.000 ₫`, `dd/MM/yyyy HH:mm` |
 | Dark mode | Nên hỗ trợ (theme đã có sẵn chế độ tối) |

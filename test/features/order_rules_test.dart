@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:smartomni_mobile/core/design/design.dart';
 import 'package:smartomni_mobile/core/models/platform.dart';
 import 'package:smartomni_mobile/features/orders/domain/order.dart';
 import 'package:smartomni_mobile/features/orders/domain/order_rules.dart';
@@ -21,6 +22,33 @@ Order _order(
 );
 
 void main() {
+  group('ON_HOLD = Tạm giữ', () {
+    test('đọc từ BE, nhãn và màu neutral', () {
+      expect(OrderStatus.fromBackend('ON_HOLD'), OrderStatus.onHold);
+      expect(OrderStatus.onHold.label, 'Tạm giữ');
+      expect(OrderStatus.onHold.soStatus, SoStatus.neutral);
+    });
+
+    test('không có "Chuẩn bị hàng": chỉ PENDING -> TO_SHIP', () {
+      expect(OrderStatus.onHold.manualTransitions, isEmpty);
+      expect(OrderStatus.pending.manualTransitions, [OrderStatus.toShip]);
+    });
+
+    test('tiến trình: Chờ xử lý xong, Tạm giữ là bước hiện tại (sàn)', () {
+      final steps = orderProgress(OrderStatus.onHold);
+      expect(steps.map((s) => (s.status, s.state)), [
+        (OrderStatus.pending, ProgressState.done),
+        (OrderStatus.onHold, ProgressState.current),
+      ]);
+      expect(steps.last.source, ProgressSource.platform);
+    });
+
+    test('vẫn ghi nhận hoàn/trả, không in vận đơn', () {
+      expect(canRecordReturn(OrderStatus.onHold), isTrue);
+      expect(labelAvailability(OrderStatus.onHold), LabelAvailability.none);
+    });
+  });
+
   group('orderProgress', () {
     List<(OrderStatus, ProgressState)> steps(OrderStatus s) => [
       for (final step in orderProgress(s)) (step.status, step.state),
