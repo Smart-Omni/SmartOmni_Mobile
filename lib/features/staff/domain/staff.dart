@@ -1,3 +1,4 @@
+import '../../../core/network/api_response.dart';
 import '../../../core/utils/text_fold.dart';
 
 /// Một người trong cửa hàng ở T-20: chủ cửa hàng (Tenant Admin) hoặc Staff.
@@ -12,10 +13,24 @@ class StaffMember {
     this.active = true,
   });
 
+  /// `UserProfileResponse` của `/api/v1/users` (snake_case). Chủ cửa hàng là
+  /// role `TENANT_ADMIN` (hoặc `ADMIN`, tên cũ); `DISABLED` = Đã khóa.
+  factory StaffMember.fromJson(JsonMap json) {
+    final name = (json['full_name'] as String?)?.trim();
+    final role = (json['role'] as String?)?.toUpperCase();
+    return StaffMember(
+      id: Json.asInt(json['id']) ?? 0,
+      email: json['email'] as String? ?? '',
+      name: name == null || name.isEmpty ? null : name,
+      isOwner: role == 'TENANT_ADMIN' || role == 'ADMIN',
+      active: (json['status'] as String?)?.toUpperCase() != 'DISABLED',
+    );
+  }
+
   final int id;
   final String email;
 
-  /// Staff vừa thêm (chỉ nhập email + mật khẩu tạm) chưa có tên.
+  /// Tài khoản cũ có thể chưa có tên: hiện email thay.
   final String? name;
   final bool isOwner;
 
@@ -33,13 +48,17 @@ class StaffMember {
   );
 }
 
-/// ⚠️ Backend chưa có API quản lý Staff (docs/API_CONTRACT.md) -> mock.
+/// Remote: `/api/v1/users`. Mock: danh sách mẫu.
 abstract interface class StaffRepository {
   Future<List<StaffMember>> list();
 
-  /// Tạo Staff bằng email + mật khẩu tạm. Ném [DuplicateStaffEmailException]
-  /// khi email đã có trong cửa hàng.
-  Future<StaffMember> add({required String email, required String password});
+  /// Tạo Staff bằng họ tên + email + mật khẩu tạm. Ném
+  /// [DuplicateStaffEmailException] khi email đã có trong cửa hàng.
+  Future<StaffMember> add({
+    required String name,
+    required String email,
+    required String password,
+  });
 
   /// Khóa ([active] = false) hoặc mở khóa một Staff.
   Future<StaffMember> setActive(int id, {required bool active});

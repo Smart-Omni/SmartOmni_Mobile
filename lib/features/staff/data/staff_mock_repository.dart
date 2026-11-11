@@ -30,6 +30,7 @@ class StaffMockRepository implements StaffRepository {
 
   @override
   Future<StaffMember> add({
+    required String name,
     required String email,
     required String password,
   }) async {
@@ -39,7 +40,7 @@ class StaffMockRepository implements StaffRepository {
       throw const DuplicateStaffEmailException();
     }
     final id = _members.fold(0, (max, m) => m.id > max ? m.id : max) + 1;
-    final member = StaffMember(id: id, email: normalized);
+    final member = StaffMember(id: id, email: normalized, name: name.trim());
     _members.add(member);
     return member;
   }

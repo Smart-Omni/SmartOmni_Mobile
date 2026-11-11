@@ -31,6 +31,7 @@ Khi `USE_MOCK=false`, chức năng nào gọi API thật được chọn ở `li
 | A-05 Đăng ký khách | `POST /api/v1/auth/register` | Bỏ OTP khi dùng BE thật; mã cửa hàng gửi làm `subdomain` |
 | M-50 Thông tin tài khoản | `GET /api/v1/users/me`, `GET /api/v1/tenants/me` | Tên, email, tên cửa hàng thật |
 | Đổi mật khẩu (C-40, M-50 đang ghi "Sắp có") | `POST /api/v1/auth/change-password` | Bật lên được vì API đã có |
+| T-20 Nhân viên | `GET /api/v1/users`, `POST /api/v1/users`, `PATCH /api/v1/users/{id}/status` | Danh sách, thêm (họ tên + email + mật khẩu tạm, role `MANAGER`), khóa / mở khóa. App chặn chủ cửa hàng tự khóa (BE không chặn) |
 
 ### 🔜 BE đã sửa (`9e7c4da`), app đang nối
 
@@ -38,7 +39,6 @@ Trước `fda1ab2`, các đường dưới đây trả 404 (controller còn ở 
 
 | Màn | API BE | Bước |
 |---|---|---|
-| T-20 Nhân viên | `GET/POST /api/v1/users`, `PATCH /api/v1/users/{id}/status` (đã cho `TENANT_ADMIN`) | 1 |
 | M-30, M-31, M-32 Sản phẩm | `GET /api/v1/products` (mới), `GET /api/v1/products/{id}`, `GET /api/v1/products/{id}/skus`, `POST /api/v1/products` | 2 |
 | M-40 Tồn kho | `GET /api/v1/inventory` (mới), `POST /api/v1/inventory/{skuId}/adjust` | 3 |
 | M-20, M-21 Đơn hàng, hoàn/trả | `GET /api/v1/orders`, `PATCH /api/v1/orders/{id}/status`, `POST /api/v1/returns` | 4 |
@@ -54,6 +54,8 @@ Trước `fda1ab2`, các đường dưới đây trả 404 (controller còn ở 
 | A-05 Đăng ký khách | `/api/v1/auth/register` | Khách không gắn cửa hàng | `AuthServiceImpl.register` bỏ qua `subdomain`/`tenant_id`, khách tạo ra không gắn cửa hàng nào |
 | A-05 Ô mã cửa hàng | `GET /api/v1/tenants/public/by-subdomain/{subdomain}` | 404 | Trả 404 cho khách chưa đăng nhập kể cả cửa hàng có thật (RLS chưa thiết lập ngữ cảnh đọc công khai). App chỉ kiểm định dạng mã. Chưa chạy lại với `fda1ab2` |
 | Mọi màn cần đăng nhập | - | Token hết hạn trả 403 (body rỗng) thay vì 401 | `SecurityConfig` chưa có `authenticationEntryPoint`. App đang tự refresh trước khi token hết hạn (đọc `exp`) để né lỗi này |
+| T-20 Khóa nhân viên | `PATCH /api/v1/users/{id}/status` | Nhân viên bị khóa vẫn dùng app được tới khi access token hết hạn (tối đa 24 giờ) | `JwtAuthenticationFilter` không kiểm `status` của user, và khóa không đưa access token vào blacklist; chỉ refresh bị chặn |
+| T-20 Khóa nhân viên | `PATCH /api/v1/users/{id}/status` | Xóa nhầm refresh token của user khác | `updateUserStatus` xóa theo mẫu `REDIS_PREFIX_USER_REFRESH + id + "*"`: khóa user 1 thì khớp cả user 10–19, 100… Nên xóa đúng một key, không dùng `*` |
 | Mọi màn khi có lỗi | - | Thông báo lỗi chung chung | Body lỗi chưa có `errorCode` (`GlobalExceptionHandler` chỉ gửi `message`) |
 | Chạy thử | - | Không có sẵn tài khoản | BE chưa có dữ liệu demo. Phải tự tạo: mở cửa hàng qua web FE (`/api/v1/tenants/onboarding`) và đăng ký khách qua app |
 
@@ -104,7 +106,7 @@ JWT payload: `{ sub: "<userId>", role, tenantId?, tenant_id?, subdomain?, iat, e
 |---|---|---|---|---|
 | Trạng thái kết nối sàn | `GET /api/v1/marketplace-connections/shopee`, `/tiktok-shop`; ngắt: `POST …/{shopee,tiktok-shop}/disconnect` | - | 🔜 | Công tắc tự nhập vẫn mock |
 | Kết nối sàn | `POST /api/v1/marketplace-connections` | `{ platform, appKey, appSecret, autoImportProducts }` | 🔜 | |
-| Quản lý Staff | `GET/POST /api/v1/users`, `PATCH /api/v1/users/{id}/status` | `PageResponse` snake_case | 🔜 | Đang dùng mock (`StaffRepository`) |
+| Quản lý Staff | `GET /api/v1/users?page=0&size=100&sortBy=createdAt&sortDir=asc` → `PageResponse<UserProfileResponse>` (snake_case); `POST /api/v1/users` `{ email, password (6–100), full_name (bắt buộc, ≤ 100), role: "MANAGER" }` (409 `EMAIL_EXISTS`); `PATCH /api/v1/users/{id}/status` `{ status: ACTIVE\|DISABLED }` | | ✅ | `StaffRemoteRepository`. Chủ cửa hàng = role `TENANT_ADMIN`; chỉ hiện `TENANT_ADMIN`/`ADMIN`/`MANAGER`. Chỉ tải trang đầu 100 người |
 | Phát voucher | - | - | 🟡 | Phụ thuộc API tạo voucher của sàn; app dùng mock (`VoucherRepository`) |
 | Gói SaaS | - | - | 🟡 | `subscription_plans`, `tenant_invoices` đã có trong ERD; app dùng mock (`SubscriptionRepository`), chưa thanh toán trong app |
 | Hỗ trợ | - | - | 🟡 | Bảng `support_tickets` đã có, Nginx đã route `/api/support-tickets/`; app dùng mock (`SupportRepository`): danh sách + tạo (tiêu đề, mô tả) |
@@ -157,7 +159,7 @@ Quy ước chung: response `{ success, message, data, timestamp }`, enum viết 
 |---|---|---|
 | T-10 Kết nối sàn | `GET /api/v1/marketplace-connections`, `DELETE /api/v1/marketplace-connections/{platform}`, `PATCH /api/v1/marketplace-connections/{platform}` `{ autoImportProducts }` | `MarketplaceMockRepository.listConnections`, `.disconnect`, `.setAutoImport` (kết nối App Key đã gọi API thật) |
 | T-10 OAuth | Luồng OAuth của TikTok Shop / Shopee (chưa có đặc tả) | Chưa làm |
-| T-20 Nhân viên | `GET /api/staff` → `[{ id, email, name, isOwner, active }]`; `POST /api/staff` `{ email, tempPassword }` (`409 EMAIL_EXISTS`); `PATCH /api/staff/{id}` `{ active }` (không cho khóa chủ cửa hàng) | `StaffMockRepository` |
+| T-20 Nhân viên | Đã nối `/api/v1/users` (mục 2). Còn đề xuất: BE chặn chủ cửa hàng tự khóa mình | `StaffMockRepository` (chỉ chế độ mock) |
 | T-30 Phát voucher | `GET /api/customers?fields=id,name,email,tier` (khách của cửa hàng); `GET /api/vouchers/capabilities` → `{ SHOPEE: AVAILABLE\|UNSUPPORTED\|NOT_CONNECTED, … }`; `GET /api/voucher-batches`; `POST /api/voucher-batches` `{ platform, discount, minOrder, expiresAt, customerIds }` → đợt `CREATING`, sau đó `SUCCESS` / `FAILED` (+ `failureReason`) / `UNKNOWN`. Chỉ gửi email khi sàn xác nhận tạo thành công; đợt `UNKNOWN` cần đối soát, không tạo lại | `VoucherMockRepository` |
 | T-40 Gói dịch vụ | `GET /api/subscription` → `{ planName, expiresAt, usage: { skus, connections, imageStorageGb } }` (mỗi mục `{ used, limit }`, `limit: null` = không giới hạn); `GET /api/tenant-invoices` → `[{ code, period, amount, paid, dueDate }]`. Đổi gói / thanh toán làm trên web | `SubscriptionMockRepository` |
 | T-50 Hỗ trợ | `GET /api/support-tickets` → `[{ id, code, title, status: OPEN\|IN_PROGRESS\|RESOLVED, updatedAt, lastReply: { author: SUPPORT\|ME, text }? }]`; `POST /api/support-tickets` `{ title (≤ 120), description (≤ 2.000) }` | `SupportMockRepository` |
