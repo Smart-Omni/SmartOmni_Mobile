@@ -7,6 +7,8 @@ import 'package:smartomni_mobile/core/network/api_client.dart';
 import 'package:smartomni_mobile/core/network/api_paths.dart';
 import 'package:smartomni_mobile/core/storage/token_storage.dart';
 import 'package:smartomni_mobile/features/auth/data/auth_remote_repository.dart';
+import 'package:smartomni_mobile/features/auth/data/registration_remote_repository.dart';
+import 'package:smartomni_mobile/features/auth/domain/registration.dart';
 import 'package:smartomni_mobile/features/auth/domain/auth_failure.dart';
 import 'package:smartomni_mobile/features/auth/presentation/auth_controller.dart';
 
@@ -76,6 +78,73 @@ void main() {
         });
       },
     );
+  });
+
+  group('RegistrationRemoteRepository', () {
+    const request = RegistrationRequest(
+      shopCode: 'Shop-Demo',
+      fullName: ' Trần Khách ',
+      email: 'khach@mail.vn',
+      phone: '0901234567',
+      password: '123456',
+    );
+
+    test('gửi RegisterRequest snake_case, subdomain chữ thường, trả phiên '
+        'CUSTOMER kèm refresh token', () async {
+      final backend = FakeBackend(
+        (o) async => (201, ok(_authResponse('CUSTOMER'))),
+      );
+      final session = await RegistrationRemoteRepository(
+        fakeDio(backend),
+      ).register(request);
+
+      final req = backend.requests.single;
+      expect(req.path, ApiPaths.register);
+      expect(req.headers['Authorization'], isNull);
+      expect(req.data, {
+        'email': 'khach@mail.vn',
+        'password': '123456',
+        'full_name': 'Trần Khách',
+        'phone': '0901234567',
+        'subdomain': 'shop-demo',
+      });
+      expect(session!.role, UserRole.customer);
+      expect(session.refreshToken, 'r1');
+    });
+
+    test('409 → email đã có tài khoản', () async {
+      final backend = FakeBackend(
+        (o) async => (409, apiError('Email đã được sử dụng trong hệ thống')),
+      );
+      await expectLater(
+        RegistrationRemoteRepository(fakeDio(backend)).register(request),
+        throwsA(
+          isA<RegisterFailure>().having(
+            (f) => f.kind,
+            'kind',
+            RegisterFailureKind.emailTaken,
+          ),
+        ),
+      );
+    });
+
+    test('400 → lỗi khác, giữ message của BE', () async {
+      final backend = FakeBackend(
+        (o) async => (400, apiError('Mật khẩu phải từ 6 đến 100 ký tự')),
+      );
+      await expectLater(
+        RegistrationRemoteRepository(fakeDio(backend)).register(request),
+        throwsA(
+          isA<RegisterFailure>()
+              .having((f) => f.kind, 'kind', RegisterFailureKind.other)
+              .having(
+                (f) => f.message,
+                'message',
+                'Mật khẩu phải từ 6 đến 100 ký tự',
+              ),
+        ),
+      );
+    });
   });
 
   group('AuthController với BE thật', () {

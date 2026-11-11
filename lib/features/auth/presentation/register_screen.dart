@@ -14,7 +14,8 @@ import 'auth_controller.dart';
 import 'register_otp_screen.dart';
 
 /// A-05 Đăng ký tài khoản khách (DESIGN.md mục 8b): mã cửa hàng, thông tin
-/// cá nhân, đồng ý điều khoản -> gửi OTP tới email -> màn OTP.
+/// cá nhân, đồng ý điều khoản. Mock: gửi OTP tới email -> màn OTP. BE thật:
+/// không có OTP, đăng ký xong vào thẳng app.
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
@@ -25,6 +26,7 @@ class RegisterScreen extends ConsumerStatefulWidget {
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _shopKey = GlobalKey<ShopCodeLookupState>();
+  final _shopCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
@@ -38,6 +40,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   void dispose() {
+    _shopCtrl.dispose();
     _nameCtrl.dispose();
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
@@ -47,20 +50,23 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   Future<void> _submit() async {
     if (_busy) return;
+    final remote = ref.read(registerUseRemoteProvider);
     setState(() => _busy = true);
     try {
-      final shop = await _shopKey.currentState!.resolve();
+      // BE thật: chưa tra được cửa hàng (API công khai trả 404), chỉ kiểm
+      // định dạng subdomain. Mock: tra danh sách mẫu.
+      final shop = remote ? null : await _shopKey.currentState!.resolve();
       if (!mounted) return;
       final valid = _formKey.currentState!.validate();
       setState(() => _agreeError = !_agreed);
-      if (!valid || shop == null || !_agreed) return;
+      if (!valid || (!remote && shop == null) || !_agreed) return;
 
       final email = _emailCtrl.text.trim();
-      await ref
+      final session = await ref
           .read(registrationRepositoryProvider)
           .register(
             RegistrationRequest(
-              shopCode: shop.code,
+              shopCode: shop?.code ?? _shopCtrl.text.trim().toLowerCase(),
               fullName: _nameCtrl.text,
               email: email,
               phone: _phoneCtrl.text,
@@ -68,9 +74,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
           );
       if (!mounted) return;
+      if (session != null) {
+        // BE trả phiên luôn: vào thẳng app, router đưa tới khu khách.
+        await ref.read(authControllerProvider.notifier).signIn(session);
+        return;
+      }
       await context.push(
         Routes.registerVerify,
-        extra: RegisterOtpArgs(email: email, shopName: shop.name),
+        extra: RegisterOtpArgs(email: email, shopName: shop!.name),
       );
     } on RegisterFailure catch (f) {
       if (!mounted) return;
@@ -101,6 +112,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final c = context.soColors;
+    final remote = ref.watch(registerUseRemoteProvider);
+    void clearShopError() {
+      if (_shopError != null) setState(() => _shopError = null);
+    }
 
     return Form(
       key: _formKey,
@@ -129,12 +144,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SoMockBanner(
-                      message:
-                          'Thử mã SHOPDEMO, HOAMOC hoặc BEPXINH. Email demo '
-                          '(vd. customer@demo.vn) đã có tài khoản.',
-                    ),
-                    const SizedBox(height: SoSpace.s16),
+                    if (!remote) ...[
+                      const SoMockBanner(
+                        message:
+                            'Thử mã SHOPDEMO, HOAMOC hoặc BEPXINH. Email demo '
+                            '(vd. customer@demo.vn) đã có tài khoản.',
+                      ),
+                      const SizedBox(height: SoSpace.s16),
+                    ],
                     Text(
                       'Nhập mã của cửa hàng bạn mua. Cửa hàng khác thêm sau '
                       'khi đã có tài khoản.',
@@ -146,16 +163,26 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     Container(
                       padding: SoSpace.card,
                       decoration: SoShape.card(c),
-                      child: ShopCodeLookup(
-                        key: _shopKey,
-                        keyPrefix: 'register_shop',
-                        errorText: _shopError,
-                        onChanged: (_) {
-                          if (_shopError != null) {
-                            setState(() => _shopError = null);
-                          }
-                        },
-                      ),
+                      child: remote
+                          ? SoTextField(
+                              key: const Key('register_shop_code'),
+                              label: 'Mã cửa hàng',
+                              controller: _shopCtrl,
+                              hint: 'Vd: shopdemo',
+                              mono: true,
+                              inputFormatters: subdomainFormatters,
+                              textInputAction: TextInputAction.next,
+                              validator: Validators.subdomain,
+                              errorText: _shopError,
+                              errorKey: const Key('register_shop_error'),
+                              onChanged: (_) => clearShopError(),
+                            )
+                          : ShopCodeLookup(
+                              key: _shopKey,
+                              keyPrefix: 'register_shop',
+                              errorText: _shopError,
+                              onChanged: (_) => clearShopError(),
+                            ),
                     ),
                     const SizedBox(height: SoSpace.cardGap),
                     Container(

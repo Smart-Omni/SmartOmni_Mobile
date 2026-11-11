@@ -14,6 +14,7 @@ import '../data/auth_mock_repository.dart';
 import '../data/auth_remote_repository.dart';
 import '../data/mock_account_store.dart';
 import '../data/registration_mock_repository.dart';
+import '../data/registration_remote_repository.dart';
 import '../domain/auth_failure.dart';
 import '../domain/auth_repository.dart';
 import '../domain/registration.dart';
@@ -31,10 +32,15 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
       : AuthMockRepository(store: ref.watch(mockAccountStoreProvider));
 });
 
-/// Backend chưa có API đăng ký khách -> luôn dùng mock, kể cả khi
-/// USE_MOCK=false.
+/// `true`: A-05 gọi BE thật (không OTP, mã cửa hàng chỉ kiểm định dạng).
+final registerUseRemoteProvider = Provider<bool>(
+  (ref) => ref.watch(appConfigProvider).usesRemote(ApiFeature.register),
+);
+
 final registrationRepositoryProvider = Provider<RegistrationRepository>(
-  (ref) => RegistrationMockRepository(ref.watch(mockAccountStoreProvider)),
+  (ref) => ref.watch(registerUseRemoteProvider)
+      ? RegistrationRemoteRepository(ref.watch(dioProvider))
+      : RegistrationMockRepository(ref.watch(mockAccountStoreProvider)),
 );
 
 /// Trạng thái đăng nhập của app.

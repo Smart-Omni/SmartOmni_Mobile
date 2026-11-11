@@ -11,6 +11,19 @@ void main() {
       expect(Validators.email('a@b.vn'), isNull);
     });
 
+    test(
+      'mã cửa hàng = subdomain: ^[a-z0-9-]{3,30}\$ sau khi đổi chữ thường',
+      () {
+        expect(Validators.subdomain('Shop-Demo'), isNull);
+        expect(Validators.subdomain('abc'), isNull);
+        expect(Validators.subdomain('ab'), isNotNull);
+        expect(Validators.subdomain('a' * 31), isNotNull);
+        expect(Validators.subdomain('shop demo'), isNotNull);
+        expect(Validators.subdomain('shop_demo'), isNotNull);
+        expect(Validators.subdomain(''), 'Mã cửa hàng không được để trống');
+      },
+    );
+
     test('mật khẩu mới 6–100 ký tự (khớp backend)', () {
       expect(Validators.newPassword('12345'), isNotNull);
       expect(Validators.newPassword('123456'), isNull);
