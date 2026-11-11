@@ -47,7 +47,9 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
   Widget build(BuildContext context) {
     final async = ref.watch(productsListProvider);
     // Tồn kho chỉ để gắn nhãn hết/sắp hết; chưa tải xong thì không hiện nhãn.
-    final stock = ref.watch(inventoryListProvider).value ?? const [];
+    final stock = ref.watch(showStockLabelsProvider)
+        ? ref.watch(inventoryListProvider).value ?? const <InventoryItem>[]
+        : const <InventoryItem>[];
     final products = async.value ?? const <Product>[];
     final activeCount = products.where((p) => p.active).length;
 
@@ -131,6 +133,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
             stock: stock,
             searching: _searchCtrl.text.trim().isNotEmpty,
             showHidden: _showHidden,
+            mockBanner: !ref.watch(productsUseRemoteProvider),
           ),
           AsyncError(:final error) => SliverToBoxAdapter(
             child: SoEmptyState.error(
@@ -182,9 +185,7 @@ class _StickyBar extends StatelessWidget implements PreferredSizeWidget {
 
 const _mockBanner = Padding(
   padding: EdgeInsets.fromLTRB(SoSpace.screen, SoSpace.s8, SoSpace.screen, 0),
-  child: SoMockBanner(
-    message: 'Danh sách sản phẩm là dữ liệu mẫu, backend chưa có API.',
-  ),
+  child: SoMockBanner(message: 'Danh sách sản phẩm đang là dữ liệu mẫu.'),
 );
 
 class _ProductList extends StatelessWidget {
@@ -193,6 +194,7 @@ class _ProductList extends StatelessWidget {
     required this.stock,
     required this.searching,
     required this.showHidden,
+    required this.mockBanner,
   });
 
   final List<Product> products;
@@ -200,12 +202,15 @@ class _ProductList extends StatelessWidget {
   final bool searching;
   final bool showHidden;
 
+  /// Danh sách là dữ liệu mẫu (chế độ mock).
+  final bool mockBanner;
+
   @override
   Widget build(BuildContext context) {
     if (products.isEmpty) {
       return SliverList.list(
         children: [
-          _mockBanner,
+          if (mockBanner) _mockBanner,
           if (searching)
             const SoEmptyState(
               icon: LucideIcons.searchX,
@@ -230,7 +235,7 @@ class _ProductList extends StatelessWidget {
     }
     return SliverList.list(
       children: [
-        _mockBanner,
+        if (mockBanner) _mockBanner,
         const SizedBox(height: SoSpace.s12),
         // Một thẻ trắng bo lg cách lề 16; đường chia thụt vào 16 (như M-20).
         Container(
