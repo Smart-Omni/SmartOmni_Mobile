@@ -40,7 +40,7 @@ class AccountRemoteRepository implements AccountRepository {
   Future<String?> _storeName() async {
     try {
       final res = await _dio.get<Object?>(ApiPaths.tenantsMe);
-      return unwrapResponse(res.data, (data) {
+      return await unwrapResponse(res.data, (data) {
         final tenant = data! as JsonMap;
         final storefront = tenant['storefront'] as JsonMap?;
         final name = storefront?['storeName'] as String?;
@@ -51,6 +51,9 @@ class AccountRemoteRepository implements AccountRepository {
     } on DioException {
       return null;
     } on ApiException {
+      return null;
+    } on TypeError {
+      // Body sai định dạng (vd. `storefront` không phải object).
       return null;
     }
   }

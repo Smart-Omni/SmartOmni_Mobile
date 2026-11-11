@@ -79,6 +79,26 @@ void main() {
       expect(profile.storeName, isNull);
     });
 
+    test('tenants/me trả body sai định dạng: vẫn có tên, email', () async {
+      for (final body in [
+        ok({'storefront': 'Shop Demo'}), // storefront không phải object
+        ok('không phải object'),
+        '<html>wifi</html>', // không phải ApiResponse
+      ]) {
+        final backend = FakeBackend(
+          (o) async => o.path == ApiPaths.usersMe
+              ? (200, ok(_user(tenantId: 3)))
+              : (200, body),
+        );
+        final profile = await AccountRemoteRepository(
+          fakeDio(backend),
+        ).getProfile();
+        expect(profile.fullName, 'Nguyễn Chủ', reason: '$body');
+        expect(profile.email, 'owner@shop.vn', reason: '$body');
+        expect(profile.storeName, isNull, reason: '$body');
+      }
+    });
+
     test('đổi mật khẩu gửi current_password, new_password, '
         'confirm_password', () async {
       final backend = FakeBackend((o) async => (200, ok()));
