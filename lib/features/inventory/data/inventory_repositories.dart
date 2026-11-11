@@ -3,17 +3,35 @@ import 'package:dio/dio.dart';
 import '../../../core/mock/mock_data.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/api_paths.dart';
+import '../../../core/network/api_response.dart';
 import '../../../core/utils/mock_delay.dart';
+import '../../products/domain/product.dart';
 import '../domain/inventory_item.dart';
 
+/// Inventory Service. BE trả thẳng entity `Inventory` (chỉ `skuId` và số
+/// lượng); mã SKU, tên sản phẩm ghép từ danh sách sản phẩm.
 class InventoryRemoteRepository implements InventoryRepository {
-  InventoryRemoteRepository(this._dio, this._fallback);
+  InventoryRemoteRepository(this._dio);
 
   final Dio _dio;
-  final InventoryRepository _fallback;
 
   @override
-  Future<List<InventoryItem>> listInventory() => _fallback.listInventory();
+  Future<List<InventoryItem>> listInventory(List<Product> products) async {
+    try {
+      // shortcut: chỉ tải trang đầu 500 dòng tồn.
+      final res = await _dio.get<Object?>(
+        ApiPaths.inventoryList,
+        queryParameters: {'page': 0, 'size': 500, 'sort': 'skuId,asc'},
+      );
+      final rows = unwrapResponse<List<InventoryRow>>(
+        res.data,
+        (data) => PageResult.fromJson(data, InventoryRow.fromJson).items,
+      );
+      return buildInventoryItems(rows, products);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
 
   @override
   Future<void> setStock({required int skuId, required int newQuantity}) async {
@@ -47,7 +65,7 @@ class InventoryMockRepository implements InventoryRepository {
   ];
 
   @override
-  Future<List<InventoryItem>> listInventory() async {
+  Future<List<InventoryItem>> listInventory(List<Product> products) async {
     await MockDelay.short();
     return List.unmodifiable(_items);
   }

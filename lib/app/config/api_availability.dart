@@ -22,6 +22,7 @@ const connectedFeatures = {
   ApiFeature.account,
   ApiFeature.staff,
   ApiFeature.products,
+  ApiFeature.inventory,
 };
 
 extension ApiAvailability on AppConfig {

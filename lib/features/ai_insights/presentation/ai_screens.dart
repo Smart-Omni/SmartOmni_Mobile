@@ -161,7 +161,7 @@ class _SkuCard extends StatelessWidget {
             runSpacing: SoSpace.s4,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              SoCodeTag(item.skuCode),
+              SoCodeTag(item.displayCode),
               StockLevelTag(level: item.level),
             ],
           ),
@@ -488,7 +488,7 @@ class _PickerRow extends StatelessWidget {
                         runSpacing: SoSpace.s4,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          SoCodeTag(item.skuCode),
+                          SoCodeTag(item.displayCode),
                           StockLevelTag(level: item.level),
                         ],
                       ),

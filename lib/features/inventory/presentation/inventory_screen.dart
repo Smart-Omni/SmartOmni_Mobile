@@ -25,7 +25,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final saved = await showStockSheet(context, item);
     if (saved == null || !mounted) return;
     ref.invalidate(inventoryListProvider);
-    showSoToast(context, 'Đã lưu số tồn ${item.skuCode}: $saved');
+    showSoToast(context, 'Đã lưu số tồn ${item.displayCode}: $saved');
   }
 
   @override
@@ -82,7 +82,7 @@ class _InventoryBody extends StatelessWidget {
   final ValueChanged<InventoryFilter> onFilter;
   final ValueChanged<InventoryItem> onTap;
 
-  /// Lưu số tồn gọi API thật (danh sách vẫn là mẫu).
+  /// Tồn kho gọi API thật: không hiện dải "Dữ liệu mẫu".
   final bool stockRemote;
 
   @override
@@ -93,19 +93,16 @@ class _InventoryBody extends StatelessWidget {
 
     return SliverList.list(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            SoSpace.screen,
-            SoSpace.s8,
-            SoSpace.screen,
-            0,
+        if (!stockRemote)
+          const Padding(
+            padding: EdgeInsets.fromLTRB(
+              SoSpace.screen,
+              SoSpace.s8,
+              SoSpace.screen,
+              0,
+            ),
+            child: SoMockBanner(message: 'Tồn kho đang là dữ liệu mẫu.'),
           ),
-          child: SoMockBanner(
-            message: stockRemote
-                ? 'Danh sách tồn kho là dữ liệu mẫu. Lưu số tồn gọi API thật.'
-                : 'Tồn kho đang là dữ liệu mẫu.',
-          ),
-        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(
             SoSpace.screen,
@@ -219,8 +216,11 @@ class _StockRow extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: context.textTheme.titleMedium,
                     ),
-                    const SizedBox(height: SoSpace.s4),
-                    SoCodeTag(item.skuCode),
+                    // SKU không khớp sản phẩm nào: chỉ có "SKU #id", không mã.
+                    if (item.skuCode.isNotEmpty) ...[
+                      const SizedBox(height: SoSpace.s4),
+                      SoCodeTag(item.skuCode),
+                    ],
                     const SizedBox(height: SoSpace.s8),
                     SoStockMeter.mini(
                       onHand: item.quantityOnHand,

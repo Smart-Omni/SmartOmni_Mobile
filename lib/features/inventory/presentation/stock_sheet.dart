@@ -112,7 +112,7 @@ class _StockSheetState extends ConsumerState<StockSheet> {
           children: [
             Text(title, style: context.textTheme.titleMedium),
             const SizedBox(height: SoSpace.s8),
-            Row(children: [Flexible(child: SoCodeTag(item.skuCode))]),
+            Row(children: [Flexible(child: SoCodeTag(item.displayCode))]),
             const SizedBox(height: SoSpace.s16),
             Text(
               'Hiện tại',
