@@ -33,6 +33,7 @@ Khi `USE_MOCK=false`, chức năng nào gọi API thật được chọn ở `li
 | Đổi mật khẩu (C-40, M-50 đang ghi "Sắp có") | `POST /api/v1/auth/change-password` | Bật lên được vì API đã có |
 | M-30, M-31, M-32 Sản phẩm | `GET /api/v1/products`, `GET /api/v1/products/{id}`, `GET /api/v1/products/{id}/skus`, `POST /api/v1/products` | Danh sách gọi thêm `/skus` cho từng sản phẩm (tối đa 4 cùng lúc). BE không trả link sàn: ẩn chấm kênh ở M-30, ẩn nhóm "Liên kết sàn" ở M-31. Nhãn tồn kho ẩn tới khi nối tồn kho |
 | M-20, M-21 Đơn hàng, hoàn/trả | `GET /api/v1/orders`, `PATCH /api/v1/orders/{id}/status?status=TO_SHIP`, `POST /api/v1/returns` | M-21 lấy dữ liệu từ danh sách; thẻ "Sản phẩm" trống ("Chưa có danh sách sản phẩm cho đơn này."). App chỉ cho chuyển sang `TO_SHIP` (chặn cả ở repository). Hộp thư (còn mock) dùng đơn mẫu riêng và không mở M-21 từ thẻ đơn |
+| M-51 Dự báo AI | `GET /api/v1/ai/forecast/{skuId}` | App sắp xếp theo ngày, chỉ lấy từ hôm nay, tối đa 7 ngày; dòng không đọc được ngày bị bỏ. Danh sách SKU để chọn lấy từ tồn kho (M-40) |
 | M-40 Tồn kho | `GET /api/v1/inventory`, `POST /api/v1/inventory/{skuId}/adjust` | Ghép với danh sách sản phẩm (dùng chung M-30) để có mã SKU, tên. SKU chưa có dòng tồn hiện tồn 0 / giữ 0 (Hết hàng), đặt tồn được ngay; dòng tồn không khớp SKU nào hiện "SKU #id". Nhãn tồn ở M-30, M-31 hiện lại |
 | T-20 Nhân viên | `GET /api/v1/users`, `POST /api/v1/users`, `PATCH /api/v1/users/{id}/status` | Danh sách, thêm (họ tên + email + mật khẩu tạm, role `MANAGER`), khóa / mở khóa. App chặn chủ cửa hàng tự khóa (BE không chặn) |
 
@@ -42,7 +43,6 @@ Trước `fda1ab2`, các đường dưới đây trả 404 (controller còn ở 
 
 | Màn | API BE | Bước |
 |---|---|---|
-| M-51 Dự báo AI | `GET /api/v1/ai/forecast/{skuId}` | 5 |
 | T-10 Kết nối sàn | `GET /api/v1/marketplace-connections/{shopee,tiktok-shop}`, `POST /api/v1/marketplace-connections`, `POST …/{shopee,tiktok-shop}/disconnect` | 6 |
 | M-22 In vận đơn | `/api/v1/marketplace-connections/shopee/...` | Để sau buổi review |
 
@@ -62,6 +62,7 @@ Trước `fda1ab2`, các đường dưới đây trả 404 (controller còn ở 
 | M-21 Chuẩn bị hàng | `PATCH /api/v1/orders/{id}/status` | Không chặn chuyển trạng thái sai | `OrderService.updateOrderStatus` gặp chuyển không hợp lệ chỉ ghi `log.warn` rồi vẫn lưu. App tự chặn (chỉ `PENDING → TO_SHIP`) |
 | M-21 Chuẩn bị hàng, hoàn/trả | `PATCH /api/v1/orders/{id}/status`, `POST /api/v1/returns` | Có thể sửa đơn của cửa hàng khác | `updateStatus` và `createReturnRequest` tìm đơn bằng `findById`, không lọc tenant. Nếu RLS không chặn thì đổi được đơn của tenant khác (app chưa kiểm tra được RLS) |
 | M-21 Chi tiết đơn | - | Không có sản phẩm của đơn | Entity `OrderItem` có nhưng không gắn vào `Order` và không có API đọc. Đề xuất `GET /api/v1/orders/{id}` kèm `items` |
+| M-51 Dự báo AI | `GET /api/v1/ai/forecast/{skuId}` | Trả cả ngày đã qua, không theo thứ tự | `findByTenantIdAndSkuId` không `ORDER BY` và không lọc ngày. App tự lọc. Đề xuất sắp xếp theo `forecastDate`, chỉ trả từ hôm nay (hoặc nhận `?from=&days=`) |
 | Mọi màn khi có lỗi | - | Thông báo lỗi chung chung | Body lỗi chưa có `errorCode` (`GlobalExceptionHandler` chỉ gửi `message`) |
 | Chạy thử | - | Không có sẵn tài khoản | BE chưa có dữ liệu demo. Phải tự tạo: mở cửa hàng qua web FE (`/api/v1/tenants/onboarding`) và đăng ký khách qua app |
 
@@ -101,7 +102,7 @@ JWT payload: `{ sub: "<userId>", role, tenantId?, tenant_id?, subdomain?, iat, e
 | Tạo sản phẩm | `POST /api/v1/products` | `CreateProductRequest { name, description?, skus: [{ skuCode, variantName?, basePrice? }] }` | ✅ | |
 | Danh sách tồn kho | `GET /api/v1/inventory?page=0&size=500&sort=skuId,asc` | → `Page<Inventory>` (camelCase: `skuId, quantityOnHand, reservedQuantity`); tên SP, mã SKU ghép từ danh sách sản phẩm | ✅ | `InventoryRemoteRepository` + `buildInventoryItems`. Chỉ tải trang đầu 500 |
 | Đặt lại tồn | `POST /api/v1/inventory/{skuId}/adjust` | `?quantity=<số tồn MỚI>` | ✅ | BE **gán** số lượng, không cộng/trừ |
-| Dự báo theo SKU | `GET /api/v1/ai/forecast/{skuId}` | → `[DemandForecast]` | 🔜 | |
+| Dự báo theo SKU | `GET /api/v1/ai/forecast/{skuId}` | → `[DemandForecast { skuId, forecastDate (yyyy-MM-dd), predictedQuantity, recommendedReorderQty }]` | ✅ | |
 | Gợi ý sản phẩm | `GET /api/v1/ai/recommendations/{skuId}` | | ⚪ | Chưa có màn hình |
 | Cảnh báo AI | - | - | 🟡 | Đề xuất `GET /api/v1/ai/alerts` |
 | Hộp thư CSKH | - | - | ⚪ | Chờ Message Service |
