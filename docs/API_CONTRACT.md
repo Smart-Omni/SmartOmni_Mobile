@@ -1,5 +1,7 @@
 # Hợp đồng API (màn hình ↔ backend)
 
+Backend: [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/SmartOmni_BE), nhánh `develop`, đối chiếu ở commit `d4ea062`.
+
 - Mọi request đi qua **Nginx Gateway** `:8080`, header `Authorization: Bearer <JWT>` (trừ login/quên mật khẩu).
 - Response chuẩn: `{ "success": bool, "message": string?, "data": T, "timestamp": ISO-8601 }`.
 - Phân trang theo Spring: `?page=0&size=20&sort=createdAt,desc` → `data: { content: [...], totalElements, totalPages, number, size }`.
@@ -9,6 +11,37 @@ Chú thích cột **Trạng thái**:
 - ✅ **Thật** - backend đã có, app gọi API khi `USE_MOCK=false`.
 - 🟡 **Mock** - backend chưa có API, app luôn dùng dữ liệu mẫu (màn hình có dải "Dữ liệu mẫu").
 - ⚪ **Chưa làm** - chưa có màn hình (mục "Sắp có").
+
+## 0. Tình trạng nối API (BE `develop` @ `d4ea062`)
+
+### ✅ Nối được ngay
+
+| Màn | API BE | Ghi chú |
+|---|---|---|
+| A-02 Đăng nhập | `POST /api/v1/auth/login` | Đọc dạng mới: vai trò nằm trong `userInfo` |
+| Đăng xuất | `POST /api/v1/auth/logout` | |
+| A-03 Quên mật khẩu | `POST /api/v1/auth/forgot-password` | |
+| A-04 Đặt lại mật khẩu | `POST /api/v1/auth/reset-password` | Gửi thêm ô nhập lại mật khẩu |
+| Tự gia hạn phiên | `POST /api/v1/auth/refresh` | Không bị đá ra khi token hết hạn |
+| A-05 Đăng ký khách | `POST /api/v1/auth/register` | Bỏ OTP khi dùng BE thật; mã cửa hàng gửi làm `subdomain` |
+| M-50 Thông tin tài khoản | `GET /api/v1/users/me`, `GET /api/v1/tenants/me` | Tên, email, tên cửa hàng thật |
+| Đổi mật khẩu (C-40, M-50 đang ghi "Sắp có") | `POST /api/v1/auth/change-password` | Bật lên được vì API đã có |
+
+### ❌ Chưa nối được: lỗi và nguyên nhân (gửi BE)
+
+| Màn trong app | API | Lỗi | Nguyên nhân |
+|---|---|---|---|
+| M-20, M-21 Đơn hàng, đổi trạng thái | `/api/orders` | 404 | Nginx chỉ cho qua `/api/v1/...`, còn `OrderController` vẫn nhận `/api/orders`. Gọi kiểu nào cũng không tới |
+| Hoàn/trả (sheet ở M-21) | `/api/returns` | 404 | Như trên (`ReturnRefundController`) |
+| M-30, M-31, M-32 Sản phẩm | `/api/products` | 404 | Như trên (`ProductController`). Ngoài ra chưa có API danh sách sản phẩm |
+| M-40 Tồn kho | `/api/inventory` | 404 | Như trên (`InventoryController`). Chưa có API danh sách tồn |
+| M-51 Dự báo AI | `/api/ai/forecast` | 404 | Như trên (`DemandForecastController`) |
+| T-10 Kết nối sàn | `/api/marketplace-connections` | 404 | Như trên (`MarketplaceConnection`, `Shopee*`, `TiktokConnectionController`) |
+| M-22 In vận đơn Shopee | `/api/marketplace-connections/shopee/...` | 404 | Như trên |
+| T-20 Nhân viên | `/api/v1/users` | 403 | `UserController` chỉ cho role `ADMIN` hoặc `TENANT_OWNER`. Không có role `TENANT_OWNER`, chủ cửa hàng là `TENANT_ADMIN` nên bị chặn |
+| M-10, M-60/61, T-30, T-40, T-50, C-00, C-10, C-11, C-12, C-20, C-30 | - | Chưa có API | BE chưa làm các chức năng này |
+| Mọi màn khi có lỗi | - | Thông báo lỗi chung chung | Body lỗi chưa có `errorCode` (`GlobalExceptionHandler` chỉ gửi `message`) |
+| Chạy thử | - | Không có sẵn tài khoản | BE chưa có dữ liệu demo. Phải tự tạo: mở cửa hàng qua web FE (`/api/v1/tenants/onboarding`) và đăng ký khách qua app |
 
 ## 1. Xác thực
 

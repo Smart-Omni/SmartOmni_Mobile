@@ -1,6 +1,6 @@
 # Yêu cầu dự án SmartOmni (góc nhìn app mobile)
 
-> Tổng hợp từ repo backend [SmartOmmi_BE](https://github.com/Hxvf123/SmartOmmi_BE): `README.md`, `docs/project-context.md`,
+> Tổng hợp từ repo backend [SmartOmni_BE](https://github.com/Smart-Omni/SmartOmni_BE): `README.md`, `docs/project-context.md`,
 > `docs/architecture.md`, `docs/SmartOmni_Additional_Flows_Detailed.md`, `docs/erd.dbml` và mã nguồn controller/DTO/entity.
 > Khi backend thay đổi, cập nhật file này và [API_CONTRACT.md](API_CONTRACT.md).
 

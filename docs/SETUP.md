@@ -82,7 +82,7 @@ Apple cho phép dùng **Apple ID thường** để cài app lên iPhone của ch
 
 ## 4. Nối với backend chạy trên máy (USE_MOCK=false)
 
-1. Chạy backend theo README của [SmartOmmi_BE](https://github.com/Hxvf123/SmartOmmi_BE): `docker compose up -d --build` → API ở `http://localhost:8080`.
+1. Chạy backend theo README của [SmartOmni_BE](https://github.com/Smart-Omni/SmartOmni_BE): `docker compose up -d --build` → API ở `http://localhost:8080`.
 2. Tạo tài khoản: dùng `POST /api/tenants/onboarding` (Postman) để tạo tenant + admin.
 3. Chạy app trỏ vào backend:
 
