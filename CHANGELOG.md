@@ -4,7 +4,7 @@ Ghi theo [Keep a Changelog](https://keepachangelog.com/vi/1.1.0/), phiên bản 
 
 ## [Unreleased]
 
-Nối app với BE [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/SmartOmni_BE) nhánh `develop` (đối chiếu commit `d4ea062`). Khi `USE_MOCK=false`, chức năng đã nối gọi API thật, chức năng chưa nối được tự dùng dữ liệu mẫu và hiện dải "Dữ liệu mẫu"; bật/tắt ở `lib/app/config/api_availability.dart`. Danh sách đã nối / chưa nối được (kèm lỗi, nguyên nhân) ở `docs/API_CONTRACT.md` mục 0.
+Nối app với BE [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/SmartOmni_BE) nhánh `develop` (đối chiếu commit `fda1ab2`). Khi `USE_MOCK=false`, chức năng đã nối gọi API thật, chức năng chưa nối được tự dùng dữ liệu mẫu và hiện dải "Dữ liệu mẫu"; bật/tắt ở `lib/app/config/api_availability.dart`. Danh sách đã nối / chưa nối được (kèm lỗi, nguyên nhân) ở `docs/API_CONTRACT.md` mục 0.
 
 ### Thêm
 - Tự gia hạn phiên bằng refresh token (`/api/v1/auth/refresh`): làm mới trước khi token hết hạn và khi gặp 401, nhiều request cùng lúc chỉ gia hạn một lần. Mất mạng hoặc BE lỗi tạm thời thì giữ phiên, không đăng xuất.
@@ -13,16 +13,25 @@ Nối app với BE [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/Smart
 - C-40 Đổi mật khẩu (`/api/v1/auth/change-password`); đổi xong đăng xuất và báo đăng nhập lại.
 - Trạng thái đơn "Tạm giữ" (`ON_HOLD`): không có nút "Chuẩn bị hàng", không in vận đơn, vẫn ghi nhận hoàn/trả được.
 - M-20, M-21 và sheet hoàn/trả hiện dải "Dữ liệu mẫu" khi dữ liệu đơn là mẫu.
+- T-20 Nhân viên gọi API thật (`/api/v1/users`): danh sách, thêm nhân viên (thêm ô **Họ tên** bắt buộc, cả ở chế độ mock), khóa / mở khóa. Chủ cửa hàng không tự khóa được mình.
+- M-30/31/32 Sản phẩm gọi API thật (`/api/v1/products`): danh sách kèm SKU (gọi `/skus` từng sản phẩm, tối đa 4 cùng lúc), chi tiết, tạo. BE chưa trả link sàn nên ẩn chấm kênh và nhóm "Liên kết sàn".
+- M-40 Tồn kho gọi API thật (`/api/v1/inventory`): ghép với danh sách sản phẩm; SKU chưa có dòng tồn hiện tồn 0 và đặt tồn được ngay; dòng không khớp SKU hiện "SKU #id".
+- M-20/M-21 Đơn hàng gọi API thật (`/api/v1/orders`, `/api/v1/returns`). Thẻ "Sản phẩm" ở M-21 để trống vì BE chưa trả sản phẩm của đơn. App chỉ cho chuyển `PENDING → TO_SHIP`.
+- M-51 Dự báo gọi API thật (`/api/v1/ai/forecast/{skuId}`): sắp xếp theo ngày, chỉ lấy từ hôm nay, tối đa 7 ngày.
+- T-10 Kết nối sàn: trạng thái và ngắt kết nối gọi API thật. BE chỉ cho kết nối qua OAuth nên khi dùng BE thật app ẩn form App Key, nút "Kết nối" tắt "Sắp có". Công tắc tự nhập vẫn là mẫu.
 
 ### Thay đổi
 - Đăng nhập, đăng xuất, quên/đặt lại mật khẩu chuyển sang `/api/v1/auth/*` và đọc phản hồi dạng mới (`user_info`, tên trường snake_case). Đặt lại mật khẩu gửi thêm ô nhập lại.
 - Mật khẩu mới: 6–100 ký tự (trước: tối thiểu 8), khớp BE.
-- Đơn hàng, hoàn/trả, sản phẩm, tồn kho, dự báo AI, kết nối sàn dùng dữ liệu mẫu khi chạy BE thật (BE `develop` trả 404 cho các đường này).
+- Đơn hàng, hoàn/trả, sản phẩm, tồn kho, dự báo AI, kết nối sàn chuyển sang `/api/v1/...` (BE `9e7c4da`).
+- Hộp thư (còn mock) dùng đơn mẫu riêng khi đơn hàng đã nối BE, và thẻ đơn trong hội thoại không mở M-21 lúc đó, để không gửi id đơn mẫu lên BE.
+- Đọc được phân trang `PageResponse` snake_case của `/api/v1/users`.
 - Mọi đường dẫn API gom về `lib/core/network/api_paths.dart`.
 
 ### Sửa lỗi
 - Đơn `ON_HOLD` từ BE bị hiện là "Chờ xử lý" và có nút "Chuẩn bị hàng".
 - Test claim điểm tự hỏng theo ngày do dữ liệu mẫu lấy giờ thật thay vì đồng hồ của test.
+- "Thử lại" ở M-40 và M-51 tải lại cả danh sách sản phẩm, không còn kẹt lỗi khi sản phẩm lỗi thoáng qua.
 
 ## [0.1.0] - 2026-10-22
 
