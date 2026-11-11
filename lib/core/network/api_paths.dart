@@ -1,8 +1,5 @@
-/// Mọi đường dẫn API của app, đi qua Nginx Gateway (:8080).
-///
-/// Đơn, hoàn/trả, sản phẩm, tồn kho, AI, kết nối sàn: controller BE vẫn nhận
-/// `/api/...` trong khi Nginx chỉ cho qua `/api/v1/...` (docs/API_CONTRACT.md
-/// mục 0). BE chuyển xong thì sửa đường dẫn ở đây rồi bật chức năng trong
+/// Mọi đường dẫn API của app, đi qua Nginx Gateway (:8080), đều ở `/api/v1`.
+/// Chức năng nào gọi API thật thì bật trong
 /// `lib/app/config/api_availability.dart`.
 abstract final class ApiPaths {
   // Xác thực
@@ -28,22 +25,27 @@ abstract final class ApiPaths {
   static const usersMe = '/api/v1/users/me';
   static const tenantsMe = '/api/v1/tenants/me';
 
+  // Nhân viên (T-20). Trả `PageResponse` snake_case.
+  static const users = '/api/v1/users';
+  static String userStatus(int id) => '/api/v1/users/$id/status';
+
   // Đơn hàng
-  static const orders = '/api/orders';
-  static String orderStatus(int orderId) => '/api/orders/$orderId/status';
-  static const returns = '/api/returns';
+  static const orders = '/api/v1/orders';
+  static String orderStatus(int orderId) => '/api/v1/orders/$orderId/status';
+  static const returns = '/api/v1/returns';
 
   // Sản phẩm
-  static const products = '/api/products';
-  static String product(int id) => '/api/products/$id';
-  static String productSkus(int id) => '/api/products/$id/skus';
+  static const products = '/api/v1/products';
+  static String product(int id) => '/api/v1/products/$id';
+  static String productSkus(int id) => '/api/v1/products/$id/skus';
 
   // Tồn kho
-  static String inventoryAdjust(int skuId) => '/api/inventory/$skuId/adjust';
+  static const inventoryList = '/api/v1/inventory';
+  static String inventoryAdjust(int skuId) => '/api/v1/inventory/$skuId/adjust';
 
   // AI
-  static String forecast(int skuId) => '/api/ai/forecast/$skuId';
+  static String forecast(int skuId) => '/api/v1/ai/forecast/$skuId';
 
   // Kết nối sàn
-  static const marketplaceConnections = '/api/marketplace-connections';
+  static const marketplaceConnections = '/api/v1/marketplace-connections';
 }
