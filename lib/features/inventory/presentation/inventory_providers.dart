@@ -29,3 +29,10 @@ final inventoryListProvider = FutureProvider.autoDispose<List<InventoryItem>>((
       : const <Product>[];
   return ref.watch(inventoryRepositoryProvider).listInventory(products);
 });
+
+/// Tải lại tồn kho cùng danh sách sản phẩm nó ghép vào. Sản phẩm lỗi thì tồn
+/// kho lỗi theo; chỉ tải lại tồn kho sẽ nhận lại đúng lỗi cũ (app không tự
+/// thử lại).
+void reloadInventory(WidgetRef ref) => ref
+  ..invalidate(productsListProvider)
+  ..invalidate(inventoryListProvider);

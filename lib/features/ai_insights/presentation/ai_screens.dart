@@ -451,7 +451,7 @@ class _SkuPickerSheet extends ConsumerWidget {
         ),
         AsyncError() => SoEmptyState.error(
           title: 'Không tải được danh sách SKU',
-          onAction: () => ref.invalidate(inventoryListProvider),
+          onAction: () => reloadInventory(ref),
         ),
         _ => const SoListGroup(children: [SoSkeletonList(count: 3)]),
       },

@@ -119,8 +119,10 @@ void main() {
   });
 
   group('M-40 với BE thật', () {
-    /// BE giả: sản phẩm + SKU + tồn; `adjust` gán số tồn mới.
-    FakeBackend backend() {
+    /// BE giả: sản phẩm + SKU + tồn; `adjust` gán số tồn mới. [failSkusOnce]:
+    /// lần gọi `/skus` đầu tiên trả 500 (lỗi thoáng qua).
+    FakeBackend backend({bool failSkusOnce = false}) {
+      var skusFailed = false;
       final stock = {
         11: _inv(11, 40, 2),
         12: _inv(12, 6, 2),
@@ -137,6 +139,10 @@ void main() {
           return (200, _page(stock.values.toList()));
         }
         final skus = RegExp(r'/products/(\d+)/skus$').firstMatch(o.path);
+        if (skus != null && failSkusOnce && !skusFailed) {
+          skusFailed = true;
+          return (500, apiError('Lỗi máy chủ'));
+        }
         if (skus != null) {
           final p = _products.firstWhere(
             (p) => p.id == int.parse(skus.group(1)!),
@@ -171,8 +177,12 @@ void main() {
       });
     }
 
-    Future<FakeBackend> open(WidgetTester tester, String tab) async {
-      final be = backend();
+    Future<FakeBackend> open(
+      WidgetTester tester,
+      String tab, {
+      bool failSkusOnce = false,
+    }) async {
+      final be = backend(failSkusOnce: failSkusOnce);
       await loginAs(
         tester,
         'admin@demo.vn',
@@ -222,6 +232,18 @@ void main() {
         find.descendant(of: mu, matching: find.text('Hết hàng')),
         findsNothing,
       );
+    });
+
+    testWidgets('sản phẩm lỗi thoáng qua: Thử lại ở M-40 tải lại cả sản phẩm '
+        'và hiện danh sách', (tester) async {
+      await open(tester, 'nav_inventory', failSkusOnce: true);
+      expect(find.text('Không tải được tồn kho'), findsOneWidget);
+
+      await tester.tap(find.text('Thử lại'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Không tải được tồn kho'), findsNothing);
+      expect(find.byKey(const Key('stock_21')), findsOneWidget);
     });
 
     testWidgets('M-30 hiện lại nhãn tồn khi tồn kho là thật', (tester) async {

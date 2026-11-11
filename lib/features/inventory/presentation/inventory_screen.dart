@@ -35,7 +35,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       appBar: const SoAppBar.root(title: 'Tồn kho'),
       onRefresh: async.hasValue
           ? () async {
-              ref.invalidate(inventoryListProvider);
+              reloadInventory(ref);
               await ref.read(inventoryListProvider.future);
             }
           : null,
@@ -53,7 +53,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
             child: SoEmptyState.error(
               title: 'Không tải được tồn kho',
               message: AsyncValueView.errorMessage(error),
-              onAction: () => ref.invalidate(inventoryListProvider),
+              onAction: () => reloadInventory(ref),
             ),
           ),
           _ => const SliverPadding(
