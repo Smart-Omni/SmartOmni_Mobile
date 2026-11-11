@@ -22,6 +22,5 @@ void main() {
       expect(c.usesRemote(f), connectedFeatures.contains(f), reason: f.name);
     }
     expect(c.usesRemote(ApiFeature.auth), isTrue);
-    expect(c.usesRemote(ApiFeature.orders), isFalse);
   });
 }

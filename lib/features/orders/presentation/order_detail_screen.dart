@@ -226,7 +226,7 @@ class _ItemsCard extends StatelessWidget {
     if (order.items.isEmpty) {
       return _Card(
         child: Text(
-          'Chưa có thông tin sản phẩm cho đơn này.',
+          'Chưa có danh sách sản phẩm cho đơn này.',
           style: context.textTheme.bodyMedium?.copyWith(color: c.ink2),
         ),
       );

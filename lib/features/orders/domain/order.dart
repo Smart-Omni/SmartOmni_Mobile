@@ -51,6 +51,8 @@ class Order {
     this.shippingAddress,
     this.source,
     this.createdAt,
+    this.trackingNumber,
+    this.slaDeadline,
     this.items = const [],
   });
 
@@ -67,7 +69,11 @@ class Order {
   final OrderSource? source;
   final DateTime? createdAt;
 
-  /// Backend chưa trả danh sách sản phẩm trong đơn qua API -> hiện chỉ có ở mock.
+  /// Có trong entity BE, chưa hiện ở M-21 (DESIGN.md chưa có chỗ).
+  final String? trackingNumber;
+  final DateTime? slaDeadline;
+
+  /// BE chưa có API sản phẩm của đơn (`OrderItem`) -> chỉ có ở mock.
   final List<OrderItem> items;
 
   factory Order.fromJson(JsonMap json) => Order(
@@ -86,6 +92,8 @@ class Order {
       _ => null,
     },
     createdAt: Json.asDate(json['createdAt']),
+    trackingNumber: json['trackingNumber'] as String?,
+    slaDeadline: Json.asDate(json['slaDeadline']),
   );
 
   Order copyWith({OrderStatus? status}) => Order(
@@ -99,6 +107,8 @@ class Order {
     shippingAddress: shippingAddress,
     source: source,
     createdAt: createdAt,
+    trackingNumber: trackingNumber,
+    slaDeadline: slaDeadline,
     items: items,
   );
 }

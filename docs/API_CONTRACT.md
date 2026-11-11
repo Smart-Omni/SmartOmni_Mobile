@@ -32,6 +32,7 @@ Khi `USE_MOCK=false`, chức năng nào gọi API thật được chọn ở `li
 | M-50 Thông tin tài khoản | `GET /api/v1/users/me`, `GET /api/v1/tenants/me` | Tên, email, tên cửa hàng thật |
 | Đổi mật khẩu (C-40, M-50 đang ghi "Sắp có") | `POST /api/v1/auth/change-password` | Bật lên được vì API đã có |
 | M-30, M-31, M-32 Sản phẩm | `GET /api/v1/products`, `GET /api/v1/products/{id}`, `GET /api/v1/products/{id}/skus`, `POST /api/v1/products` | Danh sách gọi thêm `/skus` cho từng sản phẩm (tối đa 4 cùng lúc). BE không trả link sàn: ẩn chấm kênh ở M-30, ẩn nhóm "Liên kết sàn" ở M-31. Nhãn tồn kho ẩn tới khi nối tồn kho |
+| M-20, M-21 Đơn hàng, hoàn/trả | `GET /api/v1/orders`, `PATCH /api/v1/orders/{id}/status?status=TO_SHIP`, `POST /api/v1/returns` | M-21 lấy dữ liệu từ danh sách; thẻ "Sản phẩm" trống ("Chưa có danh sách sản phẩm cho đơn này."). App chỉ cho chuyển sang `TO_SHIP` (chặn cả ở repository). Hộp thư (còn mock) dùng đơn mẫu riêng và không mở M-21 từ thẻ đơn |
 | M-40 Tồn kho | `GET /api/v1/inventory`, `POST /api/v1/inventory/{skuId}/adjust` | Ghép với danh sách sản phẩm (dùng chung M-30) để có mã SKU, tên. SKU chưa có dòng tồn hiện tồn 0 / giữ 0 (Hết hàng), đặt tồn được ngay; dòng tồn không khớp SKU nào hiện "SKU #id". Nhãn tồn ở M-30, M-31 hiện lại |
 | T-20 Nhân viên | `GET /api/v1/users`, `POST /api/v1/users`, `PATCH /api/v1/users/{id}/status` | Danh sách, thêm (họ tên + email + mật khẩu tạm, role `MANAGER`), khóa / mở khóa. App chặn chủ cửa hàng tự khóa (BE không chặn) |
 
@@ -41,7 +42,6 @@ Trước `fda1ab2`, các đường dưới đây trả 404 (controller còn ở 
 
 | Màn | API BE | Bước |
 |---|---|---|
-| M-20, M-21 Đơn hàng, hoàn/trả | `GET /api/v1/orders`, `PATCH /api/v1/orders/{id}/status`, `POST /api/v1/returns` | 4 |
 | M-51 Dự báo AI | `GET /api/v1/ai/forecast/{skuId}` | 5 |
 | T-10 Kết nối sàn | `GET /api/v1/marketplace-connections/{shopee,tiktok-shop}`, `POST /api/v1/marketplace-connections`, `POST …/{shopee,tiktok-shop}/disconnect` | 6 |
 | M-22 In vận đơn | `/api/v1/marketplace-connections/shopee/...` | Để sau buổi review |
@@ -59,6 +59,9 @@ Trước `fda1ab2`, các đường dưới đây trả 404 (controller còn ở 
 | M-30 Sản phẩm | `GET /api/v1/products` | Tải chậm khi nhiều sản phẩm (N+1) | `Product` không kèm SKU, nên app gọi thêm `GET /{id}/skus` cho từng sản phẩm (100 sản phẩm = 101 request). Đề xuất danh sách trả kèm `skus`, hoặc `GET /api/v1/products/skus?productIds=1,2,3` |
 | M-40 Tồn kho | `GET /api/v1/inventory` | Thiếu SKU chưa đặt tồn | BE chỉ tạo dòng `inventory` khi `adjust`/`restock`, nên SKU mới không có trong danh sách. App tự thêm các SKU này với tồn 0. Đề xuất trả mọi SKU của tenant (tồn 0 nếu chưa có dòng) |
 | M-40 Đặt lại tồn | `POST /api/v1/inventory/{skuId}/adjust` | Có thể sửa tồn kho của cửa hàng khác | `adjustStock`/`restock` tìm bằng `findBySkuId` (không lọc tenant) và tự tạo dòng cho `skuId` không tồn tại. Nếu RLS không chặn thì đổi được tồn của tenant khác (app chưa kiểm tra được RLS). Đề xuất `findByTenantIdAndSkuId` + kiểm SKU có thật |
+| M-21 Chuẩn bị hàng | `PATCH /api/v1/orders/{id}/status` | Không chặn chuyển trạng thái sai | `OrderService.updateOrderStatus` gặp chuyển không hợp lệ chỉ ghi `log.warn` rồi vẫn lưu. App tự chặn (chỉ `PENDING → TO_SHIP`) |
+| M-21 Chuẩn bị hàng, hoàn/trả | `PATCH /api/v1/orders/{id}/status`, `POST /api/v1/returns` | Có thể sửa đơn của cửa hàng khác | `updateStatus` và `createReturnRequest` tìm đơn bằng `findById`, không lọc tenant. Nếu RLS không chặn thì đổi được đơn của tenant khác (app chưa kiểm tra được RLS) |
+| M-21 Chi tiết đơn | - | Không có sản phẩm của đơn | Entity `OrderItem` có nhưng không gắn vào `Order` và không có API đọc. Đề xuất `GET /api/v1/orders/{id}` kèm `items` |
 | Mọi màn khi có lỗi | - | Thông báo lỗi chung chung | Body lỗi chưa có `errorCode` (`GlobalExceptionHandler` chỉ gửi `message`) |
 | Chạy thử | - | Không có sẵn tài khoản | BE chưa có dữ liệu demo. Phải tự tạo: mở cửa hàng qua web FE (`/api/v1/tenants/onboarding`) và đăng ký khách qua app |
 
@@ -88,10 +91,10 @@ JWT payload: `{ sub: "<userId>", role, tenantId?, tenant_id?, subdomain?, iat, e
 | Màn hình | Method & Path | Body / Query | Trạng thái | Repository |
 |---|---|---|---|---|
 | Tổng quan | - | - | 🟡 | `dashboardSummaryProvider` |
-| Danh sách đơn | `GET /api/v1/orders` | `page, size, sort` → `Page<Order>` | 🔜 | `OrdersRemoteRepository.fetchOrders` |
-| Chi tiết đơn | - (lấy từ danh sách) | - | 🔜 | BE chưa có API chi tiết, đơn chưa có danh sách sản phẩm. Đề xuất `GET /api/v1/orders/{id}` kèm `items` |
-| Chuyển trạng thái đơn | `PATCH /api/v1/orders/{id}/status` | `?status=TO_SHIP` | 🔜 | App chỉ cho `PENDING → TO_SHIP` |
-| Ghi nhận hoàn/trả | `POST /api/v1/returns` | `{ orderId, reason }` | 🔜 | |
+| Danh sách đơn | `GET /api/v1/orders?page=0&size=20&sort=createdAt,desc` | → `Page<Order>` (camelCase: `platform, platformOrderId, status, customerName, customerPhone, shippingAddress, totalAmount, trackingNumber, slaDeadline, source, createdAt`) | ✅ | `OrdersRemoteRepository.fetchOrders` |
+| Chi tiết đơn | - (lấy từ danh sách) | - | ✅ | BE chưa có API chi tiết, đơn chưa có danh sách sản phẩm. Đề xuất `GET /api/v1/orders/{id}` kèm `items` |
+| Chuyển trạng thái đơn | `PATCH /api/v1/orders/{id}/status` | `?status=TO_SHIP` | ✅ | App chỉ cho `PENDING → TO_SHIP` |
+| Ghi nhận hoàn/trả | `POST /api/v1/returns` | `CreateReturnRequest { orderId, reason }` → `ReturnRefund` (`REQUESTED`) | ✅ | |
 | In vận đơn | - | - | 🟡 | Đề xuất `GET /api/v1/orders/{id}/shipping-label` (PDF); app dùng tem mẫu |
 | Danh sách sản phẩm | `GET /api/v1/products?page=0&size=100&sort=createdAt,desc` | → `Page<Product>` (camelCase: `id, name, description, status: ACTIVE\|HIDDEN`); SKU lấy riêng `GET /{id}/skus` → `[ProductSku { id, productId, skuCode, variantName, basePrice }]` | ✅ | `ProductsRemoteRepository.listProducts`. Chỉ tải trang đầu 100 |
 | Chi tiết sản phẩm | `GET /api/v1/products/{id}` + `GET /api/v1/products/{id}/skus` | - | ✅ | |
