@@ -85,6 +85,8 @@ class _SkuForecastScreenState extends ConsumerState<SkuForecastScreen> {
   }
 
   Future<void> _pickSku() async {
+    // Đã mở (tự động hoặc người dùng bấm): không tự mở thêm lần nữa.
+    _autoPicked = true;
     final picked = await showSoBottomSheet<int>(
       context: context,
       builder: (_) => _SkuPickerSheet(selected: _skuId),

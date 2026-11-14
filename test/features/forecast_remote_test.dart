@@ -170,6 +170,7 @@ void main() {
       WidgetTester tester, {
       required Map<String, Object?>? tenant,
       required (int, Object?) forecast,
+      Duration tenantDelay = Duration.zero,
     }) async {
       tester.view.physicalSize = const Size(428, 1400);
       tester.view.devicePixelRatio = 1;
@@ -179,6 +180,7 @@ void main() {
           return (200, ok({'id': 7, 'email': 'a@b.vn', 'tenant_id': 3}));
         }
         if (o.path == ApiPaths.tenantsMe) {
+          await Future<void>.delayed(tenantDelay);
           return tenant == null
               ? (500, apiError('Không thể xử lý yêu cầu. Vui lòng thử lại.'))
               : (200, ok(tenant));
@@ -235,6 +237,25 @@ void main() {
       expect(find.byKey(const Key('pick_sku_11')), findsNothing);
       expect(find.text('Thử lại'), findsNothing);
       expect(backend.calls(ApiPaths.forecast(11)), 0);
+    });
+
+    testWidgets('tenants/me chậm, người dùng tự mở sheet trước → biết gói '
+        'xong không mở thêm sheet thứ hai', (tester) async {
+      await openM51(
+        tester,
+        tenant: {'id': 3, 'planType': 'PRO'},
+        forecast: (200, ok(const [])),
+        tenantDelay: const Duration(seconds: 2),
+      );
+      // Chưa biết gói: chưa tự mở sheet, người dùng bấm "Chọn SKU".
+      expect(find.byKey(const Key('pick_sku_11')), findsNothing);
+      await tester.tap(find.byKey(const Key('forecast_change_sku')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('pick_sku_11')), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('pick_sku_11')), findsOneWidget);
     });
 
     testWidgets('planType PRO → mở sheet chọn SKU như thường', (tester) async {
