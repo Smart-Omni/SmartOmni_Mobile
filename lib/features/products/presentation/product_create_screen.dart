@@ -87,8 +87,11 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
       final message = e is ApiException
           ? e.message
           : 'Kiểm tra kết nối mạng rồi thử lại.';
+      // Vượt hạn mức SKU của gói là lỗi cả form, không phải lỗi ô Mã SKU
+      // (dù message có chữ "SKU").
+      final skuLimit = e is ApiException && e.code == 'SKU_LIMIT_EXCEEDED';
       setState(() {
-        if (message.toLowerCase().contains('sku')) {
+        if (!skuLimit && message.toLowerCase().contains('sku')) {
           _skuError = message;
         } else {
           _formError = message;
