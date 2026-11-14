@@ -4,7 +4,7 @@ Ghi theo [Keep a Changelog](https://keepachangelog.com/vi/1.1.0/), phiên bản 
 
 ## [Unreleased]
 
-Nối app với BE [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/SmartOmni_BE) nhánh `develop` (đối chiếu commit `fda1ab2`). Khi `USE_MOCK=false`, chức năng đã nối gọi API thật, chức năng chưa nối được tự dùng dữ liệu mẫu và hiện dải "Dữ liệu mẫu"; bật/tắt ở `lib/app/config/api_availability.dart`. Danh sách đã nối / chưa nối được (kèm lỗi, nguyên nhân) ở `docs/API_CONTRACT.md` mục 0.
+Nối app với BE [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/SmartOmni_BE) nhánh `develop` (đối chiếu commit `4cae7a2`; trước đó `fda1ab2`). Khi `USE_MOCK=false`, chức năng đã nối gọi API thật, chức năng chưa nối được tự dùng dữ liệu mẫu và hiện dải "Dữ liệu mẫu"; bật/tắt ở `lib/app/config/api_availability.dart`. Danh sách đã nối / chưa nối được (kèm lỗi, nguyên nhân) ở `docs/API_CONTRACT.md` mục 0.
 
 ### Thêm
 - Tự gia hạn phiên bằng refresh token (`/api/v1/auth/refresh`): làm mới trước khi token hết hạn và khi gặp 401, nhiều request cùng lúc chỉ gia hạn một lần. Mất mạng hoặc BE lỗi tạm thời thì giữ phiên, không đăng xuất.
@@ -19,6 +19,8 @@ Nối app với BE [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/Smart
 - M-20/M-21 Đơn hàng gọi API thật (`/api/v1/orders`, `/api/v1/returns`). Thẻ "Sản phẩm" ở M-21 để trống vì BE chưa trả sản phẩm của đơn. App chỉ cho chuyển `PENDING → TO_SHIP`.
 - M-51 Dự báo gọi API thật (`/api/v1/ai/forecast/{skuId}`): sắp xếp theo ngày, chỉ lấy từ hôm nay, tối đa 7 ngày.
 - T-10 Kết nối sàn: trạng thái và ngắt kết nối gọi API thật. BE chỉ cho kết nối qua OAuth nên khi dùng BE thật app ẩn form App Key, nút "Kết nối" tắt "Sắp có". Công tắc tự nhập vẫn là mẫu.
+- Phiên bị thu hồi (BE `4cae7a2`, 401 `TOKEN_REVOKED` khi tài khoản bị khóa hoặc đổi quyền): refresh cũng thất bại thì đăng xuất và màn đăng nhập báo "Phiên đăng nhập đã bị thu hồi (tài khoản bị khóa hoặc đổi quyền). Vui lòng đăng nhập lại." Hết phiên khác giữ thông báo cũ.
+- M-51 chỉ có ở gói Pro: cửa hàng không ở gói PRO (biết qua `planType` của `/api/v1/tenants/me`, hoặc BE trả 403 `FEATURE_NOT_AVAILABLE`) thấy "Dự báo AI chỉ có ở gói Pro", không có nút "Thử lại", không mở sheet chọn SKU khi đã biết gói.
 
 ### Thay đổi
 - Đăng nhập, đăng xuất, quên/đặt lại mật khẩu chuyển sang `/api/v1/auth/*` và đọc phản hồi dạng mới (`user_info`, tên trường snake_case). Đặt lại mật khẩu gửi thêm ô nhập lại.
@@ -32,6 +34,7 @@ Nối app với BE [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/Smart
 - Đơn `ON_HOLD` từ BE bị hiện là "Chờ xử lý" và có nút "Chuẩn bị hàng".
 - Test claim điểm tự hỏng theo ngày do dữ liệu mẫu lấy giờ thật thay vì đồng hồ của test.
 - "Thử lại" ở M-40 và M-51 tải lại cả danh sách sản phẩm, không còn kẹt lỗi khi sản phẩm lỗi thoáng qua.
+- M-32: lỗi vượt giới hạn SKU của gói (400 `SKU_LIMIT_EXCEEDED`, "Gói Free chỉ hỗ trợ tối đa 100 SKU.") hiện ở banner của form thay vì dưới ô Mã SKU.
 
 ## [0.1.0] - 2026-10-22
 
