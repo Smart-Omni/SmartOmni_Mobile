@@ -26,6 +26,7 @@ class _Harness {
     required String access,
     bool refreshOk = true,
     bool rejectAll = false,
+    String? meErrorCode,
     Future<(int, Object?)> Function(RequestOptions o)? onRefresh,
   }) {
     storage = InMemoryTokenStorage(access, 'r1');
@@ -41,7 +42,7 @@ class _Harness {
       if (o.path == _me) {
         return !rejectAll && o.headers['Authorization'] == 'Bearer $_fresh'
             ? (200, ok({'id': 1}))
-            : (401, apiError('Unauthorized'));
+            : (401, {...apiError('Unauthorized'), 'code': ?meErrorCode});
       }
       return (200, ok());
     });
@@ -51,7 +52,7 @@ class _Harness {
         tokenStorage: storage,
         refresher: TokenRefresher(dio: fakeDio(backend), storage: storage),
         retry: dio.fetch,
-        onUnauthorized: () => expiredEvents++,
+        onUnauthorized: reasons.add,
         clock: () => _now,
       ),
     );
@@ -60,7 +61,8 @@ class _Harness {
   late final InMemoryTokenStorage storage;
   late final FakeBackend backend;
   late final Dio dio;
-  int expiredEvents = 0;
+  final reasons = <SessionEndReason>[];
+  int get expiredEvents => reasons.length;
 }
 
 void main() {
@@ -97,6 +99,41 @@ void main() {
     );
     expect(h.backend.calls(ApiPaths.refresh), 1);
     expect(h.expiredEvents, 1);
+  });
+
+  group('401 TOKEN_REVOKED (khóa tài khoản / đổi quyền)', () {
+    test('refresh thất bại → báo lý do revoked', () async {
+      final h = _Harness(
+        access: _old,
+        refreshOk: false,
+        meErrorCode: 'TOKEN_REVOKED',
+      );
+      await expectLater(h.dio.get<Object?>(_me), throwsA(isA<DioException>()));
+      expect(h.reasons, [SessionEndReason.revoked]);
+    });
+
+    test('401 không có mã thu hồi → báo lý do expired', () async {
+      final h = _Harness(access: _old, refreshOk: false);
+      await expectLater(h.dio.get<Object?>(_me), throwsA(isA<DioException>()));
+      expect(h.reasons, [SessionEndReason.expired]);
+    });
+
+    test('refresh thành công → gọi lại được, không đăng xuất', () async {
+      final h = _Harness(access: _old, meErrorCode: 'TOKEN_REVOKED');
+      final res = await h.dio.get<Object?>(_me);
+      expect(res.statusCode, 200);
+      expect(h.reasons, isEmpty);
+    });
+
+    test('gọi lại vẫn 401 TOKEN_REVOKED → báo revoked', () async {
+      final h = _Harness(
+        access: _old,
+        rejectAll: true,
+        meErrorCode: 'TOKEN_REVOKED',
+      );
+      await expectLater(h.dio.get<Object?>(_me), throwsA(isA<DioException>()));
+      expect(h.reasons, [SessionEndReason.revoked]);
+    });
   });
 
   test('nhiều request cùng gặp 401 → chỉ refresh một lần', () async {

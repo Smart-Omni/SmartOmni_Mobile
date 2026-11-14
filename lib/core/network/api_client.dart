@@ -11,13 +11,24 @@ import 'api_exception.dart';
 import 'api_paths.dart';
 import 'api_response.dart';
 
+/// Vì sao phiên kết thúc, để màn đăng nhập hiện đúng câu.
+enum SessionEndReason {
+  /// Hết hạn thường (refresh token hết hạn / không còn).
+  expired,
+
+  /// BE trả 401 `TOKEN_REVOKED` (tài khoản bị khóa hoặc đổi quyền) và
+  /// refresh cũng thất bại.
+  revoked,
+}
+
 /// Phát sự kiện khi phiên không gia hạn được (refresh token hết hạn / bị thu
 /// hồi). `AuthController` lắng nghe để đăng xuất và về màn đăng nhập.
-final sessionExpiredEventsProvider = Provider<StreamController<void>>((ref) {
-  final controller = StreamController<void>.broadcast();
-  ref.onDispose(controller.close);
-  return controller;
-});
+final sessionExpiredEventsProvider =
+    Provider<StreamController<SessionEndReason>>((ref) {
+      final controller = StreamController<SessionEndReason>.broadcast();
+      ref.onDispose(controller.close);
+      return controller;
+    });
 
 BaseOptions _baseOptions(AppConfig config) => BaseOptions(
   baseUrl: config.apiBaseUrl,
@@ -46,7 +57,8 @@ final dioProvider = Provider<Dio>((ref) {
       tokenStorage: ref.watch(tokenStorageProvider),
       refresher: ref.watch(tokenRefresherProvider),
       retry: dio.fetch,
-      onUnauthorized: () => ref.read(sessionExpiredEventsProvider).add(null),
+      onUnauthorized: (reason) =>
+          ref.read(sessionExpiredEventsProvider).add(reason),
     ),
   );
 
@@ -123,7 +135,8 @@ class TemporaryRefreshFailure implements Exception {
 ///   trả 403 body rỗng (không phải 401) cho token hết hạn, nên không thể chờ
 ///   lỗi mới refresh.
 /// - Gặp 401: refresh một lần rồi gọi lại request cũ.
-/// Refresh thất bại thì gọi [onUnauthorized] (đăng xuất).
+/// Refresh thất bại thì gọi [onUnauthorized] (đăng xuất), kèm lý do
+/// [SessionEndReason.revoked] nếu 401 có `code: TOKEN_REVOKED`.
 class AuthInterceptor extends Interceptor {
   AuthInterceptor({
     required this.tokenStorage,
@@ -136,12 +149,15 @@ class AuthInterceptor extends Interceptor {
   final TokenStorage tokenStorage;
   final TokenRefresher refresher;
   final Future<Response<dynamic>> Function(RequestOptions) retry;
-  final VoidCallback onUnauthorized;
+  final void Function(SessionEndReason reason) onUnauthorized;
   final DateTime Function() _clock;
 
   /// Còn ít hơn chừng này thì coi như hết hạn, refresh trước.
   static const refreshMargin = Duration(seconds: 30);
   static const _retriedKey = 'auth_retried';
+
+  /// Mã BE gửi kèm 401 khi phiên bị thu hồi (khóa tài khoản / đổi quyền).
+  static const revokedCode = 'TOKEN_REVOKED';
 
   static bool _isPublic(RequestOptions o) =>
       ApiPaths.public.any(o.path.endsWith);
@@ -155,7 +171,7 @@ class AuthInterceptor extends Interceptor {
       var token = await tokenStorage.readToken();
       if (token != null &&
           JwtDecoder.isExpired(token, now: _clock().add(refreshMargin))) {
-        token = await _refreshOrNull() ?? token;
+        token = await _refreshOrNull(SessionEndReason.expired) ?? token;
       }
       if (token != null && token.isNotEmpty) {
         options.headers['Authorization'] = 'Bearer $token';
@@ -173,8 +189,12 @@ class AuthInterceptor extends Interceptor {
     if (err.response?.statusCode != 401 || _isPublic(options)) {
       return handler.next(err);
     }
+    final data = err.response?.data;
+    final reason = data is Map && data['code'] == revokedCode
+        ? SessionEndReason.revoked
+        : SessionEndReason.expired;
     if (options.extra[_retriedKey] == true) {
-      onUnauthorized();
+      onUnauthorized(reason);
       return handler.next(err);
     }
 
@@ -184,7 +204,7 @@ class AuthInterceptor extends Interceptor {
     final stored = await tokenStorage.readToken();
     final token = stored != null && sent != 'Bearer $stored'
         ? stored
-        : await _refreshOrNull();
+        : await _refreshOrNull(reason);
     if (token == null) return handler.next(err);
 
     options
@@ -199,10 +219,10 @@ class AuthInterceptor extends Interceptor {
 
   /// Token mới, hoặc `null` khi BE từ chối (đã báo [onUnauthorized]) hoặc lỗi
   /// tạm thời (giữ phiên, để request tự báo lỗi).
-  Future<String?> _refreshOrNull() async {
+  Future<String?> _refreshOrNull(SessionEndReason reason) async {
     try {
       final token = await refresher.refresh();
-      if (token == null) onUnauthorized();
+      if (token == null) onUnauthorized(reason);
       return token;
     } on TemporaryRefreshFailure {
       return null;
