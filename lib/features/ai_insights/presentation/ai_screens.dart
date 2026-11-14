@@ -9,6 +9,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/utils/clock.dart';
 import '../../../core/utils/formatters.dart';
+import '../../account/presentation/account_providers.dart';
 import '../../account/presentation/account_widgets.dart';
 import '../../inventory/domain/inventory_item.dart';
 import '../../inventory/presentation/inventory_providers.dart';
@@ -26,6 +27,22 @@ final aiRepositoryProvider = Provider<AiRepository>((ref) {
 final forecastUseRemoteProvider = Provider<bool>(
   (ref) => ref.watch(appConfigProvider).usesRemote(ApiFeature.aiForecast),
 );
+
+/// `true` khi dùng BE thật và `tenants/me` cho biết cửa hàng không ở gói
+/// Pro: M-51 hiện ngay trạng thái "chỉ có ở gói Pro", không gọi dự báo.
+/// Chưa biết gói (mock, lỗi, thiếu `planType`) thì `false`: M-51 gọi dự báo
+/// và dựa vào 403 `FEATURE_NOT_AVAILABLE`.
+final forecastLockedProvider = FutureProvider.autoDispose<bool>((ref) async {
+  if (!ref.watch(forecastUseRemoteProvider)) return false;
+  try {
+    return (await ref.watch(accountProfileProvider.future)).isKnownNonPro;
+  } catch (_) {
+    return false;
+  }
+});
+
+/// Mã BE trả kèm 403 khi gói của cửa hàng không có tính năng.
+const featureNotAvailableCode = 'FEATURE_NOT_AVAILABLE';
 
 /// Dự báo 7 ngày tới (từ hôm nay) của một SKU.
 final skuForecastProvider = FutureProvider.autoDispose
@@ -49,14 +66,21 @@ class SkuForecastScreen extends ConsumerStatefulWidget {
 
 class _SkuForecastScreenState extends ConsumerState<SkuForecastScreen> {
   late int? _skuId = widget.skuId;
+  bool _autoPicked = false;
 
   @override
   void initState() {
     super.initState();
     if (_skuId == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _pickSku();
-      });
+      // Chờ biết gói: gói không phải Pro thì không mở sheet chọn SKU.
+      ref.listenManual(forecastLockedProvider, (_, next) {
+        if (next case AsyncData(value: false) when !_autoPicked) {
+          _autoPicked = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _pickSku();
+          });
+        }
+      }, fireImmediately: true);
     }
   }
 
@@ -77,6 +101,7 @@ class _SkuForecastScreenState extends ConsumerState<SkuForecastScreen> {
         !ref.watch(inventoryUseRemoteProvider);
     final stock = ref.watch(inventoryListProvider);
     final item = stock.value?.where((i) => i.skuId == skuId).firstOrNull;
+    final locked = ref.watch(forecastLockedProvider).value;
 
     return SoScaffold(
       appBar: const SoAppBar(
@@ -100,23 +125,46 @@ class _SkuForecastScreenState extends ConsumerState<SkuForecastScreen> {
                 ),
                 const SizedBox(height: SoSpace.s16),
               ],
-              _SkuCard(
-                skuId: skuId,
-                item: item,
-                loading: stock.isLoading && item == null,
-                onChange: _pickSku,
-              ),
-              if (skuId != null)
-                _ForecastSection(
+              if (locked ?? false)
+                const _ProOnlyState()
+              else ...[
+                _SkuCard(
                   skuId: skuId,
-                  // Tồn chưa tải xong hoặc SKU không có trong dữ liệu mẫu: "—".
-                  available: item?.available,
-                  onChangeSku: _pickSku,
+                  item: item,
+                  loading: stock.isLoading && item == null,
+                  onChange: _pickSku,
                 ),
+                // Chờ biết gói rồi mới gọi dự báo.
+                if (skuId != null && locked != null)
+                  _ForecastSection(
+                    skuId: skuId,
+                    // Tồn chưa tải xong hoặc SKU không có trong dữ liệu mẫu: "—".
+                    available: item?.available,
+                    onChangeSku: _pickSku,
+                  ),
+              ],
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Gói không phải Pro: không có nút (đổi SKU hay thử lại đều bị chặn như
+/// nhau). [message] là message của BE khi biết qua 403.
+class _ProOnlyState extends StatelessWidget {
+  const _ProOnlyState({this.message});
+
+  final String? message;
+
+  @override
+  Widget build(BuildContext context) {
+    return SoEmptyState(
+      key: const Key('forecast_pro_only'),
+      icon: LucideIcons.lock,
+      title: 'Dự báo AI chỉ có ở gói Pro',
+      message: message ?? 'Nâng cấp lên gói Pro để xem dự báo nhu cầu.',
     );
   }
 }
@@ -249,6 +297,9 @@ class _ForecastSection extends ConsumerWidget {
           ),
         ],
       ),
+      AsyncError(:final error)
+          when error is ApiException && error.code == featureNotAvailableCode =>
+        _ProOnlyState(message: error.message),
       AsyncError(:final error) => SoEmptyState.error(
         title: 'Không tải được dự báo',
         message: error is ApiException ? error.message : null,

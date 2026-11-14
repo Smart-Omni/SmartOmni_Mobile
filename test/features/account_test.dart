@@ -30,6 +30,7 @@ void main() {
             'id': 3,
             'companyName': 'Công ty Shop Demo',
             'storefront': {'storeName': 'Shop Demo'},
+            'planType': 'FREE',
           }),
         );
       });
@@ -41,6 +42,8 @@ void main() {
       expect(profile.email, 'owner@shop.vn');
       expect(profile.phone, '0901234567');
       expect(profile.storeName, 'Shop Demo');
+      expect(profile.planType, 'FREE');
+      expect(profile.isKnownNonPro, isTrue);
     });
 
     test('storefront trống → dùng companyName', () async {

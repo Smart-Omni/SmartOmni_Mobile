@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:smartomni_mobile/app/bootstrap.dart';
 import 'package:smartomni_mobile/app/config/app_config.dart';
 import 'package:smartomni_mobile/core/design/design.dart';
 import 'package:smartomni_mobile/core/network/api_paths.dart';
 import 'package:smartomni_mobile/core/utils/clock.dart';
+import 'package:smartomni_mobile/core/utils/mock_delay.dart';
+import 'package:smartomni_mobile/features/account/data/account_repositories.dart';
+import 'package:smartomni_mobile/features/account/domain/account_repository.dart';
+import 'package:smartomni_mobile/features/account/presentation/account_providers.dart';
 import 'package:smartomni_mobile/features/ai_insights/data/ai_repositories.dart';
 import 'package:smartomni_mobile/features/ai_insights/domain/demand_forecast.dart';
 import 'package:smartomni_mobile/features/ai_insights/presentation/ai_screens.dart';
@@ -32,6 +37,8 @@ DemandForecast _day(int y, int m, int d) =>
     DemandForecast(forecastDate: DateTime(y, m, d), predictedQuantity: 1);
 
 void main() {
+  setUp(() => MockDelay.enabled = false);
+
   group('upcomingForecast', () {
     test('bỏ ngày đã qua, giữ hôm nay, sắp xếp, tối đa 7 ngày', () {
       final days = [
@@ -98,6 +105,7 @@ void main() {
     );
     await tester.pumpWidget(
       ProviderScope(
+        retry: noAutoRetry,
         overrides: [
           appConfigProvider.overrideWithValue(testConfig),
           clockProvider.overrideWithValue(() => _today),
@@ -150,5 +158,145 @@ void main() {
     await tester.tap(find.byKey(const Key('pick_sku_21')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('forecast_empty')), findsOneWidget);
+  });
+
+  group('M-51 gói Pro (BE thật)', () {
+    const proOnly = 'Dự báo AI chỉ có ở gói Pro';
+    const beMessage = 'Tính năng AI chỉ khả dụng cho gói Pro.';
+
+    /// BE giả: `users/me`, `tenants/me` ([tenant] null = lỗi 500) và dự báo
+    /// trả [forecast].
+    Future<FakeBackend> openM51(
+      WidgetTester tester, {
+      required Map<String, Object?>? tenant,
+      required (int, Object?) forecast,
+    }) async {
+      tester.view.physicalSize = const Size(428, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final backend = FakeBackend((o) async {
+        if (o.path == ApiPaths.usersMe) {
+          return (200, ok({'id': 7, 'email': 'a@b.vn', 'tenant_id': 3}));
+        }
+        if (o.path == ApiPaths.tenantsMe) {
+          return tenant == null
+              ? (500, apiError('Không thể xử lý yêu cầu. Vui lòng thử lại.'))
+              : (200, ok(tenant));
+        }
+        return forecast;
+      });
+      await tester.pumpWidget(
+        ProviderScope(
+          retry: noAutoRetry,
+          overrides: [
+            appConfigProvider.overrideWithValue(testConfig),
+            clockProvider.overrideWithValue(() => _today),
+            inventoryUseRemoteProvider.overrideWithValue(true),
+            forecastUseRemoteProvider.overrideWithValue(true),
+            accountRepositoryProvider.overrideWithValue(
+              AccountRemoteRepository(fakeDio(backend)),
+            ),
+            aiRepositoryProvider.overrideWithValue(
+              AiRemoteRepository(fakeDio(backend)),
+            ),
+            inventoryListProvider.overrideWith(
+              (ref) async => const [
+                InventoryItem(
+                  skuId: 11,
+                  skuCode: 'AT-TRANG-M',
+                  productName: 'Áo thun',
+                  quantityOnHand: 8,
+                ),
+              ],
+            ),
+          ],
+          child: MaterialApp(
+            theme: SoTheme.light(),
+            locale: const Locale('vi'),
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            home: const SkuForecastScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return backend;
+    }
+
+    testWidgets('tenants/me planType FREE → hiện ngay, không mở sheet, không '
+        'gọi dự báo', (tester) async {
+      final backend = await openM51(
+        tester,
+        tenant: {'id': 3, 'companyName': 'Shop', 'planType': 'FREE'},
+        forecast: (200, ok(const [])),
+      );
+      expect(find.byKey(const Key('forecast_pro_only')), findsOneWidget);
+      expect(find.text(proOnly), findsOneWidget);
+      expect(find.byKey(const Key('pick_sku_11')), findsNothing);
+      expect(find.text('Thử lại'), findsNothing);
+      expect(backend.calls(ApiPaths.forecast(11)), 0);
+    });
+
+    testWidgets('planType PRO → mở sheet chọn SKU như thường', (tester) async {
+      await openM51(
+        tester,
+        tenant: {'id': 3, 'planType': 'PRO'},
+        forecast: (200, ok(const [])),
+      );
+      expect(find.byKey(const Key('pick_sku_11')), findsOneWidget);
+      expect(find.byKey(const Key('forecast_pro_only')), findsNothing);
+    });
+
+    testWidgets('chưa biết gói (tenants/me lỗi) + 403 FEATURE_NOT_AVAILABLE → '
+        'message BE, không Thử lại', (tester) async {
+      final backend = await openM51(
+        tester,
+        tenant: null,
+        forecast: (
+          403,
+          {...apiError(beMessage), 'code': 'FEATURE_NOT_AVAILABLE'},
+        ),
+      );
+      await tester.tap(find.byKey(const Key('pick_sku_11')));
+      await tester.pumpAndSettle();
+
+      expect(find.text(proOnly), findsOneWidget);
+      expect(find.text(beMessage), findsOneWidget);
+      expect(find.text('Thử lại'), findsNothing);
+      expect(backend.calls(ApiPaths.forecast(11)), 1);
+    });
+
+    testWidgets('thiếu planType + 403 không có mã → lỗi cũ có Thử lại', (
+      tester,
+    ) async {
+      await openM51(
+        tester,
+        tenant: {'id': 3, 'companyName': 'Shop'},
+        forecast: (403, apiError('Bạn không có quyền thực hiện thao tác này.')),
+      );
+      await tester.tap(find.byKey(const Key('pick_sku_11')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Không tải được dự báo'), findsOneWidget);
+      expect(find.text('Thử lại'), findsOneWidget);
+      expect(find.text(proOnly), findsNothing);
+    });
+  });
+
+  test('isKnownNonPro: chỉ true khi biết chắc gói khác PRO', () {
+    for (final (plan, expected) in [
+      ('FREE', true),
+      ('Free', true),
+      ('PRO', false),
+      ('pro', false),
+      (null, false),
+      ('  ', false),
+    ]) {
+      expect(
+        AccountProfile(email: '', planType: plan).isKnownNonPro,
+        expected,
+        reason: '$plan',
+      );
+    }
   });
 }
