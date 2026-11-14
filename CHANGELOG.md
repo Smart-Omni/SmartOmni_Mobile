@@ -23,6 +23,7 @@ Nối app với BE [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/Smart
 - M-51 chỉ có ở gói Pro: cửa hàng không ở gói PRO (biết qua `planType` của `/api/v1/tenants/me`, hoặc BE trả 403 `FEATURE_NOT_AVAILABLE`) thấy "Dự báo AI chỉ có ở gói Pro", không có nút "Thử lại", không mở sheet chọn SKU khi đã biết gói.
 
 ### Thay đổi
+- CI/CD ghim Flutter 3.44.3 cho mọi workflow: Flutter 3.47+ deprecate `package:flutter/material.dart` nên CI trên stable 3.50.0 đỏ ở `flutter analyze`; chuyển sang `material_ui` là việc riêng sau (xem `docs/CICD.md`).
 - Đăng nhập, đăng xuất, quên/đặt lại mật khẩu chuyển sang `/api/v1/auth/*` và đọc phản hồi dạng mới (`user_info`, tên trường snake_case). Đặt lại mật khẩu gửi thêm ô nhập lại.
 - Mật khẩu mới: 6–100 ký tự (trước: tối thiểu 8), khớp BE.
 - Đơn hàng, hoàn/trả, sản phẩm, tồn kho, dự báo AI, kết nối sàn chuyển sang `/api/v1/...` (BE `9e7c4da`).
