@@ -5,6 +5,7 @@ class AccountProfile {
     this.fullName,
     this.phone,
     this.storeName,
+    this.planType,
   });
 
   final String email;
@@ -13,6 +14,16 @@ class AccountProfile {
 
   /// Tên cửa hàng của Merchant. `null` với khách hoặc khi không tải được.
   final String? storeName;
+
+  /// Gói của cửa hàng (`planType` của `tenants/me`, vd. "PRO", "FREE").
+  /// `null` khi chưa biết: khách, mock, `tenants/me` lỗi hoặc thiếu trường.
+  final String? planType;
+
+  /// `true` khi đã biết chắc cửa hàng không ở gói Pro.
+  bool get isKnownNonPro {
+    final plan = planType?.trim();
+    return plan != null && plan.isNotEmpty && plan.toUpperCase() != 'PRO';
+  }
 }
 
 abstract class AccountRepository {

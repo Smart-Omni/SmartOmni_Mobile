@@ -50,11 +50,14 @@ Map<String, Object?> _page(List<Object?> content) => ok({
 
 /// BE giả của Catalog Service, có thể thêm sản phẩm qua POST.
 class _Catalog {
-  _Catalog({this.failSkusOf, this.delay = Duration.zero}) {
+  _Catalog({this.failSkusOf, this.postError, this.delay = Duration.zero}) {
     backend = FakeBackend(_handle);
   }
 
   final int? failSkusOf;
+
+  /// Phản hồi lỗi cho POST tạo sản phẩm (null = tạo thành công).
+  final (int, Object?)? postError;
   final Duration delay;
   late final FakeBackend backend;
   var running = 0;
@@ -74,6 +77,7 @@ class _Catalog {
   Future<(int, Object?)> _handle(RequestOptions o) async {
     final m = RegExp(r'/api/v1/products/(\d+)(/skus)?$').firstMatch(o.path);
     if (o.method == 'POST') {
+      if (postError case final error?) return error;
       final body = o.data as Map;
       final id = products.length + 1;
       final created = _product(id, body['name'] as String);
@@ -170,8 +174,9 @@ void main() {
     Future<_Catalog> openProducts(
       WidgetTester tester, {
       int? failSkusOf,
+      (int, Object?)? postError,
     }) async {
-      final catalog = _Catalog(failSkusOf: failSkusOf);
+      final catalog = _Catalog(failSkusOf: failSkusOf, postError: postError);
       await loginAs(
         tester,
         'admin@demo.vn',
@@ -237,6 +242,57 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Mũ lưỡi trai'), findsOneWidget);
       expect(find.text('Đang bán · 3'), findsOneWidget);
+    });
+
+    /// Mở M-32, điền đủ form rồi bấm Lưu.
+    Future<void> submitNewProduct(WidgetTester tester) async {
+      await tapVisible(tester, find.byKey(const Key('products_add')));
+      Finder field(String key) => find.descendant(
+        of: find.byKey(Key(key)),
+        matching: find.byType(EditableText),
+      );
+      await tester.enterText(field('product_name'), 'Mũ lưỡi trai');
+      await tester.enterText(field('sku_code'), 'MU-01');
+      await tester.enterText(field('sku_price'), '99000');
+      await tapVisible(tester, find.byKey(const Key('product_create_submit')));
+    }
+
+    String? skuFieldError(WidgetTester tester) =>
+        tester.widget<SoTextField>(find.byKey(const Key('sku_code'))).errorText;
+
+    testWidgets('M-32: 400 SKU_LIMIT_EXCEEDED → message BE ở banner, ô Mã '
+        'SKU không báo lỗi', (tester) async {
+      const message = 'Gói Free chỉ hỗ trợ tối đa 100 SKU.';
+      await openProducts(
+        tester,
+        postError: (400, {...apiError(message), 'code': 'SKU_LIMIT_EXCEEDED'}),
+      );
+      await submitNewProduct(tester);
+
+      expect(find.byType(ProductDetailScreen), findsNothing);
+      final banner = find.byKey(const Key('product_create_error'));
+      expect(banner, findsOneWidget);
+      expect(
+        find.descendant(of: banner, matching: find.text(message)),
+        findsOneWidget,
+      );
+      expect(skuFieldError(tester), isNull);
+    });
+
+    testWidgets('M-32: 400 trùng mã SKU → lỗi dưới ô Mã SKU, không banner', (
+      tester,
+    ) async {
+      // BusinessException mặc định của BE: 400 BUSINESS_ERROR.
+      const message = "SKU 'MU-01' da ton tai trong he thong";
+      await openProducts(
+        tester,
+        postError: (400, {...apiError(message), 'code': 'BUSINESS_ERROR'}),
+      );
+      await submitNewProduct(tester);
+
+      expect(find.byType(ProductDetailScreen), findsNothing);
+      expect(find.byKey(const Key('product_create_error')), findsNothing);
+      expect(skuFieldError(tester), message);
     });
   });
 }

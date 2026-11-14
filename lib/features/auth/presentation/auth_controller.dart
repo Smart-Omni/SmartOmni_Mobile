@@ -67,14 +67,14 @@ class Authenticated extends AuthState {
 
 /// Quản lý phiên đăng nhập: khôi phục khi mở app, đăng nhập, đăng xuất.
 class AuthController extends Notifier<AuthState> {
-  StreamSubscription<void>? _expiredSub;
+  StreamSubscription<SessionEndReason>? _expiredSub;
 
   @override
   AuthState build() {
     _expiredSub = ref
         .watch(sessionExpiredEventsProvider)
         .stream
-        .listen((_) => _expire());
+        .listen(_expire);
     ref.onDispose(() => _expiredSub?.cancel());
     Future.microtask(_restore);
     return const AuthUnknown();
@@ -169,11 +169,17 @@ class AuthController extends Notifier<AuthState> {
     state = Unauthenticated(reason: reason);
   }
 
-  Future<void> _expire() async {
+  Future<void> _expire(SessionEndReason reason) async {
     if (state is! Authenticated) return;
     await _storage.clear();
-    state = const Unauthenticated(
-      reason: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+    state = Unauthenticated(
+      reason: switch (reason) {
+        SessionEndReason.expired =>
+          'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+        SessionEndReason.revoked =>
+          'Phiên đăng nhập đã bị thu hồi (tài khoản bị khóa hoặc đổi quyền). '
+              'Vui lòng đăng nhập lại.',
+      },
     );
   }
 }

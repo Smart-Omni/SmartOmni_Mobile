@@ -12,7 +12,7 @@ import '../domain/account_repository.dart';
 
 /// `users/me` trả `UserProfileResponse` (snake_case: `full_name`, `tenant_id`);
 /// `tenants/me` trả `TenantProfileResponse` (camelCase: `companyName`,
-/// `storefront.storeName`).
+/// `storefront.storeName`, `planType`).
 class AccountRemoteRepository implements AccountRepository {
   AccountRemoteRepository(this._dio);
 
@@ -28,25 +28,31 @@ class AccountRemoteRepository implements AccountRepository {
       throw ApiException.fromDio(e);
     }
     final hasTenant = Json.asInt(user['tenant_id']) != null;
+    final tenant = hasTenant ? await _tenant() : null;
     return AccountProfile(
       email: user['email'] as String? ?? '',
       fullName: user['full_name'] as String?,
       phone: user['phone'] as String?,
-      storeName: hasTenant ? await _storeName() : null,
+      storeName: tenant?.$1,
+      planType: tenant?.$2,
     );
   }
 
-  /// Lỗi thì bỏ qua: thẻ hồ sơ vẫn hiện tên, email.
-  Future<String?> _storeName() async {
+  /// Tên cửa hàng và gói (`planType`). Lỗi thì bỏ qua (`null`): thẻ hồ sơ
+  /// vẫn hiện tên, email.
+  Future<(String?, String?)?> _tenant() async {
     try {
       final res = await _dio.get<Object?>(ApiPaths.tenantsMe);
       return await unwrapResponse(res.data, (data) {
         final tenant = data! as JsonMap;
         final storefront = tenant['storefront'] as JsonMap?;
         final name = storefront?['storeName'] as String?;
-        return name == null || name.trim().isEmpty
-            ? tenant['companyName'] as String?
-            : name;
+        return (
+          name == null || name.trim().isEmpty
+              ? tenant['companyName'] as String?
+              : name,
+          tenant['planType'] as String?,
+        );
       });
     } on DioException {
       return null;
