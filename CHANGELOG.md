@@ -4,7 +4,7 @@ Ghi theo [Keep a Changelog](https://keepachangelog.com/vi/1.1.0/), phiên bản 
 
 ## [Unreleased]
 
-Nối app với BE [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/SmartOmni_BE) nhánh `develop` (đối chiếu commit `4cae7a2`; trước đó `fda1ab2`). Khi `USE_MOCK=false`, chức năng đã nối gọi API thật, chức năng chưa nối được tự dùng dữ liệu mẫu và hiện dải "Dữ liệu mẫu"; bật/tắt ở `lib/app/config/api_availability.dart`. Danh sách đã nối / chưa nối được (kèm lỗi, nguyên nhân) ở `docs/API_CONTRACT.md` mục 0.
+Nối app với BE [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/SmartOmni_BE) nhánh `develop` (đối chiếu commit `3eb89ec`; trước đó `4cae7a2`, `fda1ab2`). Khi `USE_MOCK=false`, chức năng đã nối gọi API thật, chức năng chưa nối được tự dùng dữ liệu mẫu và hiện dải "Dữ liệu mẫu"; bật/tắt ở `lib/app/config/api_availability.dart`. Danh sách đã nối / chưa nối được (kèm lỗi, nguyên nhân) ở `docs/API_CONTRACT.md` mục 0.
 
 ### Thêm
 - Tự gia hạn phiên bằng refresh token (`/api/v1/auth/refresh`): làm mới trước khi token hết hạn và khi gặp 401, nhiều request cùng lúc chỉ gia hạn một lần. Mất mạng hoặc BE lỗi tạm thời thì giữ phiên, không đăng xuất.
@@ -20,9 +20,15 @@ Nối app với BE [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/Smart
 - M-51 Dự báo gọi API thật (`/api/v1/ai/forecast/{skuId}`): sắp xếp theo ngày, chỉ lấy từ hôm nay, tối đa 7 ngày.
 - T-10 Kết nối sàn: trạng thái và ngắt kết nối gọi API thật. BE chỉ cho kết nối qua OAuth nên khi dùng BE thật app ẩn form App Key, nút "Kết nối" tắt "Sắp có". Công tắc tự nhập vẫn là mẫu.
 - Phiên bị thu hồi (BE `4cae7a2`, 401 `TOKEN_REVOKED` khi tài khoản bị khóa hoặc đổi quyền): refresh cũng thất bại thì đăng xuất và màn đăng nhập báo "Phiên đăng nhập đã bị thu hồi (tài khoản bị khóa hoặc đổi quyền). Vui lòng đăng nhập lại." Hết phiên khác giữ thông báo cũ.
+- M-21 hiện sản phẩm của đơn từ `GET /api/v1/orders/{id}` (BE `3eb89ec`): ảnh, tên, mã SKU, số lượng × đơn giá. Thông tin đơn từ danh sách hiện ngay; phần sản phẩm có trạng thái đang tải và lỗi kèm "Thử lại". BE chưa điền mã SKU, tên sản phẩm nên tạm hiện "SKU #id".
+- T-20 hiện cả nhân viên role `STAFF` (vào qua lời mời, BE `3eb89ec`).
+- A-05: BE trả 404 `STORE_NOT_FOUND` khi sai mã cửa hàng → "Không tìm thấy cửa hàng" dưới ô mã cửa hàng.
 - M-51 chỉ có ở gói Pro: cửa hàng không ở gói PRO (biết qua `planType` của `/api/v1/tenants/me`, hoặc BE trả 403 `FEATURE_NOT_AVAILABLE`) thấy "Dự báo AI chỉ có ở gói Pro", không có nút "Thử lại", không mở sheet chọn SKU khi đã biết gói.
 
 ### Thay đổi
+- M-30 lấy SKU của cả danh sách trong 1 request (`GET /api/v1/products/skus?productIds=…`) thay vì mỗi sản phẩm một request; danh sách rỗng thì không gọi.
+- M-40 đọc thẳng `InventoryItemDto` (mã SKU, tên sản phẩm, số có thể bán, đủ SKU kể cả tồn 0) theo thứ tự BE; chỉ ghép tên biến thể từ danh sách sản phẩm. Không gửi `sort` nữa.
+- M-51 gửi `from=<hôm nay>&days=14`; app vẫn sắp xếp và lọc lại.
 - CI/CD ghim Flutter 3.44.3 cho mọi workflow: Flutter 3.47+ deprecate `package:flutter/material.dart` nên CI trên stable 3.50.0 đỏ ở `flutter analyze`; chuyển sang `material_ui` là việc riêng sau (xem `docs/CICD.md`).
 - Đăng nhập, đăng xuất, quên/đặt lại mật khẩu chuyển sang `/api/v1/auth/*` và đọc phản hồi dạng mới (`user_info`, tên trường snake_case). Đặt lại mật khẩu gửi thêm ô nhập lại.
 - Mật khẩu mới: 6–100 ký tự (trước: tối thiểu 8), khớp BE.
