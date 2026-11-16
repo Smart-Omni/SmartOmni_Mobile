@@ -46,7 +46,7 @@ Khi `USE_MOCK=false`, chức năng nào gọi API thật được chọn ở `li
 |---|---|---|
 | Bỏ role `MANAGER` | Migration V21 đổi `users.role` manager → staff, lời mời chỉ còn `STAFF`; `POST /api/v1/users` với role `MANAGER` trả 400 `INVALID_ROLE`. JWT cũ mang `MANAGER` bị 401 `TOKEN_REVOKED`; refresh đọc role từ DB nên token mới mang `STAFF` | T-20 thêm nhân viên gửi `role: "STAFF"`, danh sách bỏ `MANAGER`. `UserRole.fromBackend` vẫn nhận `MANAGER` (JWT cũ) và coi là nhân viên. Mock đổi sang `STAFF` |
 | 401 có mã | `JwtAuthenticationFilter`: token hết hạn → 401 `TOKEN_EXPIRED` (trước là 403 body rỗng), bị thu hồi → 401 `TOKEN_REVOKED`, thiếu / sai token → 401 `UNAUTHORIZED` (`JsonAuthenticationEntryPoint`) | `TOKEN_EXPIRED`, `UNAUTHORIZED`: refresh rồi gọi lại; refresh thất bại → về đăng nhập, câu "hết hạn" (không phải "bị thu hồi"). Logic cũ đã đúng, chỉ thêm test. Vẫn refresh trước hạn theo `exp` |
-| 403 `STAFF_NO_TENANT` | Nhân viên chưa thuộc cửa hàng (`tenantId` null) vẫn đăng nhập được, nhưng mọi API ngoài `/users/me*` và `/auth/*` trả 403 `STAFF_NO_TENANT` | A-02: role `STAFF` mà `tenant_id` null thì không vào app, banner "Tài khoản nhân viên chưa thuộc cửa hàng nào. Liên hệ chủ cửa hàng." API trả 403 này thì hiện cùng câu |
+| 403 `STAFF_NO_TENANT` | Nhân viên chưa thuộc cửa hàng (`tenantId` null) vẫn đăng nhập được, nhưng mọi API ngoài `/users/me*` và `/auth/*` trả 403 `STAFF_NO_TENANT` | A-02: role `STAFF` mà `tenant_id` null thì không vào app: gọi `POST /auth/logout` bằng access token vừa nhận (BE xóa luôn refresh token; chạy nền, lỗi bỏ qua), không lưu token, banner "Tài khoản nhân viên chưa thuộc cửa hàng nào. Liên hệ chủ cửa hàng." API trả 403 này thì hiện cùng câu |
 
 ### ✅ BE đã sửa ở `3eb89ec` (trước đây trong bảng lỗi gửi BE)
 

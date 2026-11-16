@@ -145,7 +145,7 @@ class AuthMockRepository implements AuthRepository {
   }
 
   @override
-  Future<void> logout() => MockDelay.short();
+  Future<void> logout({String? accessToken}) => MockDelay.short();
 
   @override
   Future<void> forgotPassword(String email) => MockDelay.short();

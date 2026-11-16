@@ -9,8 +9,10 @@ abstract class AuthRepository {
   /// POST /api/v1/auth/login
   Future<Session> login({required String email, required String password});
 
-  /// POST /api/v1/auth/logout
-  Future<void> logout();
+  /// POST /api/v1/auth/logout. BE đọc access token ở header `Authorization`
+  /// (đưa vào blacklist) và từ đó xóa refresh token của user. [accessToken]:
+  /// gửi token này thay cho token đang lưu (vd. phiên vừa nhận nhưng chưa lưu).
+  Future<void> logout({String? accessToken});
 
   /// POST /api/v1/auth/forgot-password
   Future<void> forgotPassword(String email);

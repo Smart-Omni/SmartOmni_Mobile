@@ -249,14 +249,13 @@ void main() {
     });
 
     test('STAFF chưa thuộc cửa hàng (tenant_id null) → staffNoTenant, '
-        'không lưu token', () async {
+        'gọi logout bằng token vừa nhận, không lưu token', () async {
       final storage = InMemoryTokenStorage();
-      final c = container(
-        FakeBackend(
-          (o) async => (200, ok(_authResponse('STAFF', tenantId: null))),
-        ),
-        storage,
+      final auth = _authResponse('STAFF', tenantId: null);
+      final backend = FakeBackend(
+        (o) async => o.path == ApiPaths.logout ? (200, ok()) : (200, ok(auth)),
       );
+      final c = container(backend, storage);
       await settled(c);
 
       await expectLater(
@@ -271,8 +270,18 @@ void main() {
           ),
         ),
       );
+      // logout chạy nền, không chặn: chờ nó tới BE giả.
+      for (var i = 0; i < 20 && backend.calls(ApiPaths.logout) == 0; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+      final logout = backend.requests.singleWhere(
+        (r) => r.path == ApiPaths.logout,
+      );
+      expect(logout.method, 'POST');
+      expect(logout.headers['Authorization'], 'Bearer ${auth['access_token']}');
       expect(c.read(currentSessionProvider), isNull);
       expect(await storage.readToken(), isNull);
+      expect(await storage.readRefreshToken(), isNull);
     });
 
     test('mở lại app: access hết hạn + còn refresh token → gia hạn', () async {
@@ -338,10 +347,12 @@ void main() {
     );
   });
 
-  testWidgets('A-02: STAFF chưa thuộc cửa hàng → banner "chưa thuộc cửa hàng", '
-      'ở lại màn đăng nhập', (tester) async {
+  testWidgets('A-02: STAFF chưa thuộc cửa hàng, logout lỗi → vẫn hiện banner '
+      '"chưa thuộc cửa hàng", ở lại màn đăng nhập', (tester) async {
     final backend = FakeBackend(
-      (o) async => (200, ok(_authResponse('STAFF', tenantId: null))),
+      (o) async => o.path == ApiPaths.logout
+          ? (500, apiError('Lỗi máy chủ'))
+          : (200, ok(_authResponse('STAFF', tenantId: null))),
     );
     await loginAs(
       tester,
@@ -353,6 +364,7 @@ void main() {
       ],
     );
 
+    expect(backend.calls(ApiPaths.logout), 1);
     expect(find.byType(LoginScreen), findsOneWidget);
     expect(
       find.descendant(

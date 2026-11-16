@@ -23,7 +23,7 @@ Nối app với BE [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/Smart
 - M-21 hiện sản phẩm của đơn từ `GET /api/v1/orders/{id}` (BE `3eb89ec`): ảnh, tên, mã SKU, số lượng × đơn giá. Thông tin đơn từ danh sách hiện ngay; phần sản phẩm có trạng thái đang tải và lỗi kèm "Thử lại". BE chưa điền mã SKU, tên sản phẩm nên tạm hiện "SKU #id".
 - T-20 hiện cả nhân viên role `STAFF` (vào qua lời mời, BE `3eb89ec`).
 - A-05: BE trả 404 `STORE_NOT_FOUND` khi sai mã cửa hàng → "Không tìm thấy cửa hàng" dưới ô mã cửa hàng.
-- A-02: nhân viên chưa thuộc cửa hàng nào (BE `9558375`, role `STAFF` không có `tenant_id`) không vào được app, màn đăng nhập báo "Tài khoản nhân viên chưa thuộc cửa hàng nào. Liên hệ chủ cửa hàng." API trả 403 `STAFF_NO_TENANT` cũng hiện câu này.
+- A-02: nhân viên chưa thuộc cửa hàng nào (BE `9558375`, role `STAFF` không có `tenant_id`) không vào được app (phiên vừa cấp được thu hồi qua `/api/v1/auth/logout`, không lưu token), màn đăng nhập báo "Tài khoản nhân viên chưa thuộc cửa hàng nào. Liên hệ chủ cửa hàng." API trả 403 `STAFF_NO_TENANT` cũng hiện câu này.
 - M-51 chỉ có ở gói Pro: cửa hàng không ở gói PRO (biết qua `planType` của `/api/v1/tenants/me`, hoặc BE trả 403 `FEATURE_NOT_AVAILABLE`) thấy "Dự báo AI chỉ có ở gói Pro", không có nút "Thử lại", không mở sheet chọn SKU khi đã biết gói.
 
 ### Thay đổi
