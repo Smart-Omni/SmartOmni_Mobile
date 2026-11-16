@@ -70,7 +70,8 @@ void main() {
     expect(DemandForecast.tryFromJson({'predictedQuantity': 5}), isNull);
   });
 
-  test('AiRemoteRepository gọi GET /api/v1/ai/forecast/{skuId}', () async {
+  test('AiRemoteRepository gọi GET /api/v1/ai/forecast/{skuId}'
+      '?from=<hôm nay>&days=14', () async {
     final backend = FakeBackend(
       (o) async => (
         200,
@@ -80,8 +81,13 @@ void main() {
         ]),
       ),
     );
-    final days = await AiRemoteRepository(fakeDio(backend)).forecastForSku(11);
-    expect(backend.requests.single.path, ApiPaths.forecast(11));
+    final days = await AiRemoteRepository(
+      fakeDio(backend),
+      clock: () => DateTime(2026, 3, 5, 23, 59),
+    ).forecastForSku(11);
+    final req = backend.requests.single;
+    expect(req.path, ApiPaths.forecast(11));
+    expect(req.queryParameters, {'from': '2026-03-05', 'days': 14});
     expect(days, hasLength(1));
   });
 
