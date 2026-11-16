@@ -1,9 +1,9 @@
 # Hợp đồng API (màn hình ↔ backend)
 
-Backend: [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/SmartOmni_BE), nhánh `develop`, đối chiếu ở commit `3eb89ec` (Merge PR #34 `fix/shopee-return-and-platform-apis`; tài liệu BE: `TAILIEU_SUA_LOI_SHOPEE_VA_NEN_TANG.md`). Lần đối chiếu trước: `4cae7a2`, `fda1ab2`.
+Backend: [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/SmartOmni_BE), nhánh `develop`, đối chiếu ở commit `9558375` (Merge PR #35 `fix/auth-b1-b5`). Lần đối chiếu trước: `3eb89ec` (tài liệu BE: `TAILIEU_SUA_LOI_SHOPEE_VA_NEN_TANG.md`), `4cae7a2`, `fda1ab2`.
 
 - Mọi request đi qua **Nginx Gateway** `:8080`, header `Authorization: Bearer <JWT>` (trừ login/quên mật khẩu).
-- Response chuẩn: `{ "success": bool, "message": string?, "code": string?, "data": T, "timestamp": ISO-8601 }`. `code` là mã lỗi ổn định (từ `4cae7a2`), vd. `TOKEN_REVOKED`, `FEATURE_NOT_AVAILABLE`, `SKU_LIMIT_EXCEEDED`, `VALIDATION_ERROR`.
+- Response chuẩn: `{ "success": bool, "message": string?, "code": string?, "data": T, "timestamp": ISO-8601 }`. `code` là mã lỗi ổn định (từ `4cae7a2`), vd. `TOKEN_REVOKED`, `FEATURE_NOT_AVAILABLE`, `SKU_LIMIT_EXCEEDED`, `VALIDATION_ERROR`. Từ `9558375` mọi 401 đều có `code`: `TOKEN_EXPIRED`, `TOKEN_REVOKED` hoặc `UNAUTHORIZED`.
 - Phân trang có **2 kiểu** (app đọc cả hai ở `PageResult.fromJson`):
   - `Page` mặc định của Spring (products, inventory, orders): `?page=0&size=20&sort=createdAt,desc` (inventory không nhận `sort`, BE tự sắp theo `skuId`) → `data: { content: [...], totalElements, totalPages, number, size, first, last, … }`.
   - `PageResponse` snake_case (`/api/v1/users`): `?page=0&size=10&sortBy=createdAt&sortDir=desc` → `data: { content, total_elements, total_pages, page_number, page_size, first, last, has_next, has_previous }`.
@@ -15,7 +15,7 @@ Chú thích cột **Trạng thái**:
 - ⚪ **Chưa làm** - chưa có màn hình (mục "Sắp có").
 - 🔜 **Đang nối** - BE đã có API (`fda1ab2`), app đang nối trong nhánh `feature/api-be-1111`; tới khi xong vẫn dùng mock.
 
-## 0. Tình trạng nối API (BE `develop` @ `3eb89ec`)
+## 0. Tình trạng nối API (BE `develop` @ `9558375`)
 
 Khi `USE_MOCK=false`, chức năng nào gọi API thật được chọn ở `lib/app/config/api_availability.dart` (`connectedFeatures`); chức năng chưa nối được dùng Mock và hiện `SoMockBanner`. Mọi đường dẫn API nằm ở `lib/core/network/api_paths.dart`. BE sửa xong: sửa đường dẫn (nếu đổi) rồi thêm chức năng vào `connectedFeatures`.
 
@@ -36,7 +36,17 @@ Khi `USE_MOCK=false`, chức năng nào gọi API thật được chọn ở `li
 | T-10 Kết nối sàn | `GET /api/v1/marketplace-connections/{shopee,tiktok-shop}`, `POST …/{shopee,tiktok-shop}/disconnect` | Trạng thái và ngắt kết nối. BE bắt kết nối qua OAuth nên app ẩn form App Key, nút "Kết nối"/"Kết nối lại" tắt "Sắp có". Công tắc tự nhập vẫn là mẫu |
 | M-51 Dự báo AI | `GET /api/v1/ai/forecast/{skuId}?from=<hôm nay>&days=14` | BE lọc và sắp xếp; app vẫn sắp xếp, chỉ lấy từ hôm nay, tối đa 7 ngày; dòng không đọc được ngày bị bỏ. Danh sách SKU để chọn lấy từ tồn kho (M-40). Chỉ gói Pro (403 `FEATURE_NOT_AVAILABLE`) |
 | M-40 Tồn kho | `GET /api/v1/inventory`, `POST /api/v1/inventory/{skuId}/adjust` | Đọc thẳng `InventoryItemDto` (mã SKU, tên sản phẩm, `availableQuantity`, đủ SKU kể cả tồn 0), giữ thứ tự BE. Tên biến thể ghép từ danh sách sản phẩm (dùng chung M-30). Dòng tồn không khớp SKU: BE trả `SKU-<id>` / "Unknown Product". Nhãn tồn ở M-30, M-31 hiện lại |
-| T-20 Nhân viên | `GET /api/v1/users`, `POST /api/v1/users`, `PATCH /api/v1/users/{id}/status` | Danh sách (role `MANAGER` và `STAFF` vào qua lời mời), thêm (họ tên + email + mật khẩu tạm, role `MANAGER`), khóa / mở khóa. App chặn chủ cửa hàng tự khóa (BE không chặn) |
+| T-20 Nhân viên | `GET /api/v1/users`, `POST /api/v1/users`, `PATCH /api/v1/users/{id}/status` | Danh sách (chủ cửa hàng và role `STAFF`), thêm (họ tên + email + mật khẩu tạm, role `STAFF`), khóa / mở khóa. App chặn chủ cửa hàng tự khóa (BE không chặn) |
+
+### 🆕 Thay đổi ở `9558375` (app đã xử lý)
+
+Đọc code BE, chưa chạy với BE thật.
+
+| Thay đổi | BE `9558375` | App |
+|---|---|---|
+| Bỏ role `MANAGER` | Migration V21 đổi `users.role` manager → staff, lời mời chỉ còn `STAFF`; `POST /api/v1/users` với role `MANAGER` trả 400 `INVALID_ROLE`. JWT cũ mang `MANAGER` bị 401 `TOKEN_REVOKED`; refresh đọc role từ DB nên token mới mang `STAFF` | T-20 thêm nhân viên gửi `role: "STAFF"`, danh sách bỏ `MANAGER`. `UserRole.fromBackend` vẫn nhận `MANAGER` (JWT cũ) và coi là nhân viên. Mock đổi sang `STAFF` |
+| 401 có mã | `JwtAuthenticationFilter`: token hết hạn → 401 `TOKEN_EXPIRED` (trước là 403 body rỗng), bị thu hồi → 401 `TOKEN_REVOKED`, thiếu / sai token → 401 `UNAUTHORIZED` (`JsonAuthenticationEntryPoint`) | `TOKEN_EXPIRED`, `UNAUTHORIZED`: refresh rồi gọi lại; refresh thất bại → về đăng nhập, câu "hết hạn" (không phải "bị thu hồi"). Logic cũ đã đúng, chỉ thêm test. Vẫn refresh trước hạn theo `exp` |
+| 403 `STAFF_NO_TENANT` | Nhân viên chưa thuộc cửa hàng (`tenantId` null) vẫn đăng nhập được, nhưng mọi API ngoài `/users/me*` và `/auth/*` trả 403 `STAFF_NO_TENANT` | A-02: role `STAFF` mà `tenant_id` null thì không vào app, banner "Tài khoản nhân viên chưa thuộc cửa hàng nào. Liên hệ chủ cửa hàng." API trả 403 này thì hiện cùng câu |
 
 ### ✅ BE đã sửa ở `3eb89ec` (trước đây trong bảng lỗi gửi BE)
 
@@ -78,7 +88,8 @@ Mã C2–C8, B4, B5 theo `TAILIEU_SUA_LOI_SHOPEE_VA_NEN_TANG.md` của BE. Đọ
 ### BE mới có, app chưa dùng
 
 - `3eb89ec`: `POST /api/v1/orders` (`CreateManualOrderRequest`, `source = MANUAL`) tạo đơn để thử ở môi trường dev; `POST /api/v1/returns/{id}/inspection` (kho kiểm hàng hoàn trước khi nhập lại kho); lời mời nhân viên `POST/GET /api/v1/users/invitations`, `DELETE /api/v1/users/invitations/{id}`, `GET /api/v1/users/me/invitations`, `POST /api/v1/users/me/invitations/{id}/accept` (người nhận thành role `STAFF`); OAuth và cài đặt Shopee ở trên (B5, C7).
-- `POST /api/v1/tiktok/connect` (`TiktokConnectController`), body `TiktokConnectRequest { code, state, error, shopId, shopName }`: nhận kết quả OAuth của TikTok Shop. App chưa dùng; có thể dùng cho OAuth TikTok trên mobile khi BE hỗ trợ `redirect_uri` riêng cho app (B5).
+- `POST /api/v1/tiktok/connect` (`TiktokConnectController`), body `TiktokConnectRequest { code, state, error, shopId, shopName }`: nhận kết quả OAuth của TikTok Shop. App chưa dùng.
+- `9558375`: `POST /api/v1/marketplace-connections/tiktok-shop/authorization` nhận `redirect_uri` (body `{ redirect_uri }` hoặc query) để OAuth TikTok quay về app (B5). App chưa dùng (nút Kết nối vẫn "Sắp có").
 - `TenantProfileResponse` có thêm `tenantUrl`.
 
 ### 🔜 BE đã sửa (`9e7c4da`), app đang nối
@@ -94,7 +105,6 @@ Trước `fda1ab2`, các đường dưới đây trả 404 (controller còn ở 
 | Màn trong app | API | Lỗi | Nguyên nhân |
 |---|---|---|---|
 | M-10, M-60/61, T-30, T-40, T-50, C-00, C-10, C-11, C-12, C-20, C-30 | - | Chưa có API | BE chưa làm các chức năng này |
-| Mọi màn cần đăng nhập | - | Token hết hạn trả 403 (body rỗng) thay vì 401 | `SecurityConfig` chưa có `authenticationEntryPoint` (vẫn còn ở `4cae7a2`). App đang tự refresh trước khi token hết hạn (đọc `exp`) để né lỗi này |
 | Mọi màn cần đăng nhập | `POST /api/v1/auth/refresh` | Không phân biệt phiên bị thu hồi với hết hạn | API refresh nên trả mã riêng (vd. `TOKEN_REVOKED`) khi refresh token bị thu hồi do khóa/đổi quyền, để app phân biệt với hết hạn thường. Hiện trả 401 `INVALID_TOKEN` cho cả hai |
 | M-21 Chi tiết đơn | `GET /api/v1/orders/{id}` | Sản phẩm không có mã SKU, tên | `OrderItemDto` khai báo `skuCode`, `productName` nhưng `OrderService.getOrderDetail` không điền (entity `OrderItem` chỉ có `skuId`), nên luôn `null`. App tạm hiện "SKU #<skuId>". Đề xuất điền từ `product_skus` + `products` |
 | T-10 Công tắc tự nhập (TikTok) | `GET /api/v1/marketplace-connections/tiktok-shop` | Không có `autoImportProducts` | `3eb89ec` chỉ thêm cho Shopee (`ShopeeConnectionDto` + `PATCH …/shopee/settings`); `TiktokConnectionDto` chưa có. App giữ công tắc ở dạng mẫu cho cả hai sàn |
@@ -104,8 +114,8 @@ Trước `fda1ab2`, các đường dưới đây trả 404 (controller còn ở 
 
 | Màn hình | Method & Path | Body / Query | Trạng thái | Ghi chú |
 |---|---|---|---|---|
-| Đăng nhập | `POST /api/v1/auth/login` | `{ email, password }` → `AuthResponse` (dưới bảng) | ✅ | Role: `SUPER_ADMIN` (app từ chối), `ADMIN`, `TENANT_ADMIN`, `MANAGER`, `CUSTOMER` |
-| Gia hạn phiên | `POST /api/v1/auth/refresh` | `{ refresh_token }` → `AuthResponse` | ✅ | BE xoay vòng refresh token: luôn lưu token mới. App refresh trước khi gửi nếu `exp` còn < 30 giây, và khi gặp 401 (gọi lại request một lần). 401 có `code: TOKEN_REVOKED` mà refresh thất bại → báo phiên bị thu hồi |
+| Đăng nhập | `POST /api/v1/auth/login` | `{ email, password }` → `AuthResponse` (dưới bảng) | ✅ | Role: `SUPER_ADMIN` (app từ chối), `ADMIN`, `TENANT_ADMIN`, `STAFF` (`tenant_id` null thì app từ chối, xem `STAFF_NO_TENANT`), `CUSTOMER`. `MANAGER` đã bỏ ở `9558375` |
+| Gia hạn phiên | `POST /api/v1/auth/refresh` | `{ refresh_token }` → `AuthResponse` | ✅ | BE xoay vòng refresh token: luôn lưu token mới. App refresh trước khi gửi nếu `exp` còn < 30 giây, và khi gặp 401 (gọi lại request một lần). 401 có `code: TOKEN_REVOKED` mà refresh thất bại → báo phiên bị thu hồi; `TOKEN_EXPIRED` / `UNAUTHORIZED` → báo hết hạn |
 | Đăng xuất | `POST /api/v1/auth/logout` | header `Authorization` | ✅ | BE blacklist access token, xóa refresh token. Lỗi vẫn xóa token ở máy |
 | Quên mật khẩu | `POST /api/v1/auth/forgot-password` | `{ email }` | ✅ | |
 | Đặt lại mật khẩu | `POST /api/v1/auth/reset-password` | `{ token, new_password, confirm_password }` (6–100 ký tự) | ✅ | |
@@ -147,7 +157,7 @@ JWT payload: `{ sub: "<userId>", role, tenantId?, tenant_id?, subdomain?, iat, e
 |---|---|---|---|---|
 | Trạng thái kết nối sàn | `GET /api/v1/marketplace-connections/shopee`, `/tiktok-shop` → `ShopeeConnectionDto` / `TiktokConnectionDto` (`id, status, needsReconnect, shopId, shopName, connectedAt, …`; chưa kết nối: `data: null`); ngắt: `POST …/{shopee,tiktok-shop}/disconnect` (chỉ Tenant Admin) | - | ✅ | `MISSING_SCOPE`/`REFRESH_FAILED`/`REVOKED`/`ERROR` = lỗi kết nối. Công tắc tự nhập vẫn mock |
 | Kết nối sàn | `POST /api/v1/marketplace-connections` | `{ platform, appKey, appSecret, autoImportProducts }` | 🟡 | BE luôn trả 400 (bắt OAuth); app chỉ dùng form App Key ở chế độ mock | |
-| Quản lý Staff | `GET /api/v1/users?page=0&size=100&sortBy=createdAt&sortDir=asc` → `PageResponse<UserProfileResponse>` (snake_case); `POST /api/v1/users` `{ email, password (6–100), full_name (bắt buộc, ≤ 100), role: "MANAGER" }` (409 `EMAIL_EXISTS`); `PATCH /api/v1/users/{id}/status` `{ status: ACTIVE\|DISABLED }` | | ✅ | `StaffRemoteRepository`. Chủ cửa hàng = role `TENANT_ADMIN`; chỉ hiện `TENANT_ADMIN`/`ADMIN`/`MANAGER`/`STAFF`. Chỉ tải trang đầu 100 người |
+| Quản lý Staff | `GET /api/v1/users?page=0&size=100&sortBy=createdAt&sortDir=asc` → `PageResponse<UserProfileResponse>` (snake_case); `POST /api/v1/users` `{ email, password (6–100), full_name (bắt buộc, ≤ 100), role: "STAFF" }` (409 `EMAIL_EXISTS`); `PATCH /api/v1/users/{id}/status` `{ status: ACTIVE\|DISABLED }` | | ✅ | `StaffRemoteRepository`. Chủ cửa hàng = role `TENANT_ADMIN`; chỉ hiện `TENANT_ADMIN`/`ADMIN`/`STAFF`. Chỉ tải trang đầu 100 người |
 | Phát voucher | - | - | 🟡 | Phụ thuộc API tạo voucher của sàn; app dùng mock (`VoucherRepository`) |
 | Gói SaaS | - | - | 🟡 | `subscription_plans`, `tenant_invoices` đã có trong ERD; app dùng mock (`SubscriptionRepository`), chưa thanh toán trong app |
 | Hỗ trợ | - | - | 🟡 | Bảng `support_tickets` đã có, Nginx đã route `/api/support-tickets/`; app dùng mock (`SupportRepository`): danh sách + tạo (tiêu đề, mô tả) |
