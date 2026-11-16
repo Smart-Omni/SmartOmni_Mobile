@@ -40,9 +40,11 @@ Map<String, Object?> _page(List<Object?> content) => ok({
 
 final _users = [
   _user(1, 'TENANT_ADMIN', name: 'Chủ Shop'),
-  _user(2, 'MANAGER', name: 'Lê Bình'),
-  _user(4, 'MANAGER', name: 'Đỗ Dũng', status: 'DISABLED'),
+  _user(2, 'STAFF', name: 'Lê Bình'),
+  _user(4, 'STAFF', name: 'Đỗ Dũng', status: 'DISABLED'),
   _user(9, 'CUSTOMER', name: 'Khách lạc vào'),
+  // BE 9558375 (V21) đã đổi hết MANAGER sang STAFF; còn sót thì không hiện.
+  _user(10, 'MANAGER', name: 'Quản lý cũ'),
 ];
 
 void main() {
@@ -78,9 +80,9 @@ void main() {
       },
     );
 
-    test('thêm nhân viên gửi CreateUserRequest với role MANAGER', () async {
+    test('thêm nhân viên gửi CreateUserRequest với role STAFF', () async {
       final backend = FakeBackend(
-        (o) async => (200, ok(_user(7, 'MANAGER', name: 'Nguyễn Mới'))),
+        (o) async => (200, ok(_user(7, 'STAFF', name: 'Nguyễn Mới'))),
       );
       final added = await StaffRemoteRepository(fakeDio(backend)).add(
         name: ' Nguyễn Mới ',
@@ -95,7 +97,7 @@ void main() {
         'email': 'moi@shop.vn',
         'password': 'tam123456',
         'full_name': 'Nguyễn Mới',
-        'role': 'MANAGER',
+        'role': 'STAFF',
       });
       expect(added.id, 7);
       expect(added.name, 'Nguyễn Mới');
@@ -140,7 +142,7 @@ void main() {
         final backend = FakeBackend((o) async {
           if (o.method == 'GET') return (200, _page(_users));
           final status = (o.data as Map)['status'] as String;
-          return (200, ok(_user(2, 'MANAGER', status: status)));
+          return (200, ok(_user(2, 'STAFF', status: status)));
         });
         final repo = StaffRemoteRepository(fakeDio(backend));
         await repo.list();
@@ -168,7 +170,7 @@ void main() {
     final backend = FakeBackend((o) async {
       if (o.method == 'POST') {
         final body = o.data as Map;
-        final created = _user(7, 'MANAGER', name: body['full_name'] as String)
+        final created = _user(7, 'STAFF', name: body['full_name'] as String)
           ..['email'] = body['email'];
         users.add(created);
         return (200, ok(created));

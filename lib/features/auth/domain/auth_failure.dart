@@ -17,6 +17,10 @@ enum LoginFailureKind {
   /// `TENANT_LOCKED`.
   tenantLocked,
 
+  /// Nhân viên chưa thuộc cửa hàng nào: BE vẫn cho đăng nhập nhưng chặn API
+  /// của cửa hàng bằng 403 `STAFF_NO_TENANT`.
+  staffNoTenant,
+
   /// Super Admin: không dùng trên mobile, chỉ dùng web.
   superAdmin,
 
@@ -43,6 +47,7 @@ class LoginFailure implements Exception {
       'ACCOUNT_TEMP_LOCKED' => LoginFailureKind.temporarilyLocked,
       'ACCOUNT_DISABLED' => LoginFailureKind.accountDisabled,
       'TENANT_LOCKED' => LoginFailureKind.tenantLocked,
+      ApiException.staffNoTenantCode => LoginFailureKind.staffNoTenant,
       _ => _kindFromMessage(e),
     };
     return LoginFailure(kind, e.message);

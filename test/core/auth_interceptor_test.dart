@@ -136,6 +136,52 @@ void main() {
     });
   });
 
+  group('401 có mã của BE 9558375', () {
+    test('TOKEN_EXPIRED → refresh rồi gọi lại, không báo hết phiên', () async {
+      final h = _Harness(access: _old, meErrorCode: 'TOKEN_EXPIRED');
+      final res = await h.dio.get<Object?>(_me);
+      expect(res.statusCode, 200);
+      expect(h.backend.calls(ApiPaths.refresh), 1);
+      expect(h.backend.calls(_me), 2);
+      expect(h.reasons, isEmpty);
+    });
+
+    test(
+      'TOKEN_EXPIRED + refresh thất bại → expired, không phải revoked',
+      () async {
+        final h = _Harness(
+          access: _old,
+          refreshOk: false,
+          meErrorCode: 'TOKEN_EXPIRED',
+        );
+        await expectLater(
+          h.dio.get<Object?>(_me),
+          throwsA(isA<DioException>()),
+        );
+        expect(h.reasons, [SessionEndReason.expired]);
+      },
+    );
+
+    test('UNAUTHORIZED → refresh rồi gọi lại', () async {
+      final h = _Harness(access: _old, meErrorCode: 'UNAUTHORIZED');
+      final res = await h.dio.get<Object?>(_me);
+      expect(res.statusCode, 200);
+      expect(h.backend.calls(ApiPaths.refresh), 1);
+      expect(h.reasons, isEmpty);
+    });
+
+    test('UNAUTHORIZED + refresh thất bại → expired', () async {
+      final h = _Harness(
+        access: _old,
+        refreshOk: false,
+        meErrorCode: 'UNAUTHORIZED',
+      );
+      await expectLater(h.dio.get<Object?>(_me), throwsA(isA<DioException>()));
+      expect(h.backend.calls(ApiPaths.refresh), 1);
+      expect(h.reasons, [SessionEndReason.expired]);
+    });
+  });
+
   test('nhiều request cùng gặp 401 → chỉ refresh một lần', () async {
     final h = _Harness(access: _old);
 

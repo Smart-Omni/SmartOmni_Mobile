@@ -20,7 +20,7 @@ Future<void> _callApiThenRefreshFails(
 ) async {
   final token = JwtDecoder.buildUnsigned({
     'sub': '2',
-    'role': 'MANAGER',
+    'role': 'STAFF',
     'tenantId': 3,
     'exp':
         DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch ~/
@@ -70,6 +70,22 @@ void main() {
       findsOneWidget,
     );
   });
+
+  for (final code in ['TOKEN_EXPIRED', 'UNAUTHORIZED']) {
+    testWidgets('401 $code + refresh thất bại → về đăng nhập, câu hết hạn, '
+        'không báo bị thu hồi', (tester) async {
+      await _callApiThenRefreshFails(tester, {
+        'success': false,
+        'message': 'Chưa đăng nhập hoặc phiên đã hết hạn',
+        'code': code,
+      });
+      expect(
+        find.text('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('bị thu hồi'), findsNothing);
+    });
+  }
 
   testWidgets('401 thường + refresh thất bại → giữ câu hết hạn cũ', (
     tester,

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartomni_mobile/app/config/app_config.dart';
@@ -12,8 +13,10 @@ import 'package:smartomni_mobile/features/auth/data/registration_remote_reposito
 import 'package:smartomni_mobile/features/auth/domain/registration.dart';
 import 'package:smartomni_mobile/features/auth/domain/auth_failure.dart';
 import 'package:smartomni_mobile/features/auth/presentation/auth_controller.dart';
+import 'package:smartomni_mobile/features/auth/presentation/login_screen.dart';
 
 import '../helpers/fake_backend.dart';
+import '../helpers/test_app.dart';
 
 String _jwt(String role, Duration fromNow) => JwtDecoder.buildUnsigned({
   'sub': '7',
@@ -23,7 +26,11 @@ String _jwt(String role, Duration fromNow) => JwtDecoder.buildUnsigned({
 });
 
 /// `AuthResponse` đúng như BE gửi (snake_case theo `@JsonProperty`).
-Map<String, Object?> _authResponse(String role, {String refresh = 'r1'}) => {
+Map<String, Object?> _authResponse(
+  String role, {
+  String refresh = 'r1',
+  int? tenantId = 3,
+}) => {
   'access_token': _jwt(role, const Duration(hours: 24)),
   'refresh_token': refresh,
   'token_type': 'Bearer',
@@ -35,7 +42,7 @@ Map<String, Object?> _authResponse(String role, {String refresh = 'r1'}) => {
     'phone': '0901234567',
     'avatar': null,
     'role': role,
-    'tenant_id': 3,
+    'tenant_id': tenantId,
     'subdomain': 'shopdemo',
   },
 };
@@ -227,7 +234,7 @@ void main() {
     test('đăng nhập lưu cả access token và refresh token', () async {
       final storage = InMemoryTokenStorage();
       final c = container(
-        FakeBackend((o) async => (200, ok(_authResponse('MANAGER')))),
+        FakeBackend((o) async => (200, ok(_authResponse('STAFF')))),
         storage,
       );
       await settled(c);
@@ -239,6 +246,42 @@ void main() {
       expect(c.read(currentRoleProvider), UserRole.staff);
       expect(await storage.readToken(), isNotNull);
       expect(await storage.readRefreshToken(), 'r1');
+    });
+
+    test('STAFF chưa thuộc cửa hàng (tenant_id null) → staffNoTenant, '
+        'gọi logout bằng token vừa nhận, không lưu token', () async {
+      final storage = InMemoryTokenStorage();
+      final auth = _authResponse('STAFF', tenantId: null);
+      final backend = FakeBackend(
+        (o) async => o.path == ApiPaths.logout ? (200, ok()) : (200, ok(auth)),
+      );
+      final c = container(backend, storage);
+      await settled(c);
+
+      await expectLater(
+        c
+            .read(authControllerProvider.notifier)
+            .login(email: 'staff@shop.vn', password: '123456'),
+        throwsA(
+          isA<LoginFailure>().having(
+            (f) => f.kind,
+            'kind',
+            LoginFailureKind.staffNoTenant,
+          ),
+        ),
+      );
+      // logout chạy nền, không chặn: chờ nó tới BE giả.
+      for (var i = 0; i < 20 && backend.calls(ApiPaths.logout) == 0; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+      final logout = backend.requests.singleWhere(
+        (r) => r.path == ApiPaths.logout,
+      );
+      expect(logout.method, 'POST');
+      expect(logout.headers['Authorization'], 'Bearer ${auth['access_token']}');
+      expect(c.read(currentSessionProvider), isNull);
+      expect(await storage.readToken(), isNull);
+      expect(await storage.readRefreshToken(), isNull);
     });
 
     test('mở lại app: access hết hạn + còn refresh token → gia hạn', () async {
@@ -301,6 +344,36 @@ void main() {
         );
         expect(state, isA<Unauthenticated>());
       },
+    );
+  });
+
+  testWidgets('A-02: STAFF chưa thuộc cửa hàng, logout lỗi → vẫn hiện banner '
+      '"chưa thuộc cửa hàng", ở lại màn đăng nhập', (tester) async {
+    final backend = FakeBackend(
+      (o) async => o.path == ApiPaths.logout
+          ? (500, apiError('Lỗi máy chủ'))
+          : (200, ok(_authResponse('STAFF', tenantId: null))),
+    );
+    await loginAs(
+      tester,
+      'staff@shop.vn',
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          AuthRemoteRepository(fakeDio(backend)),
+        ),
+      ],
+    );
+
+    expect(backend.calls(ApiPaths.logout), 1);
+    expect(find.byType(LoginScreen), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('login_error')),
+        matching: find.text(
+          'Tài khoản nhân viên chưa thuộc cửa hàng nào. Liên hệ chủ cửa hàng.',
+        ),
+      ),
+      findsOneWidget,
     );
   });
 }

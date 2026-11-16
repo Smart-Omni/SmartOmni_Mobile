@@ -17,7 +17,7 @@
 | Vai trò | Giao diện (theo BE) | Trên app mobile |
 |---|---|---|
 | **Customer** | Storefront, Customer Portal | ✅ Khu vực Customer |
-| **Staff** (code BE: `MANAGER`) | Merchant Portal | ✅ Khu vực Merchant |
+| **Staff** (code BE: `STAFF`; trước BE `9558375` là `MANAGER`) | Merchant Portal | ✅ Khu vực Merchant |
 | **Tenant Admin** (code BE: `ADMIN`) | Merchant Portal | ✅ Khu vực Merchant + mục quản trị |
 | **Super Admin** (`SUPER_ADMIN`) | Super Admin Console | ❌ Không hỗ trợ - dùng web |
 

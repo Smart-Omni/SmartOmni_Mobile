@@ -13,7 +13,7 @@ flowchart TD
     Login -->|đúng| Role
     Login -->|Quên mật khẩu| Forgot["A-03 Quên mật khẩu"]
     Role -->|CUSTOMER| CHome["Khu Customer<br/>tab: Sản phẩm · Điểm & hạng · Claim đơn · Tài khoản"]
-    Role -->|MANAGER = Staff| MHome["Khu Merchant<br/>tab: Tổng quan · Đơn hàng · Sản phẩm · Tồn kho · Thêm"]
+    Role -->|STAFF| MHome["Khu Merchant<br/>tab: Tổng quan · Đơn hàng · Sản phẩm · Tồn kho · Thêm"]
     Role -->|ADMIN = Tenant Admin| MHome
     Role -->|SUPER_ADMIN| Deny["Báo lỗi: dùng Super Admin Console trên web"]
     Deny --> Login

@@ -4,7 +4,7 @@ Ghi theo [Keep a Changelog](https://keepachangelog.com/vi/1.1.0/), phiên bản 
 
 ## [Unreleased]
 
-Nối app với BE [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/SmartOmni_BE) nhánh `develop` (đối chiếu commit `3eb89ec`; trước đó `4cae7a2`, `fda1ab2`). Khi `USE_MOCK=false`, chức năng đã nối gọi API thật, chức năng chưa nối được tự dùng dữ liệu mẫu và hiện dải "Dữ liệu mẫu"; bật/tắt ở `lib/app/config/api_availability.dart`. Danh sách đã nối / chưa nối được (kèm lỗi, nguyên nhân) ở `docs/API_CONTRACT.md` mục 0.
+Nối app với BE [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/SmartOmni_BE) nhánh `develop` (đối chiếu commit `9558375`; trước đó `3eb89ec`, `4cae7a2`, `fda1ab2`). Khi `USE_MOCK=false`, chức năng đã nối gọi API thật, chức năng chưa nối được tự dùng dữ liệu mẫu và hiện dải "Dữ liệu mẫu"; bật/tắt ở `lib/app/config/api_availability.dart`. Danh sách đã nối / chưa nối được (kèm lỗi, nguyên nhân) ở `docs/API_CONTRACT.md` mục 0.
 
 ### Thêm
 - Tự gia hạn phiên bằng refresh token (`/api/v1/auth/refresh`): làm mới trước khi token hết hạn và khi gặp 401, nhiều request cùng lúc chỉ gia hạn một lần. Mất mạng hoặc BE lỗi tạm thời thì giữ phiên, không đăng xuất.
@@ -23,9 +23,11 @@ Nối app với BE [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/Smart
 - M-21 hiện sản phẩm của đơn từ `GET /api/v1/orders/{id}` (BE `3eb89ec`): ảnh, tên, mã SKU, số lượng × đơn giá. Thông tin đơn từ danh sách hiện ngay; phần sản phẩm có trạng thái đang tải và lỗi kèm "Thử lại". BE chưa điền mã SKU, tên sản phẩm nên tạm hiện "SKU #id".
 - T-20 hiện cả nhân viên role `STAFF` (vào qua lời mời, BE `3eb89ec`).
 - A-05: BE trả 404 `STORE_NOT_FOUND` khi sai mã cửa hàng → "Không tìm thấy cửa hàng" dưới ô mã cửa hàng.
+- A-02: nhân viên chưa thuộc cửa hàng nào (BE `9558375`, role `STAFF` không có `tenant_id`) không vào được app (phiên vừa cấp được thu hồi qua `/api/v1/auth/logout`, không lưu token), màn đăng nhập báo "Tài khoản nhân viên chưa thuộc cửa hàng nào. Liên hệ chủ cửa hàng." API trả 403 `STAFF_NO_TENANT` cũng hiện câu này.
 - M-51 chỉ có ở gói Pro: cửa hàng không ở gói PRO (biết qua `planType` của `/api/v1/tenants/me`, hoặc BE trả 403 `FEATURE_NOT_AVAILABLE`) thấy "Dự báo AI chỉ có ở gói Pro", không có nút "Thử lại", không mở sheet chọn SKU khi đã biết gói.
 
 ### Thay đổi
+- T-20 thêm nhân viên với role `STAFF` thay cho `MANAGER` (BE `9558375` bỏ `MANAGER`, migration V21); danh sách không còn hiện `MANAGER`. Phiên cũ mang `MANAGER` vẫn được coi là nhân viên. Tài khoản demo ở chế độ mock đổi sang `STAFF`.
 - M-30 lấy SKU của cả danh sách trong 1 request (`GET /api/v1/products/skus?productIds=…`) thay vì mỗi sản phẩm một request; danh sách rỗng thì không gọi.
 - M-40 đọc thẳng `InventoryItemDto` (mã SKU, tên sản phẩm, số có thể bán, đủ SKU kể cả tồn 0) theo thứ tự BE; chỉ ghép tên biến thể từ danh sách sản phẩm. Không gửi `sort` nữa.
 - M-51 gửi `from=<hôm nay>&days=14`; app vẫn sắp xếp và lọc lại.

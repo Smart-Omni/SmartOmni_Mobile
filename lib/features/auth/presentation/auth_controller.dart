@@ -149,6 +149,18 @@ class AuthController extends Notifier<AuthState> {
       );
     }
 
+    // BE cho STAFF chưa thuộc cửa hàng đăng nhập, rồi trả 403 STAFF_NO_TENANT
+    // ở mọi API của cửa hàng: chặn ngay ở A-02 thay vì vào khu Merchant trống.
+    if (session.role == UserRole.staff && session.tenantId == null) {
+      // Thu hồi phiên vừa cấp (BE xóa cả refresh token). Best-effort: không
+      // chờ, lỗi thì bỏ qua; token chưa được lưu nên chỉ cần bỏ đi.
+      _repo.logout(accessToken: session.accessToken).ignore();
+      throw LoginFailure(
+        LoginFailureKind.staffNoTenant,
+        ApiException.staffNoTenantMessage,
+      );
+    }
+
     await signIn(session);
   }
 

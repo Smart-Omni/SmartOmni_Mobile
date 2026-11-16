@@ -52,9 +52,14 @@ class AuthRemoteRepository implements AuthRepository {
   }
 
   @override
-  Future<void> logout() async {
+  Future<void> logout({String? accessToken}) async {
     try {
-      await _dio.post<Object?>(ApiPaths.logout);
+      await _dio.post<Object?>(
+        ApiPaths.logout,
+        options: accessToken == null
+            ? null
+            : Options(headers: {'Authorization': 'Bearer $accessToken'}),
+      );
     } on DioException {
       // Dù gọi logout lỗi, app vẫn xóa token ở máy.
     }
