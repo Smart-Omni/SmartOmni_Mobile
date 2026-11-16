@@ -2,26 +2,52 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../core/auth/user_role.dart';
 import '../../../core/design/design.dart';
 import '../../../core/models/platform.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../core/utils/validators.dart';
+import '../../../l10n/l10n.dart';
+import '../../auth/presentation/auth_controller.dart';
 import '../domain/marketplace_connection.dart';
+import 'marketplace_oauth.dart';
 import 'marketplace_providers.dart';
 
-/// T-10 Kết nối sàn (chỉ Tenant Admin), DESIGN.md mục 8b: hai thẻ sàn +
-/// hàng "Nâng cao: nhập App Key".
-/// - Mock: mọi thứ là dữ liệu mẫu, kết nối bằng form App Key.
-/// - BE thật: trạng thái và ngắt kết nối gọi API. BE bắt kết nối qua OAuth
-///   (App Key luôn bị từ chối) nên ẩn form App Key, nút Kết nối tắt "Sắp có".
-///   Công tắc tự nhập vẫn là mẫu.
-class MarketplaceScreen extends ConsumerWidget {
+/// T-10 Kết nối sàn (chỉ Tenant Admin), DESIGN.md mục 8b: hai thẻ sàn, sheet
+/// "T-10 OAuth" trước khi mở trang của sàn, thẻ kính "T-10 xong" sau khi kết
+/// nối ([MarketplaceOAuthController]). BE `9558375` đã bỏ kết nối bằng App
+/// Key.
+/// - Mock: mọi thứ là dữ liệu mẫu, OAuth giả không mở trình duyệt.
+/// - BE thật: trạng thái, kết nối, ngắt kết nối, công tắc tự nhập Shopee gọi
+///   API. Công tắc tự nhập TikTok vẫn là mẫu (BE chưa có API).
+/// Staff không được kết nối / ngắt kết nối (BE chỉ cho Tenant Admin).
+class MarketplaceScreen extends ConsumerStatefulWidget {
   const MarketplaceScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MarketplaceScreen> createState() => _MarketplaceScreenState();
+}
+
+class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
+  // Giữ để dùng trong dispose (lúc đó không đọc ref được nữa).
+  late final MarketplaceOAuthController _oauth;
+
+  @override
+  void initState() {
+    super.initState();
+    _oauth = ref.read(marketplaceOAuthProvider.notifier)..screensOpen += 1;
+  }
+
+  @override
+  void dispose() {
+    _oauth.screensOpen -= 1;
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final async = ref.watch(connectionsProvider);
+    final done = ref.watch(oauthDoneProvider);
     final connectRemote = ref.watch(marketplaceUseRemoteProvider);
     // Giữ dữ liệu cũ khi đang tải lại (sau khi bật/tắt, ngắt kết nối).
     final connections = async.value;
@@ -37,35 +63,20 @@ class MarketplaceScreen extends ConsumerWidget {
                   children: [
                     SoMockBanner(
                       message: connectRemote
-                          ? 'Công tắc tự nhập là dữ liệu mẫu, backend chưa có '
-                                'API.'
+                          ? 'Công tắc tự nhập của TikTok Shop là dữ liệu mẫu, '
+                                'backend chưa có API.'
                           : 'Kết nối sàn đang là dữ liệu mẫu.',
                     ),
                     const SizedBox(height: SoSpace.s16),
+                    if (done != null) ...[
+                      _DoneCard(connection: done),
+                      const SizedBox(height: SoSpace.cardGap),
+                    ],
                     for (final (i, platform) in Platform.values.indexed) ...[
                       if (i > 0) const SizedBox(height: SoSpace.cardGap),
                       _PlatformCard(
                         platform: platform,
                         connection: connectionFor(connections, platform),
-                      ),
-                    ],
-                    if (!connectRemote) ...[
-                      const SizedBox(height: SoSpace.group),
-                      SoListGroup(
-                        children: [
-                          SoListRow(
-                            key: const Key('marketplace_app_key'),
-                            icon: LucideIcons.keyRound,
-                            title: 'Nâng cao: nhập App Key',
-                            onTap: () => showAppKeySheet(
-                              context,
-                              platform: Platform.values.firstWhere(
-                                (p) => canConnect(connections, p),
-                                orElse: () => Platform.shopee,
-                              ),
-                            ),
-                          ),
-                        ],
                       ),
                     ],
                   ],
@@ -95,20 +106,6 @@ extension ConnectionStatusUi on ConnectionStatus? {
     ConnectionStatus.error => ('Lỗi kết nối', SoStatus.danger),
     ConnectionStatus.disconnected || null => ('Chưa kết nối', SoStatus.neutral),
   };
-}
-
-/// Mở sheet App Key với [platform] chọn sẵn; kết nối xong thì báo toast.
-Future<void> showAppKeySheet(
-  BuildContext context, {
-  required Platform platform,
-}) async {
-  final connected = await showSoBottomSheet<Platform>(
-    context: context,
-    builder: (_) => _AppKeySheet(initial: platform),
-  );
-  if (connected != null && context.mounted) {
-    showSoToast(context, 'Đã kết nối ${connected.label}');
-  }
 }
 
 /// Thẻ một sàn: đã kết nối / lỗi / chưa kết nối (gồm cả đã ngắt).
@@ -182,51 +179,31 @@ class _PlatformCardState extends ConsumerState<_PlatformCard> {
     );
   }
 
-  /// Nút kết nối: mock mở form App Key; BE thật tắt kèm "Sắp có" (OAuth
-  /// chưa làm).
-  Widget _connectButton({
-    required Key key,
-    required String label,
-    required bool oauthOnly,
-  }) {
-    final button = SoButton(
+  /// Mở sheet "Kết nối …"; sheet bắt đầu OAuth, kết quả về qua deep link.
+  Future<void> _connect() => showSoBottomSheet<void>(
+    context: context,
+    builder: (_) => _OAuthSheet(
+      platform: _platform,
+      autoImport: widget.connection?.autoImportProducts ?? true,
+    ),
+  );
+
+  Widget _connectButton({required Key key, required String label}) {
+    final pending = ref.watch(marketplaceOAuthProvider);
+    return SoButton(
       key: key,
       label: label,
       size: SoButtonSize.small,
-      onPressed: oauthOnly || _busy
-          ? null
-          : () => showAppKeySheet(context, platform: _platform),
-    );
-    if (!oauthOnly) return button;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Flexible(child: button),
-            const SizedBox(width: SoSpace.s8),
-            SoStatusTag(
-              key: Key('connect_soon_${_platform.name}'),
-              label: 'Sắp có',
-              status: SoStatus.neutral,
-            ),
-          ],
-        ),
-        const SizedBox(height: SoSpace.s4),
-        Text(
-          'Kết nối qua ủy quyền của sàn sẽ có ở bản sau.',
-          style: context.textTheme.bodySmall?.copyWith(
-            color: context.soColors.ink2,
-          ),
-        ),
-      ],
+      loading: pending == _platform,
+      onPressed: _busy || pending != null ? null : _connect,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final c = context.soColors;
-    final oauthOnly = ref.watch(marketplaceUseRemoteProvider);
+    // Route T-10 chỉ cho Tenant Admin; vẫn chặn ở đây cho chắc.
+    final canManage = ref.watch(currentRoleProvider) != UserRole.staff;
     final conn = widget.connection;
     final status = conn?.status;
     final (label, tone) = status.tag;
@@ -259,15 +236,16 @@ class _PlatformCardState extends ConsumerState<_PlatformCard> {
               'Kết nối để nhập đơn và sản phẩm từ ${_platform.label}.',
               style: context.textTheme.bodyMedium?.copyWith(color: c.ink2),
             ),
-            const SizedBox(height: SoSpace.s12),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: _connectButton(
-                key: Key('connect_$name'),
-                label: 'Kết nối',
-                oauthOnly: oauthOnly,
+            if (canManage) ...[
+              const SizedBox(height: SoSpace.s12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: _connectButton(
+                  key: Key('connect_$name'),
+                  label: 'Kết nối',
+                ),
               ),
-            ),
+            ],
           ] else ...[
             const SizedBox(height: SoSpace.s12),
             Text(
@@ -299,50 +277,50 @@ class _PlatformCardState extends ConsumerState<_PlatformCard> {
               _AutoImportRow(
                 switchKey: Key('auto_import_$name'),
                 value: conn.autoImportProducts,
-                onChanged: _busy ? null : _setAutoImport,
+                onChanged: _busy || !canManage ? null : _setAutoImport,
               ),
               const Divider(height: 1),
-              const SizedBox(height: SoSpace.s12),
-              SoButton.secondary(
-                key: Key('disconnect_$name'),
-                label: 'Ngắt kết nối',
-                size: SoButtonSize.small,
-                expand: true,
-                onPressed: _busy ? null : _disconnect,
-              ),
+              if (canManage) ...[
+                const SizedBox(height: SoSpace.s12),
+                SoButton.secondary(
+                  key: Key('disconnect_$name'),
+                  label: 'Ngắt kết nối',
+                  size: SoButtonSize.small,
+                  expand: true,
+                  onPressed: _busy ? null : _disconnect,
+                ),
+              ],
             ] else ...[
               const SizedBox(height: SoSpace.s12),
               SoBanner(
                 key: Key('platform_error_$name'),
                 tone: SoBannerTone.danger,
                 title: 'Mất kết nối với ${_platform.label}',
-                message: oauthOnly
-                    ? 'Đơn và tồn kho đang ngừng đồng bộ.'
-                    : 'Đơn và tồn kho đang ngừng đồng bộ. Kết nối lại bằng '
-                          'App Key của shop.',
+                message: 'Đơn và tồn kho đang ngừng đồng bộ.',
               ),
-              const SizedBox(height: SoSpace.s12),
-              Row(
-                children: [
-                  Expanded(
-                    child: SoButton.secondary(
-                      key: Key('disconnect_$name'),
-                      label: 'Ngắt kết nối',
-                      size: SoButtonSize.small,
-                      onPressed: _busy ? null : _disconnect,
+              if (canManage) ...[
+                const SizedBox(height: SoSpace.s12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SoButton.secondary(
+                        key: Key('disconnect_$name'),
+                        label: 'Ngắt kết nối',
+                        size: SoButtonSize.small,
+                        onPressed: _busy ? null : _disconnect,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: SoSpace.s12),
-                  Expanded(
-                    flex: 2,
-                    child: _connectButton(
-                      key: Key('reconnect_$name'),
-                      label: 'Kết nối lại',
-                      oauthOnly: oauthOnly,
+                    const SizedBox(width: SoSpace.s12),
+                    Expanded(
+                      flex: 2,
+                      child: _connectButton(
+                        key: Key('reconnect_$name'),
+                        label: 'Kết nối lại',
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ],
           ],
         ],
@@ -351,7 +329,7 @@ class _PlatformCardState extends ConsumerState<_PlatformCard> {
   }
 }
 
-/// Công tắc "Tự nhập sản phẩm & đơn" (thẻ sàn và sheet App Key).
+/// Công tắc "Tự nhập sản phẩm & đơn" trên thẻ sàn.
 class _AutoImportRow extends StatelessWidget {
   const _AutoImportRow({
     required this.switchKey,
@@ -407,138 +385,243 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-/// Sheet "Kết nối bằng App Key": chọn sàn, App Key, App Secret, tự nhập.
-class _AppKeySheet extends ConsumerStatefulWidget {
-  const _AppKeySheet({required this.initial});
+/// Sheet "T-10 OAuth" (DESIGN.md mục 8b): 3 bước, quyền sẽ đọc, công tắc tự
+/// nhập, nút "Mở `sàn`". Lựa chọn tự nhập được lưu và chỉ gửi BE (Shopee)
+/// sau khi kết nối thành công; TikTok chưa có API nên ghi "Sắp có".
+class _OAuthSheet extends ConsumerStatefulWidget {
+  const _OAuthSheet({required this.platform, required this.autoImport});
 
-  final Platform initial;
+  final Platform platform;
+  final bool autoImport;
 
   @override
-  ConsumerState<_AppKeySheet> createState() => _AppKeySheetState();
+  ConsumerState<_OAuthSheet> createState() => _OAuthSheetState();
 }
 
-class _AppKeySheetState extends ConsumerState<_AppKeySheet> {
-  final _formKey = GlobalKey<FormState>();
-  final _appKey = TextEditingController();
-  final _appSecret = TextEditingController();
-  late Platform _platform = widget.initial;
-  bool _autoImport = true;
-  bool _obscure = true;
+class _OAuthSheetState extends ConsumerState<_OAuthSheet> {
+  late bool _autoImport = widget.autoImport;
   bool _busy = false;
   String? _error;
 
-  @override
-  void dispose() {
-    _appKey.dispose();
-    _appSecret.dispose();
-    super.dispose();
-  }
+  Platform get _platform => widget.platform;
+  bool get _autoImportAvailable => _platform == Platform.shopee;
 
-  Future<void> _submit() async {
-    if (_busy) return;
-    setState(() => _error = null);
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _busy = true);
+  Future<void> _open() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
     try {
       await ref
-          .read(marketplaceRepositoryProvider)
-          .connect(
-            platform: _platform,
-            appKey: _appKey.text.trim(),
-            appSecret: _appSecret.text.trim(),
-            autoImportProducts: _autoImport,
-          );
-      ref.invalidate(connectionsProvider);
-      if (mounted) Navigator.pop(context, _platform);
+          .read(marketplaceOAuthProvider.notifier)
+          .connect(_platform, autoImport: _autoImportAvailable && _autoImport);
+      if (mounted) Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      setState(
-        () => _error = e is ApiException
-            ? e.message
-            : 'Kiểm tra kết nối mạng rồi thử lại.',
-      );
-    } finally {
-      if (mounted) setState(() => _busy = false);
+      setState(() {
+        _busy = false;
+        _error = oauthErrorMessage(context.l10n, e);
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Form(
-      key: _formKey,
-      child: SoBottomSheet(
-        title: 'Kết nối bằng App Key',
-        secondary: SoButton.secondary(
-          key: const Key('app_key_cancel'),
-          label: 'Hủy',
-          onPressed: _busy ? null : () => Navigator.pop(context),
-        ),
-        primary: SoButton(
-          key: const Key('app_key_submit'),
-          label: 'Kết nối',
-          loading: _busy,
-          onPressed: _submit,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SoSegmented<Platform>(
-              key: const Key('app_key_platform'),
-              selected: _platform,
-              onChanged: (p) => setState(() {
-                _platform = p;
-                _error = null;
-              }),
-              segments: [
-                for (final p in Platform.values)
-                  SoSegment(value: p, label: p.label),
+    final c = context.soColors;
+    final label = _platform.label;
+    final steps = [
+      'Mở $label và đăng nhập tài khoản người bán.',
+      'Đồng ý cho SmartOmni đọc dữ liệu của shop.',
+      'Quay về SmartOmni, kết nối tự hoàn tất.',
+    ];
+    const scopes = ['Đơn hàng', 'Sản phẩm', 'Tồn kho', 'Tin nhắn'];
+
+    return SoBottomSheet(
+      key: const Key('oauth_sheet'),
+      title: 'Kết nối $label',
+      secondary: SoButton.secondary(
+        key: const Key('oauth_cancel'),
+        label: 'Hủy',
+        onPressed: _busy ? null : () => Navigator.pop(context),
+      ),
+      primary: SoButton(
+        key: const Key('oauth_open'),
+        label: 'Mở $label',
+        loading: _busy,
+        onPressed: _open,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_error != null) ...[
+            SoBanner(
+              key: const Key('oauth_error'),
+              tone: SoBannerTone.danger,
+              title: 'Chưa mở được trang của $label',
+              message: _error,
+            ),
+            const SizedBox(height: SoSpace.s16),
+          ],
+          for (final (i, step) in steps.indexed) ...[
+            if (i > 0) const SizedBox(height: SoSpace.s8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: c.brandTint,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '${i + 1}',
+                    style: context.textTheme.labelMedium?.copyWith(
+                      color: c.brand,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: SoSpace.s12),
+                Expanded(
+                  child: Text(step, style: context.textTheme.bodyMedium),
+                ),
               ],
             ),
-            const SizedBox(height: SoSpace.s16),
-            if (_error != null) ...[
-              SoBanner(
-                key: const Key('app_key_error'),
-                tone: SoBannerTone.danger,
-                title: 'Chưa kết nối được',
-                message: _error,
-              ),
-              const SizedBox(height: SoSpace.s16),
-            ],
-            SoTextField(
-              key: const Key('app_key_field'),
-              label: 'App Key',
-              controller: _appKey,
-              mono: true,
-              textInputAction: TextInputAction.next,
-              validator: (v) => Validators.required(v, field: 'App Key'),
+          ],
+          const SizedBox(height: SoSpace.s16),
+          Text(
+            'SmartOmni sẽ đọc',
+            style: context.textTheme.bodySmall?.copyWith(color: c.ink2),
+          ),
+          const SizedBox(height: SoSpace.s8),
+          // Danh sách là dữ liệu: đặt trên thẻ đặc, không để trên kính.
+          Container(
+            key: const Key('oauth_scopes'),
+            padding: SoSpace.card,
+            decoration: SoShape.card(c),
+            child: Wrap(
+              spacing: SoSpace.s16,
+              runSpacing: SoSpace.s8,
+              children: [
+                for (final scope in scopes)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        LucideIcons.check,
+                        size: SoSize.iconSmall,
+                        color: c.success,
+                      ),
+                      const SizedBox(width: SoSpace.s4),
+                      Text(scope, style: context.textTheme.bodyMedium),
+                    ],
+                  ),
+              ],
             ),
-            const SizedBox(height: SoSpace.s16),
-            SoTextField(
-              key: const Key('app_secret_field'),
-              label: 'App Secret',
-              controller: _appSecret,
-              obscureText: _obscure,
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _submit(),
-              validator: (v) => Validators.required(v, field: 'App Secret'),
-              suffix: IconButton(
-                key: const Key('app_secret_toggle'),
-                tooltip: _obscure ? 'Hiện App Secret' : 'Ẩn App Secret',
-                icon: Icon(
-                  _obscure ? LucideIcons.eye : LucideIcons.eyeOff,
-                  color: context.soColors.ink2,
-                ),
-                onPressed: () => setState(() => _obscure = !_obscure),
-              ),
-            ),
-            const SizedBox(height: SoSpace.s8),
+          ),
+          const SizedBox(height: SoSpace.s8),
+          if (_autoImportAvailable)
             _AutoImportRow(
-              switchKey: const Key('app_key_auto_import'),
+              switchKey: const Key('oauth_auto_import'),
               value: _autoImport,
-              onChanged: (v) => setState(() => _autoImport = v),
+              onChanged: _busy ? null : (v) => setState(() => _autoImport = v),
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Tự nhập sản phẩm & đơn',
+                    style: context.textTheme.bodyLarge,
+                  ),
+                ),
+                const SoStatusTag(
+                  key: Key('oauth_auto_import_soon'),
+                  label: 'Sắp có',
+                  status: SoStatus.neutral,
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Thẻ kính "T-10 xong" (DESIGN.md mục 8b): dấu tích, "Đã kết nối …", tên
+/// shop và Shop ID nếu BE trả, nút Xong.
+class _DoneCard extends ConsumerWidget {
+  const _DoneCard({required this.connection});
+
+  final MarketplaceConnection connection;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.soColors;
+    final shopName = connection.shopName;
+    final shopId = connection.shopId;
+    return SoGlass(
+      key: const Key('oauth_done'),
+      padding: SoSpace.card,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: c.successTint,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(LucideIcons.check, color: c.success),
+              ),
+              const SizedBox(width: SoSpace.s12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.l10n.marketplaceOauthConnected(
+                        connection.platform.label,
+                      ),
+                      style: context.textTheme.titleMedium,
+                    ),
+                    if (shopName != null && shopName.isNotEmpty)
+                      Text(
+                        shopName,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.textTheme.bodySmall?.copyWith(
+                          color: c.ink2,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (shopId != null && shopId.isNotEmpty) ...[
+            const SizedBox(height: SoSpace.s12),
+            _InfoRow(
+              label: 'Shop ID',
+              value: Text(
+                shopId,
+                key: const Key('oauth_done_shop_id'),
+                style: context.soText.code,
+              ),
             ),
           ],
-        ),
+          const SizedBox(height: SoSpace.s16),
+          SoButton.secondary(
+            key: const Key('oauth_done_close'),
+            label: 'Xong',
+            expand: true,
+            onPressed: () => ref.read(oauthDoneProvider.notifier).dismiss(),
+          ),
+        ],
       ),
     );
   }

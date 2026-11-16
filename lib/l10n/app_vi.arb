@@ -72,6 +72,24 @@
   "resetCodeInvalid": "Mã không đúng hoặc đã được dùng.",
   "resetFailedTitle": "Chưa đặt lại được mật khẩu",
   "registerShopNotFound": "Không tìm thấy cửa hàng",
+  "marketplaceOauthConnected": "Đã kết nối {platform}",
+  "@marketplaceOauthConnected": {
+    "placeholders": {
+      "platform": { "type": "String" }
+    }
+  },
+  "marketplaceOauthDenied": "Bạn đã từ chối cấp quyền",
+  "marketplaceOauthAutoImportFailed": "Đã kết nối {platform} nhưng chưa lưu được công tắc tự nhập. Bật lại trên thẻ sàn.",
+  "@marketplaceOauthAutoImportFailed": {
+    "placeholders": {
+      "platform": { "type": "String" }
+    }
+  },
+  "marketplaceOauthInvalidRedirect": "Máy chủ chưa cho phép quay về app sau khi ủy quyền. Liên hệ quản trị SmartOmni.",
+  "marketplaceOauthStateInvalid": "Phiên kết nối không hợp lệ. Bấm Kết nối để thử lại.",
+  "marketplaceOauthStateExpired": "Phiên kết nối đã hết hạn. Bấm Kết nối để thử lại.",
+  "marketplaceOauthStateReused": "Phiên kết nối này đã được dùng. Bấm Kết nối để thử lại.",
+  "marketplaceOauthLaunchFailed": "Không mở được trang ủy quyền của sàn.",
   "staffNoTenant": "Tài khoản nhân viên chưa thuộc cửa hàng nào. Liên hệ chủ cửa hàng.",
   "resetMockHint": "Bản mock: mã đúng {code}, mã hết hạn {expired}.",
   "@resetMockHint": {
