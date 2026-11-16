@@ -18,8 +18,8 @@ extension OrderStatusUi on OrderStatus {
 }
 
 extension OrderUi on Order {
-  /// "Áo thun… và 1 sản phẩm khác". Backend chưa trả sản phẩm trong đơn
-  /// qua API, khi đó hiện dòng "Chưa có thông tin sản phẩm".
+  /// "Áo thun… và 1 sản phẩm khác". Danh sách đơn của BE không kèm sản
+  /// phẩm, khi đó hiện dòng "Chưa có thông tin sản phẩm".
   String get productSummary {
     if (items.isEmpty) return 'Chưa có thông tin sản phẩm';
     final first = items.first.name;

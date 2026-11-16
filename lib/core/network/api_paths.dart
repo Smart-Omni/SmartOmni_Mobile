@@ -33,6 +33,7 @@ abstract final class ApiPaths {
 
   // Đơn hàng
   static const orders = '/api/v1/orders';
+  static String order(int orderId) => '/api/v1/orders/$orderId';
   static String orderStatus(int orderId) => '/api/v1/orders/$orderId/status';
   static const returns = '/api/v1/returns';
 

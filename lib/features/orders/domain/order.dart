@@ -38,7 +38,8 @@ enum OrderStatus {
 
 enum OrderSource { webhook, polling, manual }
 
-/// Đơn hàng (entity `orders` của backend).
+/// Đơn hàng: entity `Order` ở danh sách, `OrderDetailDto` (kèm `items`) ở
+/// `GET /api/v1/orders/{id}`. Cả hai camelCase.
 class Order {
   const Order({
     required this.id,
@@ -73,7 +74,8 @@ class Order {
   final String? trackingNumber;
   final DateTime? slaDeadline;
 
-  /// BE chưa có API sản phẩm của đơn (`OrderItem`) -> chỉ có ở mock.
+  /// Sản phẩm của đơn. Danh sách đơn của BE không kèm (rỗng); có ở
+  /// `GET /api/v1/orders/{id}` và ở mock.
   final List<OrderItem> items;
 
   factory Order.fromJson(JsonMap json) => Order(
@@ -94,6 +96,10 @@ class Order {
     createdAt: Json.asDate(json['createdAt']),
     trackingNumber: json['trackingNumber'] as String?,
     slaDeadline: Json.asDate(json['slaDeadline']),
+    items: [
+      for (final i in (json['items'] as List<dynamic>? ?? const []))
+        OrderItem.fromJson(i as JsonMap),
+    ],
   );
 
   Order copyWith({OrderStatus? status}) => Order(
@@ -113,16 +119,45 @@ class Order {
   );
 }
 
+/// Một dòng sản phẩm của đơn (`OrderItemDto`).
 class OrderItem {
   const OrderItem({
     required this.skuCode,
     required this.name,
     required this.quantity,
     required this.unitPrice,
+    this.skuId,
+    this.subtotal,
+    this.imageUrl,
   });
 
+  /// BE `3eb89ec` khai báo `skuCode`, `productName` nhưng chưa điền (luôn
+  /// null): khi đó mã rỗng và tên là `SKU #<skuId>`.
+  factory OrderItem.fromJson(JsonMap json) {
+    final skuId = Json.asInt(json['skuId']);
+    final name = (json['productName'] as String?)?.trim();
+    return OrderItem(
+      skuId: skuId,
+      skuCode: (json['skuCode'] as String?)?.trim() ?? '',
+      name: name == null || name.isEmpty
+          ? (skuId == null ? 'Sản phẩm' : 'SKU #$skuId')
+          : name,
+      quantity: Json.asInt(json['quantity']) ?? 0,
+      unitPrice: Json.asDouble(json['unitPrice']) ?? 0,
+      subtotal: Json.asDouble(json['subtotal']),
+      imageUrl: json['imageUrl'] as String?,
+    );
+  }
+
+  final int? skuId;
+
+  /// Mã SKU; rỗng khi BE không trả.
   final String skuCode;
   final String name;
   final int quantity;
   final double unitPrice;
+
+  /// Thành tiền BE tính (`unitPrice × quantity`).
+  final double? subtotal;
+  final String? imageUrl;
 }
