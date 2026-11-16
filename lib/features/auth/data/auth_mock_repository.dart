@@ -14,10 +14,10 @@ class MockAccounts {
   /// email -> (userId, role backend, tenantId)
   static const accounts = <String, (int, String, int?)>{
     'admin@demo.vn': (1, 'ADMIN', 1),
-    'staff@demo.vn': (2, 'MANAGER', 1),
+    'staff@demo.vn': (2, 'STAFF', 1),
     'customer@demo.vn': (3, 'CUSTOMER', 1),
     'superadmin@demo.vn': (99, 'SUPER_ADMIN', null),
-    'disabled@demo.vn': (4, 'MANAGER', 1),
+    'disabled@demo.vn': (4, 'STAFF', 1),
     'shoplocked@demo.vn': (5, 'ADMIN', 2),
   };
 

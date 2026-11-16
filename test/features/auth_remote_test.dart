@@ -227,7 +227,7 @@ void main() {
     test('đăng nhập lưu cả access token và refresh token', () async {
       final storage = InMemoryTokenStorage();
       final c = container(
-        FakeBackend((o) async => (200, ok(_authResponse('MANAGER')))),
+        FakeBackend((o) async => (200, ok(_authResponse('STAFF')))),
         storage,
       );
       await settled(c);

@@ -20,7 +20,7 @@ Future<void> _callApiThenRefreshFails(
 ) async {
   final token = JwtDecoder.buildUnsigned({
     'sub': '2',
-    'role': 'MANAGER',
+    'role': 'STAFF',
     'tenantId': 3,
     'exp':
         DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch ~/
