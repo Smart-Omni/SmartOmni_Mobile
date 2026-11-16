@@ -8,8 +8,8 @@ import '../../../core/utils/mock_delay.dart';
 import '../../products/domain/product.dart';
 import '../domain/inventory_item.dart';
 
-/// Inventory Service. BE trả thẳng entity `Inventory` (chỉ `skuId` và số
-/// lượng); mã SKU, tên sản phẩm ghép từ danh sách sản phẩm.
+/// Inventory Service. BE trả `Page<InventoryItemDto>` (mã SKU, tên sản phẩm,
+/// số lượng); tên biến thể ghép từ danh sách sản phẩm.
 class InventoryRemoteRepository implements InventoryRepository {
   InventoryRemoteRepository(this._dio);
 
@@ -18,10 +18,10 @@ class InventoryRemoteRepository implements InventoryRepository {
   @override
   Future<List<InventoryItem>> listInventory(List<Product> products) async {
     try {
-      // shortcut: chỉ tải trang đầu 500 dòng tồn.
+      // shortcut: chỉ tải trang đầu 500 dòng tồn. BE tự sắp theo `skuId`.
       final res = await _dio.get<Object?>(
         ApiPaths.inventoryList,
-        queryParameters: {'page': 0, 'size': 500, 'sort': 'skuId,asc'},
+        queryParameters: {'page': 0, 'size': 500},
       );
       final rows = unwrapResponse<List<InventoryRow>>(
         res.data,

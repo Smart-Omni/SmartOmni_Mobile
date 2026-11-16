@@ -29,14 +29,21 @@ const _products = [
   ),
 ];
 
-/// Entity `Inventory` như BE trả (camelCase).
-Map<String, Object?> _inv(int skuId, int onHand, int reserved) => {
-  'id': skuId * 10,
-  'tenantId': 3,
+/// `InventoryItemDto` như BE trả (camelCase): đủ SKU của tenant, SKU chưa
+/// đặt tồn thì 0; dòng tồn không khớp SKU thì `SKU-<id>` / "Unknown Product".
+Map<String, Object?> _dto(
+  int skuId,
+  int onHand,
+  int reserved, {
+  String? code,
+  String? product,
+}) => {
   'skuId': skuId,
+  'skuCode': code ?? 'SKU-$skuId',
+  'productName': product ?? 'Unknown Product',
   'quantityOnHand': onHand,
   'reservedQuantity': reserved,
-  'version': 0,
+  'availableQuantity': onHand - reserved < 0 ? 0 : onHand - reserved,
 };
 
 Map<String, Object?> _page(List<Object?> content) => ok({
@@ -50,14 +57,20 @@ Map<String, Object?> _page(List<Object?> content) => ok({
 
 void main() {
   group('buildInventoryItems', () {
-    final items = buildInventoryItems(const [
-      InventoryRow(skuId: 11, quantityOnHand: 40, reservedQuantity: 2),
-      InventoryRow(skuId: 12, quantityOnHand: 6, reservedQuantity: 2),
-      InventoryRow(skuId: 99, quantityOnHand: 3, reservedQuantity: 5),
+    final items = buildInventoryItems([
+      InventoryRow.fromJson(
+        _dto(11, 40, 2, code: 'AT-TRANG-M', product: 'Áo thun'),
+      ),
+      InventoryRow.fromJson(
+        _dto(12, 6, 2, code: 'AT-DEN-M', product: 'Áo thun'),
+      ),
+      InventoryRow.fromJson(_dto(21, 0, 0, code: 'ML-01', product: 'Mũ len')),
+      InventoryRow.fromJson(_dto(99, 3, 5)),
     ], _products);
     InventoryItem item(int skuId) => items.firstWhere((i) => i.skuId == skuId);
 
-    test('ghép mã SKU, tên sản phẩm; có thể bán = onHand − reserved', () {
+    test('đọc thẳng mã SKU, tên sản phẩm, availableQuantity; tên biến thể '
+        'ghép từ sản phẩm', () {
       expect(item(11).skuCode, 'AT-TRANG-M');
       expect(item(11).productName, 'Áo thun');
       expect(item(11).variantName, 'M');
@@ -67,43 +80,55 @@ void main() {
       expect(item(12).level, StockLevel.low);
     });
 
-    test('SKU chưa có dòng tồn: tồn 0 / giữ 0, Hết hàng', () {
+    test('SKU chưa đặt tồn (BE trả tồn 0): Hết hàng', () {
       expect(item(21).quantityOnHand, 0);
-      expect(item(21).reservedQuantity, 0);
       expect(item(21).level, StockLevel.out);
       expect(item(21).productName, 'Mũ len');
     });
 
-    test('dòng tồn không khớp SKU nào: "SKU #id", giữ chỗ lớn hơn tồn = '
-        'Hết hàng', () {
-      expect(item(99).productName, 'SKU #99');
-      expect(item(99).skuCode, isEmpty);
-      expect(item(99).displayCode, 'SKU #99');
-      expect(item(99).available, -2);
+    test('dòng tồn không khớp SKU: giữ mã, tên BE; giữ chỗ lớn hơn tồn → có '
+        'thể bán 0 (BE), Hết hàng', () {
+      expect(item(99).skuCode, 'SKU-99');
+      expect(item(99).productName, 'Unknown Product');
+      expect(item(99).variantName, isNull);
+      expect(item(99).available, 0);
       expect(item(99).level, StockLevel.out);
     });
 
-    test('thứ tự: SKU theo sản phẩm, rồi tới SKU lạ', () {
+    test('giữ thứ tự BE (theo skuId)', () {
       expect([for (final i in items) i.skuId], [11, 12, 21, 99]);
+    });
+
+    test('BE thiếu mã / tên: lấy từ sản phẩm, không có thì "SKU #id"', () {
+      final out = buildInventoryItems(const [
+        InventoryRow(skuId: 21, quantityOnHand: 1, reservedQuantity: 0),
+        InventoryRow(skuId: 77, quantityOnHand: 1, reservedQuantity: 0),
+      ], _products);
+      expect(out[0].skuCode, 'ML-01');
+      expect(out[0].productName, 'Mũ len');
+      expect(out[0].available, 1);
+      expect(out[1].displayCode, 'SKU #77');
+      expect(out[1].productName, 'SKU #77');
     });
   });
 
   group('InventoryRemoteRepository', () {
-    test('đọc Page<Inventory> và ghép với sản phẩm', () async {
-      final backend = FakeBackend((o) async => (200, _page([_inv(11, 7, 1)])));
+    test('GET /inventory không gửi sort (BE tự sắp theo skuId)', () async {
+      final backend = FakeBackend(
+        (o) async => (
+          200,
+          _page([_dto(11, 7, 1, code: 'AT-TRANG-M', product: 'Áo thun')]),
+        ),
+      );
       final items = await InventoryRemoteRepository(
         fakeDio(backend),
       ).listInventory(_products);
 
       final req = backend.requests.single;
       expect(req.path, ApiPaths.inventoryList);
-      expect(req.queryParameters, {
-        'page': 0,
-        'size': 500,
-        'sort': 'skuId,asc',
-      });
-      expect(items.firstWhere((i) => i.skuId == 11).available, 6);
-      expect(items.length, 3);
+      expect(req.queryParameters, {'page': 0, 'size': 500});
+      expect(items.single.available, 6);
+      expect(items.single.variantName, 'M');
     });
 
     test('đặt lại tồn gửi POST /adjust?quantity=', () async {
@@ -123,20 +148,33 @@ void main() {
     /// lần gọi `/products/skus` đầu tiên trả 500 (lỗi thoáng qua).
     FakeBackend backend({bool failSkusOnce = false}) {
       var skusFailed = false;
-      final stock = {
-        11: _inv(11, 40, 2),
-        12: _inv(12, 6, 2),
-        99: _inv(99, 3, 0),
+      final stock = <int, (int, int)>{11: (40, 2), 12: (6, 2), 99: (3, 0)};
+      final allSkus = {
+        for (final p in _products)
+          for (final s in p.skus) s.id: (product: p, sku: s),
       };
       return FakeBackend((RequestOptions o) async {
         final adjust = RegExp(r'/inventory/(\d+)/adjust$').firstMatch(o.path);
         if (adjust != null) {
           final id = int.parse(adjust.group(1)!);
-          stock[id] = _inv(id, o.queryParameters['quantity'] as int, 0);
+          stock[id] = (o.queryParameters['quantity'] as int, 0);
           return (200, ok());
         }
         if (o.path == ApiPaths.inventoryList) {
-          return (200, _page(stock.values.toList()));
+          final ids = {...allSkus.keys, ...stock.keys}.toList()..sort();
+          return (
+            200,
+            _page([
+              for (final id in ids)
+                _dto(
+                  id,
+                  stock[id]?.$1 ?? 0,
+                  stock[id]?.$2 ?? 0,
+                  code: allSkus[id]?.sku.skuCode,
+                  product: allSkus[id]?.product.name,
+                ),
+            ]),
+          );
         }
         if (o.path == ApiPaths.productSkusBatch) {
           if (failSkusOnce && !skusFailed) {
@@ -200,12 +238,12 @@ void main() {
       return be;
     }
 
-    testWidgets('không banner mẫu; SKU lạ hiện "SKU #99"; SKU chưa có dòng '
-        'tồn là Hết hàng và đặt tồn được ngay', (tester) async {
+    testWidgets('không banner mẫu; dòng tồn lạ hiện mã BE "SKU-99"; SKU '
+        'chưa đặt tồn là Hết hàng và đặt tồn được ngay', (tester) async {
       final be = await open(tester, 'nav_inventory');
 
       expect(find.byType(SoMockBanner), findsNothing);
-      expect(find.text('SKU #99'), findsOneWidget);
+      expect(find.text('SKU-99'), findsOneWidget);
       // Danh sách sản phẩm chỉ tải một lần (dùng chung với M-30).
       expect(be.calls(ApiPaths.products), 1);
 
