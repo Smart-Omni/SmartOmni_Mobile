@@ -120,7 +120,7 @@ void main() {
 
   group('M-40 với BE thật', () {
     /// BE giả: sản phẩm + SKU + tồn; `adjust` gán số tồn mới. [failSkusOnce]:
-    /// lần gọi `/skus` đầu tiên trả 500 (lỗi thoáng qua).
+    /// lần gọi `/products/skus` đầu tiên trả 500 (lỗi thoáng qua).
     FakeBackend backend({bool failSkusOnce = false}) {
       var skusFailed = false;
       final stock = {
@@ -138,26 +138,23 @@ void main() {
         if (o.path == ApiPaths.inventoryList) {
           return (200, _page(stock.values.toList()));
         }
-        final skus = RegExp(r'/products/(\d+)/skus$').firstMatch(o.path);
-        if (skus != null && failSkusOnce && !skusFailed) {
-          skusFailed = true;
-          return (500, apiError('Lỗi máy chủ'));
-        }
-        if (skus != null) {
-          final p = _products.firstWhere(
-            (p) => p.id == int.parse(skus.group(1)!),
-          );
+        if (o.path == ApiPaths.productSkusBatch) {
+          if (failSkusOnce && !skusFailed) {
+            skusFailed = true;
+            return (500, apiError('Lỗi máy chủ'));
+          }
           return (
             200,
             ok([
-              for (final s in p.skus)
-                {
-                  'id': s.id,
-                  'productId': p.id,
-                  'skuCode': s.skuCode,
-                  'variantName': s.variantName,
-                  'basePrice': s.basePrice,
-                },
+              for (final p in _products)
+                for (final s in p.skus)
+                  {
+                    'id': s.id,
+                    'productId': p.id,
+                    'skuCode': s.skuCode,
+                    'variantName': s.variantName,
+                    'basePrice': s.basePrice,
+                  },
             ]),
           );
         }
