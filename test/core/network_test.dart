@@ -88,6 +88,30 @@ void main() {
   group('ApiException.fromDio', () {
     RequestOptions req() => RequestOptions(path: '/api/x');
 
+    test('403 STAFF_NO_TENANT → câu "chưa thuộc cửa hàng" từ arb', () {
+      final e = ApiException.fromDio(
+        DioException(
+          requestOptions: req(),
+          type: DioExceptionType.badResponse,
+          response: Response(
+            requestOptions: req(),
+            statusCode: 403,
+            data: {
+              'success': false,
+              'message': 'Tài khoản nhân viên chưa thuộc cửa hàng nào',
+              'code': 'STAFF_NO_TENANT',
+            },
+          ),
+        ),
+      );
+      expect(e.type, ApiErrorType.forbidden);
+      expect(e.code, 'STAFF_NO_TENANT');
+      expect(
+        e.message,
+        'Tài khoản nhân viên chưa thuộc cửa hàng nào. Liên hệ chủ cửa hàng.',
+      );
+    });
+
     test('lấy message backend khi lỗi 401', () {
       final e = ApiException.fromDio(
         DioException(
