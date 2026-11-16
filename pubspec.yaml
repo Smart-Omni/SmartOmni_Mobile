@@ -24,8 +24,10 @@ dependencies:
   flutter_secure_storage: ^11.2.0
   # Định dạng tiền, ngày giờ + đa ngôn ngữ
   intl: ^0.20.2
-  # Mở link sản phẩm trên Shopee/TikTok Shop
+  # Mở link sản phẩm trên Shopee/TikTok Shop và trang ủy quyền OAuth của sàn
   url_launcher: ^6.3.3
+  # T-10: nhận deep link smartomni://oauth/... khi sàn chuyển về app
+  app_links: ^7.2.2
   cupertino_icons: ^1.0.8
   google_fonts: ^8.2.1
   lucide_icons_flutter: ^3.1.25

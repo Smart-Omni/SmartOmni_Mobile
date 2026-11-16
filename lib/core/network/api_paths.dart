@@ -52,14 +52,22 @@ abstract final class ApiPaths {
   // AI
   static String forecast(int skuId) => '/api/v1/ai/forecast/$skuId';
 
-  // Kết nối sàn
-  static const marketplaceConnections = '/api/v1/marketplace-connections';
+  // Kết nối sàn: chỉ OAuth (BE `9558375` bỏ `POST /marketplace-connections`
+  // bằng App Key).
 
   /// Trạng thái kết nối một sàn (`ShopeeConnectionDto` / `TiktokConnectionDto`).
   static String marketplaceConnection(Platform p) =>
-      '$marketplaceConnections/${_slug(p)}';
+      '/api/v1/marketplace-connections/${_slug(p)}';
+  static String marketplaceAuthorization(Platform p) =>
+      '${marketplaceConnection(p)}/authorization';
+  static String marketplaceCallback(Platform p) =>
+      '${marketplaceConnection(p)}/callback';
   static String marketplaceDisconnect(Platform p) =>
       '${marketplaceConnection(p)}/disconnect';
+
+  /// Chỉ Shopee có (`UpdateShopeeSettingsRequest`).
+  static const shopeeSettings =
+      '/api/v1/marketplace-connections/shopee/settings';
 
   static String _slug(Platform p) => switch (p) {
     Platform.shopee => 'shopee',

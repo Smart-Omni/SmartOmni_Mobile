@@ -57,14 +57,15 @@ String _status(WidgetTester tester, String platform) => tester
     .widget<SoStatusTag>(find.byKey(Key('platform_status_$platform')))
     .label;
 
-Finder _field(String key) => find.descendant(
-  of: find.byKey(Key(key)),
-  matching: find.byType(EditableText),
-);
-
-Future<void> _fillAppKey(WidgetTester tester) async {
-  await tester.enterText(_field('app_key_field'), 'KEY-123');
-  await tester.enterText(_field('app_secret_field'), 's3cret');
+/// OAuth giả của mock: bắt đầu rồi gửi lại đúng deep link mock trả về.
+Future<MarketplaceConnection> _oauth(
+  MarketplaceMockRepository repo,
+  Platform platform,
+) async {
+  final start = await repo.startAuthorization(platform);
+  return repo.completeAuthorization(
+    OAuthCallback.tryParse(start.authorizationUrl)!,
+  );
 }
 
 void main() {
@@ -96,11 +97,10 @@ void main() {
 
     test('kết nối lại sàn đang lỗi thì thay bản ghi cũ', () async {
       final repo = MarketplaceMockRepository(clock: _now);
-      await repo.connect(
-        platform: Platform.tiktokShop,
-        appKey: 'k',
-        appSecret: 's',
-      );
+      final start = await repo.startAuthorization(Platform.tiktokShop);
+      expect(start.authorizationUrl.scheme, 'smartomni');
+      expect(start.authorizationUrl.path, '/tiktok');
+      await _oauth(repo, Platform.tiktokShop);
       final list = await repo.listConnections();
       expect(
         list.where((c) => c.platform == Platform.tiktokShop),
@@ -115,11 +115,7 @@ void main() {
     test('kết nối sàn đang chạy thì báo "Mỗi sàn chỉ 1 shop"', () async {
       final repo = MarketplaceMockRepository(clock: _now);
       expect(
-        () => repo.connect(
-          platform: Platform.shopee,
-          appKey: 'k',
-          appSecret: 's',
-        ),
+        () => _oauth(repo, Platform.shopee),
         throwsA(
           isA<ApiException>().having(
             (e) => e.message,
@@ -140,13 +136,45 @@ void main() {
       shopee = connectionFor(await repo.listConnections(), Platform.shopee);
       expect(shopee!.status, ConnectionStatus.disconnected);
 
-      await repo.connect(
-        platform: Platform.shopee,
-        appKey: 'k',
-        appSecret: 's',
-      );
+      await _oauth(repo, Platform.shopee);
       shopee = connectionFor(await repo.listConnections(), Platform.shopee);
       expect(shopee!.status, ConnectionStatus.connected);
+    });
+
+    test('state sai hoặc dùng lại → *_STATE_INVALID; từ chối → '
+        '*_AUTHORIZATION_DENIED', () async {
+      final repo = MarketplaceMockRepository(clock: _now);
+      await repo.disconnect(Platform.shopee);
+      Matcher code(String c) =>
+          throwsA(isA<ApiException>().having((e) => e.code, 'code', c));
+
+      await repo.startAuthorization(Platform.shopee);
+      expect(
+        () => repo.completeAuthorization(
+          const OAuthCallback(platform: Platform.shopee, state: 'lạ'),
+        ),
+        code('SHOPEE_STATE_INVALID'),
+      );
+
+      final start = await repo.startAuthorization(Platform.tiktokShop);
+      final state = start.authorizationUrl.queryParameters['state'];
+      await expectLater(
+        repo.completeAuthorization(
+          OAuthCallback(
+            platform: Platform.tiktokShop,
+            state: state,
+            error: 'access_denied',
+          ),
+        ),
+        code('TIKTOK_AUTHORIZATION_DENIED'),
+      );
+      // state đã dùng.
+      await expectLater(
+        repo.completeAuthorization(
+          OAuthCallback(platform: Platform.tiktokShop, state: state),
+        ),
+        code('TIKTOK_STATE_INVALID'),
+      );
     });
   });
 
@@ -171,8 +199,6 @@ void main() {
     expect(find.byKey(const Key('reconnect_tiktokShop')), findsOneWidget);
     expect(find.byKey(const Key('disconnect_tiktokShop')), findsOneWidget);
     expect(find.byKey(const Key('auto_import_tiktokShop')), findsNothing);
-
-    expect(find.byKey(const Key('marketplace_app_key')), findsOneWidget);
   });
 
   testWidgets('T-10: tắt tự nhập', (tester) async {
@@ -225,84 +251,8 @@ void main() {
     expect(_inCard('shopee', find.text('123456789')), findsNothing);
   });
 
-  testWidgets('T-10: Kết nối lại mở sheet chọn sẵn sàn, kết nối xong thẻ hết '
-      'lỗi', (tester) async {
-    await _pump(tester);
-
-    await tapVisible(tester, find.byKey(const Key('reconnect_tiktokShop')));
-    expect(find.text('Kết nối bằng App Key'), findsOneWidget);
-    expect(
-      tester
-          .widget<SoSegmented<Platform>>(
-            find.byKey(const Key('app_key_platform')),
-          )
-          .selected,
-      Platform.tiktokShop,
-    );
-
-    // Bỏ trống: báo lỗi bắt buộc, sheet vẫn mở.
-    await tester.tap(find.byKey(const Key('app_key_submit')));
-    await tester.pumpAndSettle();
-    expect(find.text('App Key không được để trống'), findsOneWidget);
-
-    await _fillAppKey(tester);
-    await tester.tap(find.byKey(const Key('app_key_submit')));
-    await tester.pumpAndSettle();
-
-    expect(find.byType(SoBottomSheet), findsNothing);
-    expect(find.text('Đã kết nối TikTok Shop'), findsOneWidget);
-    expect(_status(tester, 'tiktokShop'), 'Đã kết nối');
-    expect(find.byKey(const Key('platform_error_tiktokShop')), findsNothing);
-    expect(find.byKey(const Key('auto_import_tiktokShop')), findsOneWidget);
-  });
-
-  testWidgets('Sheet App Key: lỗi server hiện trong sheet; ẩn/hiện secret; '
-      'Hủy', (tester) async {
-    await _pump(tester);
-
-    await tapVisible(tester, find.byKey(const Key('marketplace_app_key')));
-    // Shopee đang chạy nên sheet chọn sẵn sàn còn kết nối được.
-    expect(
-      tester
-          .widget<SoSegmented<Platform>>(
-            find.byKey(const Key('app_key_platform')),
-          )
-          .selected,
-      Platform.tiktokShop,
-    );
-
-    await tester.tap(
-      find.descendant(
-        of: find.byKey(const Key('app_key_platform')),
-        matching: find.text('Shopee'),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await _fillAppKey(tester);
-
-    bool obscured() =>
-        tester.widget<EditableText>(_field('app_secret_field')).obscureText;
-    expect(obscured(), isTrue);
-    await tester.tap(find.byKey(const Key('app_secret_toggle')));
-    await tester.pump();
-    expect(obscured(), isFalse);
-
-    await tester.tap(find.byKey(const Key('app_key_submit')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('app_key_error')), findsOneWidget);
-    expect(find.textContaining('Mỗi sàn chỉ 1 shop'), findsOneWidget);
-    expect(find.byType(SoBottomSheet), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('app_key_cancel')));
-    await tester.pumpAndSettle();
-    expect(find.byType(SoBottomSheet), findsNothing);
-  });
-
-  testWidgets('T-10 và sheet vừa bề rộng 360dp', (tester) async {
+  testWidgets('T-10 vừa bề rộng 360dp', (tester) async {
     await _pump(tester, size: const Size(360, 1200));
-    expect(tester.takeException(), isNull);
-
-    await tapVisible(tester, find.byKey(const Key('reconnect_tiktokShop')));
     expect(tester.takeException(), isNull);
   });
 }

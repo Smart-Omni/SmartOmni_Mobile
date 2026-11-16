@@ -16,7 +16,12 @@ import '../helpers/fake_backend.dart';
 import '../helpers/test_app.dart';
 
 /// `ShopeeConnectionDto` / `TiktokConnectionDto` như BE trả.
-Map<String, Object?> _dto(int id, String status, {String? shopName}) => {
+Map<String, Object?> _dto(
+  int id,
+  String status, {
+  String? shopName,
+  bool autoImport = false,
+}) => {
   'id': id,
   'status': status,
   'needsReconnect': const {
@@ -27,19 +32,45 @@ Map<String, Object?> _dto(int id, String status, {String? shopName}) => {
   'shopId': 'SHOP$id',
   'shopName': shopName,
   'shopRegion': 'VN',
+  'autoImportProducts': autoImport,
   'connectedAt': '2026-11-01T08:00:00Z',
   'lastErrorCode': null,
 };
 
 /// BE giả: [shopee], [tiktok] là `data` của GET trạng thái (null = chưa
-/// từng kết nối). Ngắt kết nối đổi trạng thái thành DISCONNECTED.
+/// từng kết nối). Ngắt kết nối đổi trạng thái thành DISCONNECTED; bắt đầu
+/// OAuth trả URL của simulator; callback thành công trả DTO CONNECTED; PATCH
+/// settings đổi `autoImportProducts` của Shopee.
 FakeBackend _integration({Map<String, Object?>? shopee, Object? tiktok}) {
   final state = <Platform, Map<String, Object?>?>{
     Platform.shopee: shopee,
     Platform.tiktokShop: tiktok as Map<String, Object?>?,
   };
   return FakeBackend((RequestOptions o) async {
+    if (o.path == ApiPaths.shopeeSettings) {
+      final on = (o.data as Map)['auto_import_products'] == true;
+      state[Platform.shopee] = {
+        ...?state[Platform.shopee],
+        'autoImportProducts': on,
+      };
+      return (200, ok(state[Platform.shopee]));
+    }
     for (final p in Platform.values) {
+      if (o.path == ApiPaths.marketplaceAuthorization(p)) {
+        return (
+          200,
+          ok({
+            'authorizationUrl':
+                'https://shopee-simulator.onrender.com/api/v2/shop/auth_partner'
+                '?partner_id=1&state=st-1',
+            'expiresAt': '2026-11-17T10:10:00Z',
+          }),
+        );
+      }
+      if (o.path == ApiPaths.marketplaceCallback(p)) {
+        state[p] = _dto(p.index + 1, 'CONNECTED', shopName: 'Shop OAuth');
+        return (200, ok(state[p]));
+      }
       if (o.path == ApiPaths.marketplaceDisconnect(p)) {
         state[p] = {...?state[p], 'status': 'DISCONNECTED'};
         return (200, ok(state[p]));
@@ -57,6 +88,18 @@ void main() {
     expect(
       ApiPaths.marketplaceConnection(Platform.shopee),
       '/api/v1/marketplace-connections/shopee',
+    );
+    expect(
+      ApiPaths.marketplaceAuthorization(Platform.tiktokShop),
+      '/api/v1/marketplace-connections/tiktok-shop/authorization',
+    );
+    expect(
+      ApiPaths.marketplaceCallback(Platform.shopee),
+      '/api/v1/marketplace-connections/shopee/callback',
+    );
+    expect(
+      ApiPaths.shopeeSettings,
+      '/api/v1/marketplace-connections/shopee/settings',
     );
     expect(
       ApiPaths.marketplaceDisconnect(Platform.tiktokShop),
@@ -98,14 +141,88 @@ void main() {
       expect(req.path, ApiPaths.marketplaceDisconnect(Platform.tiktokShop));
     });
 
-    test('công tắc tự nhập chỉ giữ trong app, không gửi request', () async {
+    test('tự nhập Shopee: PATCH settings { auto_import_products }, đọc lại '
+        'từ DTO', () async {
       final backend = _integration(shopee: _dto(1, 'CONNECTED'));
       final repo = MarketplaceRemoteRepository(fakeDio(backend));
+      expect((await repo.listConnections()).single.autoImportProducts, isFalse);
+
       await repo.setAutoImport(Platform.shopee, enabled: true);
-      expect(backend.requests, isEmpty);
-      final list = await repo.listConnections();
-      expect(list.single.autoImportProducts, isTrue);
+      final req = backend.requests.last;
+      expect(req.method, 'PATCH');
+      expect(req.path, ApiPaths.shopeeSettings);
+      expect(req.data, {'auto_import_products': true});
+      expect((await repo.listConnections()).single.autoImportProducts, isTrue);
     });
+
+    test('tự nhập TikTok: BE chưa có API, chỉ giữ trong app', () async {
+      final backend = _integration(tiktok: _dto(2, 'CONNECTED'));
+      final repo = MarketplaceRemoteRepository(fakeDio(backend));
+      await repo.setAutoImport(Platform.tiktokShop, enabled: true);
+      expect(backend.requests, isEmpty);
+      expect((await repo.listConnections()).single.autoImportProducts, isTrue);
+    });
+
+    test('bắt đầu OAuth: POST …/authorization { redirect_uri } → '
+        'authorizationUrl, expiresAt', () async {
+      final backend = _integration();
+      final repo = MarketplaceRemoteRepository(fakeDio(backend));
+      final start = await repo.startAuthorization(Platform.shopee);
+      var req = backend.requests.single;
+      expect(req.method, 'POST');
+      expect(req.path, ApiPaths.marketplaceAuthorization(Platform.shopee));
+      expect(req.data, {'redirect_uri': 'smartomni://oauth/shopee'});
+      expect(start.authorizationUrl.host, 'shopee-simulator.onrender.com');
+      expect(start.authorizationUrl.queryParameters['state'], 'st-1');
+      expect(start.expiresAt?.toUtc(), DateTime.utc(2026, 11, 17, 10, 10));
+
+      await repo.startAuthorization(Platform.tiktokShop);
+      req = backend.requests.last;
+      expect(req.data, {'redirect_uri': 'smartomni://oauth/tiktok'});
+    });
+
+    test(
+      'callback: Shopee snake_case, TikTok camelCase → DTO kết nối',
+      () async {
+        final backend = _integration();
+        final repo = MarketplaceRemoteRepository(fakeDio(backend));
+
+        final shopee = await repo.completeAuthorization(
+          OAuthCallback.tryParse(
+            Uri.parse('smartomni://oauth/shopee?code=c1&state=s1&shop_id=99'),
+          )!,
+        );
+        var req = backend.requests.last;
+        expect(req.path, ApiPaths.marketplaceCallback(Platform.shopee));
+        expect(req.data, {
+          'code': 'c1',
+          'shop_id': '99',
+          'state': 's1',
+          'error': null,
+          'error_description': null,
+        });
+        expect(shopee.platform, Platform.shopee);
+        expect(shopee.status, ConnectionStatus.connected);
+        expect(shopee.shopName, 'Shop OAuth');
+
+        await repo.completeAuthorization(
+          OAuthCallback.tryParse(
+            Uri.parse(
+              'smartomni://oauth/tiktok?error=access_denied&state=s2'
+              '&error_description=User%20denied',
+            ),
+          )!,
+        );
+        req = backend.requests.last;
+        expect(req.path, ApiPaths.marketplaceCallback(Platform.tiktokShop));
+        expect(req.data, {
+          'code': null,
+          'state': 's2',
+          'error': 'access_denied',
+          'errorDescription': 'User denied',
+        });
+      },
+    );
   });
 
   testWidgets('T-10 BE thật: ẩn App Key, nút Kết nối tắt "Sắp có", ngắt kết '

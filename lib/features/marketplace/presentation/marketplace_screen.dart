@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/design/design.dart';
 import '../../../core/models/platform.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../core/utils/validators.dart';
 import '../domain/marketplace_connection.dart';
 import 'marketplace_providers.dart';
 
@@ -49,25 +47,6 @@ class MarketplaceScreen extends ConsumerWidget {
                         connection: connectionFor(connections, platform),
                       ),
                     ],
-                    if (!connectRemote) ...[
-                      const SizedBox(height: SoSpace.group),
-                      SoListGroup(
-                        children: [
-                          SoListRow(
-                            key: const Key('marketplace_app_key'),
-                            icon: LucideIcons.keyRound,
-                            title: 'Nâng cao: nhập App Key',
-                            onTap: () => showAppKeySheet(
-                              context,
-                              platform: Platform.values.firstWhere(
-                                (p) => canConnect(connections, p),
-                                orElse: () => Platform.shopee,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
                   ],
                 )
               : async.hasError
@@ -95,20 +74,6 @@ extension ConnectionStatusUi on ConnectionStatus? {
     ConnectionStatus.error => ('Lỗi kết nối', SoStatus.danger),
     ConnectionStatus.disconnected || null => ('Chưa kết nối', SoStatus.neutral),
   };
-}
-
-/// Mở sheet App Key với [platform] chọn sẵn; kết nối xong thì báo toast.
-Future<void> showAppKeySheet(
-  BuildContext context, {
-  required Platform platform,
-}) async {
-  final connected = await showSoBottomSheet<Platform>(
-    context: context,
-    builder: (_) => _AppKeySheet(initial: platform),
-  );
-  if (connected != null && context.mounted) {
-    showSoToast(context, 'Đã kết nối ${connected.label}');
-  }
 }
 
 /// Thẻ một sàn: đã kết nối / lỗi / chưa kết nối (gồm cả đã ngắt).
@@ -193,9 +158,7 @@ class _PlatformCardState extends ConsumerState<_PlatformCard> {
       key: key,
       label: label,
       size: SoButtonSize.small,
-      onPressed: oauthOnly || _busy
-          ? null
-          : () => showAppKeySheet(context, platform: _platform),
+      onPressed: null,
     );
     if (!oauthOnly) return button;
     return Column(
@@ -316,10 +279,7 @@ class _PlatformCardState extends ConsumerState<_PlatformCard> {
                 key: Key('platform_error_$name'),
                 tone: SoBannerTone.danger,
                 title: 'Mất kết nối với ${_platform.label}',
-                message: oauthOnly
-                    ? 'Đơn và tồn kho đang ngừng đồng bộ.'
-                    : 'Đơn và tồn kho đang ngừng đồng bộ. Kết nối lại bằng '
-                          'App Key của shop.',
+                message: 'Đơn và tồn kho đang ngừng đồng bộ.',
               ),
               const SizedBox(height: SoSpace.s12),
               Row(
@@ -351,7 +311,7 @@ class _PlatformCardState extends ConsumerState<_PlatformCard> {
   }
 }
 
-/// Công tắc "Tự nhập sản phẩm & đơn" (thẻ sàn và sheet App Key).
+/// Công tắc "Tự nhập sản phẩm & đơn" trên thẻ sàn.
 class _AutoImportRow extends StatelessWidget {
   const _AutoImportRow({
     required this.switchKey,
@@ -403,143 +363,6 @@ class _InfoRow extends StatelessWidget {
         const SizedBox(width: SoSpace.s12),
         value,
       ],
-    );
-  }
-}
-
-/// Sheet "Kết nối bằng App Key": chọn sàn, App Key, App Secret, tự nhập.
-class _AppKeySheet extends ConsumerStatefulWidget {
-  const _AppKeySheet({required this.initial});
-
-  final Platform initial;
-
-  @override
-  ConsumerState<_AppKeySheet> createState() => _AppKeySheetState();
-}
-
-class _AppKeySheetState extends ConsumerState<_AppKeySheet> {
-  final _formKey = GlobalKey<FormState>();
-  final _appKey = TextEditingController();
-  final _appSecret = TextEditingController();
-  late Platform _platform = widget.initial;
-  bool _autoImport = true;
-  bool _obscure = true;
-  bool _busy = false;
-  String? _error;
-
-  @override
-  void dispose() {
-    _appKey.dispose();
-    _appSecret.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (_busy) return;
-    setState(() => _error = null);
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _busy = true);
-    try {
-      await ref
-          .read(marketplaceRepositoryProvider)
-          .connect(
-            platform: _platform,
-            appKey: _appKey.text.trim(),
-            appSecret: _appSecret.text.trim(),
-            autoImportProducts: _autoImport,
-          );
-      ref.invalidate(connectionsProvider);
-      if (mounted) Navigator.pop(context, _platform);
-    } catch (e) {
-      if (!mounted) return;
-      setState(
-        () => _error = e is ApiException
-            ? e.message
-            : 'Kiểm tra kết nối mạng rồi thử lại.',
-      );
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Form(
-      key: _formKey,
-      child: SoBottomSheet(
-        title: 'Kết nối bằng App Key',
-        secondary: SoButton.secondary(
-          key: const Key('app_key_cancel'),
-          label: 'Hủy',
-          onPressed: _busy ? null : () => Navigator.pop(context),
-        ),
-        primary: SoButton(
-          key: const Key('app_key_submit'),
-          label: 'Kết nối',
-          loading: _busy,
-          onPressed: _submit,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SoSegmented<Platform>(
-              key: const Key('app_key_platform'),
-              selected: _platform,
-              onChanged: (p) => setState(() {
-                _platform = p;
-                _error = null;
-              }),
-              segments: [
-                for (final p in Platform.values)
-                  SoSegment(value: p, label: p.label),
-              ],
-            ),
-            const SizedBox(height: SoSpace.s16),
-            if (_error != null) ...[
-              SoBanner(
-                key: const Key('app_key_error'),
-                tone: SoBannerTone.danger,
-                title: 'Chưa kết nối được',
-                message: _error,
-              ),
-              const SizedBox(height: SoSpace.s16),
-            ],
-            SoTextField(
-              key: const Key('app_key_field'),
-              label: 'App Key',
-              controller: _appKey,
-              mono: true,
-              textInputAction: TextInputAction.next,
-              validator: (v) => Validators.required(v, field: 'App Key'),
-            ),
-            const SizedBox(height: SoSpace.s16),
-            SoTextField(
-              key: const Key('app_secret_field'),
-              label: 'App Secret',
-              controller: _appSecret,
-              obscureText: _obscure,
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _submit(),
-              validator: (v) => Validators.required(v, field: 'App Secret'),
-              suffix: IconButton(
-                key: const Key('app_secret_toggle'),
-                tooltip: _obscure ? 'Hiện App Secret' : 'Ẩn App Secret',
-                icon: Icon(
-                  _obscure ? LucideIcons.eye : LucideIcons.eyeOff,
-                  color: context.soColors.ink2,
-                ),
-                onPressed: () => setState(() => _obscure = !_obscure),
-              ),
-            ),
-            const SizedBox(height: SoSpace.s8),
-            _AutoImportRow(
-              switchKey: const Key('app_key_auto_import'),
-              value: _autoImport,
-              onChanged: (v) => setState(() => _autoImport = v),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
