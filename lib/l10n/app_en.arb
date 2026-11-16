@@ -67,6 +67,7 @@
   "registerShopNotFound": "Store not found",
   "marketplaceOauthConnected": "Connected {platform}",
   "marketplaceOauthDenied": "You declined to grant access",
+  "marketplaceOauthAutoImportFailed": "Connected {platform} but the auto-import switch was not saved. Turn it on again on the card.",
   "marketplaceOauthInvalidRedirect": "The server does not allow returning to the app after authorization. Contact the SmartOmni admin.",
   "marketplaceOauthStateInvalid": "This connection session is invalid. Tap Connect to try again.",
   "marketplaceOauthStateExpired": "This connection session has expired. Tap Connect to try again.",

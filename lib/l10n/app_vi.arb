@@ -79,6 +79,12 @@
     }
   },
   "marketplaceOauthDenied": "Bạn đã từ chối cấp quyền",
+  "marketplaceOauthAutoImportFailed": "Đã kết nối {platform} nhưng chưa lưu được công tắc tự nhập. Bật lại trên thẻ sàn.",
+  "@marketplaceOauthAutoImportFailed": {
+    "placeholders": {
+      "platform": { "type": "String" }
+    }
+  },
   "marketplaceOauthInvalidRedirect": "Máy chủ chưa cho phép quay về app sau khi ủy quyền. Liên hệ quản trị SmartOmni.",
   "marketplaceOauthStateInvalid": "Phiên kết nối không hợp lệ. Bấm Kết nối để thử lại.",
   "marketplaceOauthStateExpired": "Phiên kết nối đã hết hạn. Bấm Kết nối để thử lại.",

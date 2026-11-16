@@ -42,11 +42,15 @@ final urlOpenerProvider = Provider<UrlOpener>(
       (url) => launchUrl(url, mode: LaunchMode.externalApplication),
 );
 
-/// Sàn đang chờ deep link OAuth. Lưu xuống máy vì Android có thể tắt app
-/// trong lúc người bán ở trình duyệt.
+/// Lần Kết nối đang chờ deep link: sàn và lựa chọn "tự nhập" ở sheet (chỉ
+/// áp dụng sau khi callback thành công).
+typedef PendingOAuth = ({Platform platform, bool autoImport});
+
+/// Lưu [PendingOAuth] xuống máy vì Android có thể tắt app trong lúc người bán
+/// ở trình duyệt.
 abstract class OAuthPendingStore {
-  Future<Platform?> read();
-  Future<void> write(Platform platform);
+  Future<PendingOAuth?> read();
+  Future<void> write(PendingOAuth pending);
   Future<void> clear();
 }
 
@@ -57,15 +61,22 @@ class SecureOAuthPendingStore implements OAuthPendingStore {
   static const _key = 'marketplace_oauth_pending';
   final FlutterSecureStorage _storage;
 
+  /// Dạng lưu: `<tên sàn>:<1|0>`, vd. `shopee:1`.
   @override
-  Future<Platform?> read() async {
-    final v = await _storage.read(key: _key);
-    return Platform.values.where((p) => p.name == v).firstOrNull;
+  Future<PendingOAuth?> read() async {
+    final parts = (await _storage.read(key: _key))?.split(':') ?? const [];
+    final platform = Platform.values
+        .where((p) => p.name == parts.firstOrNull)
+        .firstOrNull;
+    if (platform == null) return null;
+    return (platform: platform, autoImport: parts.elementAtOrNull(1) == '1');
   }
 
   @override
-  Future<void> write(Platform platform) =>
-      _storage.write(key: _key, value: platform.name);
+  Future<void> write(PendingOAuth pending) => _storage.write(
+    key: _key,
+    value: '${pending.platform.name}:${pending.autoImport ? 1 : 0}',
+  );
 
   @override
   Future<void> clear() => _storage.delete(key: _key);
@@ -74,13 +85,13 @@ class SecureOAuthPendingStore implements OAuthPendingStore {
 class InMemoryOAuthPendingStore implements OAuthPendingStore {
   InMemoryOAuthPendingStore([this.value]);
 
-  Platform? value;
+  PendingOAuth? value;
 
   @override
-  Future<Platform?> read() async => value;
+  Future<PendingOAuth?> read() async => value;
 
   @override
-  Future<void> write(Platform platform) async => value = platform;
+  Future<void> write(PendingOAuth pending) async => value = pending;
 
   @override
   Future<void> clear() async => value = null;
@@ -96,13 +107,20 @@ class OAuthLaunchFailure implements Exception {
 }
 
 /// Kết quả một lần OAuth: [error] null = đã kết nối. [denied]: deep link có
-/// `error` (người bán bấm từ chối trên trang của sàn).
+/// `error` (người bán bấm từ chối trên trang của sàn). [autoImportFailed]:
+/// đã kết nối nhưng `PATCH …/shopee/settings` lỗi.
 class OAuthOutcome {
-  const OAuthOutcome(this.platform, {this.error, this.denied = false});
+  const OAuthOutcome(
+    this.platform, {
+    this.error,
+    this.denied = false,
+    this.autoImportFailed = false,
+  });
 
   final Platform platform;
   final Object? error;
   final bool denied;
+  final bool autoImportFailed;
 }
 
 /// Câu tiếng Việt cho lỗi khi bắt đầu hoặc hoàn tất OAuth.
@@ -122,13 +140,14 @@ String oauthErrorMessage(AppLocalizations l10n, Object error) {
   };
 }
 
-/// Câu hiện sau một lần OAuth.
+/// Câu toast sau một lần OAuth.
 String oauthOutcomeMessage(AppLocalizations l10n, OAuthOutcome o) {
   if (o.denied) return l10n.marketplaceOauthDenied;
   final error = o.error;
-  return error == null
-      ? l10n.marketplaceOauthConnected(o.platform.label)
-      : oauthErrorMessage(l10n, error);
+  if (error != null) return oauthErrorMessage(l10n, error);
+  return o.autoImportFailed
+      ? l10n.marketplaceOauthAutoImportFailed(o.platform.label)
+      : l10n.marketplaceOauthConnected(o.platform.label);
 }
 
 /// Kết quả OAuth để [MarketplaceOAuthListener] báo toast (ở bất kỳ màn nào).
@@ -138,22 +157,45 @@ final oauthOutcomesProvider = Provider<StreamController<OAuthOutcome>>((ref) {
   return controller;
 });
 
+/// Kết nối vừa xong, T-10 hiện thẻ "xong" tới khi bấm Xong.
+class OAuthDoneNotifier extends Notifier<MarketplaceConnection?> {
+  @override
+  MarketplaceConnection? build() => null;
+
+  void show(MarketplaceConnection connection) => state = connection;
+
+  void dismiss() => state = null;
+}
+
+final oauthDoneProvider =
+    NotifierProvider<OAuthDoneNotifier, MarketplaceConnection?>(
+      OAuthDoneNotifier.new,
+    );
+
 /// Điều phối OAuth T-10. State: sàn đang chờ deep link (null = không chờ).
 ///
-/// 1. [connect]: BE trả `authorizationUrl` → ghi nhớ sàn đang chờ → mở ngoài
-///    app.
+/// 1. [connect] (từ sheet "Kết nối …"): BE trả `authorizationUrl` → ghi nhớ
+///    sàn đang chờ và lựa chọn tự nhập → mở ngoài app.
 /// 2. [handleLink]: deep link `smartomni://oauth/<sàn>` khi đang chờ đúng sàn
-///    → `POST …/callback` → tải lại trạng thái → báo kết quả. Link lạ, hoặc
-///    không có lần Kết nối nào đang chờ, thì bỏ qua.
+///    → `POST …/callback` → (Shopee) `PATCH …/settings` theo lựa chọn tự nhập
+///    → tải lại trạng thái → thẻ "xong" / báo lỗi. Link lạ, hoặc không có lần
+///    Kết nối nào đang chờ, thì bỏ qua.
 /// 3. Quay lại app mà không có deep link ([onResumed], hoặc mở lại app sau
 ///    khi bị tắt mà không có link) = người dùng hủy: bỏ chờ, không báo lỗi.
 class MarketplaceOAuthController extends Notifier<Platform?> {
-  /// Deep link thường đến ngay sau khi app trở lại; quá chừng này mà chưa có
-  /// thì coi là người dùng tự quay lại.
+  /// Thời gian chờ deep link sau khi app trở lại foreground. Khi sàn chuyển
+  /// về app, hệ điều hành đưa app lên trước rồi mới giao link (thường dưới
+  /// 1 giây); hết khoảng này mà chưa có link thì coi là người dùng tự quay
+  /// lại (bấm Back / chuyển app) và hủy lần Kết nối, không báo lỗi. Link đến
+  /// muộn hơn sẽ bị bỏ qua.
   static const resumeGrace = Duration(seconds: 3);
 
   Timer? _resumeTimer;
   Uri? _lastLink;
+
+  /// Số màn T-10 đang mở. Khi có, kết quả thành công hiện bằng thẻ "xong"
+  /// thay cho toast.
+  int screensOpen = 0;
 
   @override
   Platform? build() {
@@ -163,14 +205,15 @@ class MarketplaceOAuthController extends Notifier<Platform?> {
 
   OAuthPendingStore get _store => ref.read(oauthPendingStoreProvider);
 
-  Future<void> connect(Platform platform) async {
+  /// [autoImport]: lựa chọn ở sheet; chỉ Shopee dùng (TikTok chưa có API).
+  Future<void> connect(Platform platform, {bool autoImport = false}) async {
     if (state != null) return;
     state = platform;
     try {
       final start = await ref
           .read(marketplaceRepositoryProvider)
           .startAuthorization(platform);
-      await _store.write(platform);
+      await _store.write((platform: platform, autoImport: autoImport));
       final url = start.authorizationUrl;
       // Mock trả thẳng deep link sàn sẽ gọi về: xử lý luôn, không mở trình
       // duyệt.
@@ -190,21 +233,30 @@ class MarketplaceOAuthController extends Notifier<Platform?> {
     // lần (state chỉ dùng được một lần ở BE).
     if (callback == null || uri == _lastLink) return;
     _lastLink = uri;
-    final pending = state ?? await _store.read();
-    if (pending != callback.platform) return;
+    final pending = await _store.read();
+    if (pending?.platform != callback.platform) return;
     _resumeTimer?.cancel();
     await _clear();
 
+    final repo = ref.read(marketplaceRepositoryProvider);
+    final platform = callback.platform;
     final outcomes = ref.read(oauthOutcomesProvider);
     try {
-      await ref
-          .read(marketplaceRepositoryProvider)
-          .completeAuthorization(callback);
-      outcomes.add(OAuthOutcome(callback.platform));
+      var connection = await repo.completeAuthorization(callback);
+      var autoImportFailed = false;
+      if (platform == Platform.shopee) {
+        final enabled = pending!.autoImport;
+        try {
+          await repo.setAutoImport(platform, enabled: enabled);
+          connection = connection.copyWith(autoImportProducts: enabled);
+        } catch (_) {
+          autoImportFailed = true;
+        }
+      }
+      ref.read(oauthDoneProvider.notifier).show(connection);
+      outcomes.add(OAuthOutcome(platform, autoImportFailed: autoImportFailed));
     } catch (e) {
-      outcomes.add(
-        OAuthOutcome(callback.platform, error: e, denied: callback.denied),
-      );
+      outcomes.add(OAuthOutcome(platform, error: e, denied: callback.denied));
     }
     ref.invalidate(connectionsProvider);
   }
@@ -278,6 +330,13 @@ class _MarketplaceOAuthListenerState
 
   void _show(OAuthOutcome outcome) {
     if (!mounted) return;
+    // Đang ở T-10: thẻ "xong" đã báo thành công.
+    final quietSuccess =
+        outcome.error == null &&
+        !outcome.denied &&
+        !outcome.autoImportFailed &&
+        _oauth.screensOpen > 0;
+    if (quietSuccess) return;
     showSoToast(context, oauthOutcomeMessage(context.l10n, outcome));
   }
 

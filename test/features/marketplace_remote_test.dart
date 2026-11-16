@@ -359,7 +359,7 @@ void main() {
     /// Vài khung hình: khi đang chờ deep link, nút có vòng xoay chạy mãi nên
     /// không dùng được `pumpAndSettle`.
     Future<void> frames(WidgetTester tester) async {
-      for (var i = 0; i < 5; i++) {
+      for (var i = 0; i < 12; i++) {
         await tester.pump(const Duration(milliseconds: 50));
       }
     }
@@ -370,8 +370,59 @@ void main() {
                 .data
             as Map<Object?, Object?>;
 
-    testWidgets('Kết nối mở authorizationUrl ngoài app; deep link thành công '
-        '→ callback, tải lại trạng thái, báo đã kết nối', (tester) async {
+    /// Bấm Kết nối trên thẻ [p] → sheet "Kết nối …" → "Mở …". Sau đó nút
+    /// trên thẻ đang chờ deep link (vòng xoay) nên chỉ pump vài khung hình.
+    Future<void> startConnect(
+      WidgetTester tester,
+      String p, {
+      String key = 'connect',
+    }) async {
+      await tester.tap(find.byKey(Key('${key}_$p')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('oauth_sheet')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('oauth_open')));
+      await frames(tester);
+    }
+
+    testWidgets('sheet "Kết nối Shopee": 3 bước, quyền sẽ đọc, công tắc tự '
+        'nhập; Hủy không gọi BE', (tester) async {
+      final backend = _integration();
+      await pump(tester, backend);
+
+      await tester.tap(find.byKey(const Key('connect_shopee')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Kết nối Shopee'), findsOneWidget);
+      expect(
+        find.text('Mở Shopee và đăng nhập tài khoản người bán.'),
+        findsOneWidget,
+      );
+      for (final scope in ['Đơn hàng', 'Sản phẩm', 'Tồn kho', 'Tin nhắn']) {
+        expect(
+          find.descendant(
+            of: find.byKey(const Key('oauth_scopes')),
+            matching: find.text(scope),
+          ),
+          findsOneWidget,
+        );
+      }
+      expect(
+        tester.widget<Switch>(find.byKey(const Key('oauth_auto_import'))).value,
+        isTrue,
+      );
+      expect(find.text('Mở Shopee'), findsOneWidget);
+      expect(find.textContaining('App Key'), findsNothing);
+
+      await tester.tap(find.byKey(const Key('oauth_cancel')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('oauth_sheet')), findsNothing);
+      expect(backend.requests.where((r) => r.method == 'POST'), isEmpty);
+    });
+
+    testWidgets('TikTok: "Mở TikTok Shop" gọi authorization, mở URL ngoài '
+        'app; deep link thành công → callback, thẻ "xong", không PATCH', (
+      tester,
+    ) async {
       final backend = _integration(
         shopee: _dto(1, 'CONNECTED', shopName: 'Shop Demo Official'),
       );
@@ -387,8 +438,13 @@ void main() {
       expect(status(tester, 'tiktokShop'), 'Chưa kết nối');
 
       await tester.tap(find.byKey(const Key('connect_tiktokShop')));
+      await tester.pumpAndSettle();
+      // TikTok chưa có API tự nhập: không có công tắc, ghi "Sắp có".
+      expect(find.byKey(const Key('oauth_auto_import')), findsNothing);
+      expect(find.byKey(const Key('oauth_auto_import_soon')), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('oauth_open')));
       await frames(tester);
-      expect(opened.single.host, 'shopee-simulator.onrender.com');
       expect(
         backend.requests
             .singleWhere(
@@ -399,9 +455,11 @@ void main() {
             .data,
         {'redirect_uri': 'smartomni://oauth/tiktok'},
       );
-      // Đang chờ deep link: nút đang tải, không bấm lại được.
+      expect(opened.single.host, 'shopee-simulator.onrender.com');
+      // Sheet đóng; nút trên thẻ đang chờ deep link.
+      expect(find.byKey(const Key('oauth_sheet')), findsNothing);
       expect(button(tester, 'connect_tiktokShop').loading, isTrue);
-      expect(pending.value, Platform.tiktokShop);
+      expect(pending.value?.platform, Platform.tiktokShop);
 
       links.send(Uri.parse('smartomni://oauth/tiktok?code=c9&state=st-1'));
       await tester.pumpAndSettle();
@@ -412,9 +470,77 @@ void main() {
         'error': null,
         'errorDescription': null,
       });
-      expect(find.text('Đã kết nối TikTok Shop'), findsOneWidget);
+      expect(backend.calls(ApiPaths.shopeeSettings), 0);
       expect(status(tester, 'tiktokShop'), 'Đã kết nối');
       expect(pending.value, isNull);
+
+      // Thẻ kính "xong": tên sàn, tên shop, Shop ID từ DTO. Đang ở T-10 nên
+      // không có toast trùng.
+      final done = find.byKey(const Key('oauth_done'));
+      expect(done, findsOneWidget);
+      expect(find.byType(SoToast), findsNothing);
+      Finder inDone(String text) =>
+          find.descendant(of: done, matching: find.text(text));
+      expect(inDone('Đã kết nối TikTok Shop'), findsOneWidget);
+      expect(inDone('Shop OAuth'), findsOneWidget);
+      expect(inDone('SHOP2'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('oauth_done_close')));
+      await tester.pumpAndSettle();
+      expect(done, findsNothing);
+    });
+
+    testWidgets('Shopee: lựa chọn tự nhập chỉ gửi PATCH settings sau khi '
+        'callback thành công', (tester) async {
+      final backend = _integration();
+      await pump(tester, backend);
+
+      await tester.tap(find.byKey(const Key('connect_shopee')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('oauth_auto_import')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('oauth_open')));
+      await frames(tester);
+
+      expect(backend.calls(ApiPaths.shopeeSettings), 0);
+      expect(pending.value, (platform: Platform.shopee, autoImport: false));
+
+      links.send(
+        Uri.parse('smartomni://oauth/shopee?code=c&state=st-1&shop_id=9'),
+      );
+      await tester.pumpAndSettle();
+
+      final paths = [for (final r in backend.requests) r.path];
+      final callbackAt = paths.indexOf(
+        ApiPaths.marketplaceCallback(Platform.shopee),
+      );
+      final settingsAt = paths.indexOf(ApiPaths.shopeeSettings);
+      expect(callbackAt, greaterThanOrEqualTo(0));
+      expect(settingsAt, greaterThan(callbackAt));
+      expect(backend.requests[settingsAt].data, {
+        'auto_import_products': false,
+      });
+      expect(find.byKey(const Key('oauth_done')), findsOneWidget);
+      expect(
+        tester
+            .widget<Switch>(find.byKey(const Key('auto_import_shopee')))
+            .value,
+        isFalse,
+      );
+    });
+
+    testWidgets('Shopee: bật tự nhập nhưng callback lỗi → không PATCH', (
+      tester,
+    ) async {
+      final backend = _integration();
+      await pump(tester, backend);
+
+      await startConnect(tester, 'shopee');
+      links.send(Uri.parse('smartomni://oauth/shopee?code=c&state=gia-mao'));
+      await tester.pumpAndSettle();
+
+      expect(backend.calls(ApiPaths.shopeeSettings), 0);
+      expect(find.byKey(const Key('oauth_done')), findsNothing);
     });
 
     testWidgets('từ chối (error=access_denied) → "Bạn đã từ chối cấp quyền"', (
@@ -423,8 +549,7 @@ void main() {
       final backend = _integration();
       await pump(tester, backend);
 
-      await tester.tap(find.byKey(const Key('connect_shopee')));
-      await frames(tester);
+      await startConnect(tester, 'shopee');
       links.send(
         Uri.parse('smartomni://oauth/shopee?error=access_denied&state=st-1'),
       );
@@ -433,6 +558,7 @@ void main() {
       expect(callbackBody(backend, Platform.shopee)['error'], 'access_denied');
       expect(find.text('Bạn đã từ chối cấp quyền'), findsOneWidget);
       expect(status(tester, 'shopee'), 'Chưa kết nối');
+      expect(find.byKey(const Key('oauth_done')), findsNothing);
       expect(button(tester, 'connect_shopee').onPressed, isNotNull);
     });
 
@@ -440,8 +566,7 @@ void main() {
       final backend = _integration();
       await pump(tester, backend);
 
-      await tester.tap(find.byKey(const Key('connect_shopee')));
-      await frames(tester);
+      await startConnect(tester, 'shopee');
       links.send(Uri.parse('smartomni://oauth/shopee?code=c&state=gia-mao'));
       await tester.pumpAndSettle();
 
@@ -462,8 +587,7 @@ void main() {
       links.send(Uri.parse('smartomni://oauth/shopee?code=c&state=st-1'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('connect_shopee')));
-      await frames(tester);
+      await startConnect(tester, 'shopee');
       // Link lạ và link của sàn khác.
       links
         ..send(Uri.parse('smartomni://other/shopee?code=c&state=st-1'))
@@ -478,17 +602,23 @@ void main() {
       expect(button(tester, 'connect_shopee').loading, isTrue);
     });
 
-    testWidgets('quay lại app không qua deep link → hủy, không báo lỗi; link '
-        'đến sau đó bị bỏ qua', (tester) async {
+    testWidgets('quay lại app không qua deep link → hủy sau '
+        'resumeGrace, không báo lỗi; link đến sau đó bị bỏ qua', (
+      tester,
+    ) async {
       final backend = _integration();
       await pump(tester, backend);
 
-      await tester.tap(find.byKey(const Key('connect_shopee')));
-      await frames(tester);
+      await startConnect(tester, 'shopee');
       tester.binding
         ..handleAppLifecycleStateChanged(AppLifecycleState.paused)
         ..handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-      await tester.pump(MarketplaceOAuthController.resumeGrace);
+      // Chưa hết thời gian chờ: vẫn đang chờ deep link.
+      await tester.pump(
+        MarketplaceOAuthController.resumeGrace - const Duration(seconds: 1),
+      );
+      expect(button(tester, 'connect_shopee').loading, isTrue);
+      await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
 
       expect(button(tester, 'connect_shopee').loading, isFalse);
@@ -505,17 +635,19 @@ void main() {
     });
 
     testWidgets('app bị tắt khi ở trình duyệt: mở lại bằng deep link vẫn xử lý '
-        '(sàn chờ lưu trong máy)', (tester) async {
+        '(sàn và lựa chọn tự nhập lưu trong máy)', (tester) async {
       // Lần chạy trước đã bắt đầu OAuth Shopee (BE cấp st-1) rồi app bị tắt.
       final backend = _integration(issuedStates: {'st-1'});
-      pending.value = Platform.shopee;
+      pending.value = (platform: Platform.shopee, autoImport: true);
       links = FakeDeepLinkSource(
         Uri.parse('smartomni://oauth/shopee?code=c&state=st-1&shop_id=55'),
       );
       await pump(tester, backend);
 
       expect(callbackBody(backend, Platform.shopee)['shop_id'], '55');
-      expect(find.text('Đã kết nối Shopee'), findsOneWidget);
+      // Lựa chọn tự nhập (bật) lưu từ lần chạy trước vẫn được gửi.
+      expect(backend.calls(ApiPaths.shopeeSettings), 1);
+      expect(find.byKey(const Key('oauth_done')), findsOneWidget);
       expect(status(tester, 'shopee'), 'Đã kết nối');
       expect(pending.value, isNull);
     });
@@ -523,37 +655,47 @@ void main() {
     testWidgets('mở lại app không kèm deep link → bỏ lần chờ cũ', (
       tester,
     ) async {
-      pending.value = Platform.shopee;
+      pending.value = (platform: Platform.shopee, autoImport: false);
       await pump(tester, _integration());
       expect(pending.value, isNull);
       expect(find.byType(SoToast), findsNothing);
     });
 
-    testWidgets('BE từ chối redirect_uri → báo lỗi tiếng Việt, không mở '
-        'trình duyệt', (tester) async {
+    testWidgets('BE từ chối redirect_uri → lỗi tiếng Việt trong sheet, không '
+        'mở trình duyệt', (tester) async {
       await pump(
         tester,
         _integration(authorizationError: 'INVALID_REDIRECT_URI'),
       );
       await tester.tap(find.byKey(const Key('connect_tiktokShop')));
-      await frames(tester);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('oauth_open')));
+      await tester.pumpAndSettle();
 
       expect(opened, isEmpty);
+      expect(find.byKey(const Key('oauth_sheet')), findsOneWidget);
       expect(
-        find.text(
-          'Máy chủ chưa cho phép quay về app sau khi ủy quyền. Liên hệ quản '
-          'trị SmartOmni.',
+        find.descendant(
+          of: find.byKey(const Key('oauth_error')),
+          matching: find.text(
+            'Máy chủ chưa cho phép quay về app sau khi ủy quyền. Liên hệ '
+            'quản trị SmartOmni.',
+          ),
         ),
         findsOneWidget,
       );
       expect(button(tester, 'connect_tiktokShop').onPressed, isNotNull);
     });
 
-    testWidgets('không mở được trình duyệt → báo lỗi, bỏ chờ', (tester) async {
+    testWidgets('không mở được trình duyệt → lỗi trong sheet, bỏ chờ', (
+      tester,
+    ) async {
       openResult = false;
       await pump(tester, _integration());
       await tester.tap(find.byKey(const Key('connect_shopee')));
-      await frames(tester);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('oauth_open')));
+      await tester.pumpAndSettle();
 
       expect(
         find.text('Không mở được trang ủy quyền của sàn.'),

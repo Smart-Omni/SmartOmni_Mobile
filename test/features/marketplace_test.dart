@@ -265,16 +265,29 @@ void main() {
     await _pump(tester);
 
     await tapVisible(tester, find.byKey(const Key('reconnect_tiktokShop')));
+    expect(find.text('Kết nối TikTok Shop'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('oauth_open')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Đã kết nối TikTok Shop'), findsOneWidget);
+    expect(find.byKey(const Key('oauth_sheet')), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('oauth_done')),
+        matching: find.text('Đã kết nối TikTok Shop'),
+      ),
+      findsOneWidget,
+    );
     expect(_status(tester, 'tiktokShop'), 'Đã kết nối');
     expect(find.byKey(const Key('platform_error_tiktokShop')), findsNothing);
     expect(find.byKey(const Key('auto_import_tiktokShop')), findsOneWidget);
   });
 
-  testWidgets('T-10 vừa bề rộng 360dp', (tester) async {
+  testWidgets('T-10 và sheet "Kết nối …" vừa bề rộng 360dp', (tester) async {
     await _pump(tester, size: const Size(360, 1200));
+    expect(tester.takeException(), isNull);
+
+    await tapVisible(tester, find.byKey(const Key('reconnect_tiktokShop')));
+    expect(find.byKey(const Key('oauth_sheet')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

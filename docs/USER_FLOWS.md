@@ -236,8 +236,8 @@ Có **toàn bộ flow của Staff**, thêm:
 | Bước | Nội dung | API |
 |---|---|---|
 | 1 | Hai thẻ: Shopee, TikTok Shop - trạng thái: Chưa kết nối / Đã kết nối (shop ID) / Lỗi - cần kết nối lại / Đã ngắt | 🟡 list |
-| 2 | Bấm **Kết nối** (hoặc **Kết nối lại**) → mở trang ủy quyền của sàn ngoài app | ✅ `POST …/{shopee,tiktok-shop}/authorization` |
-| 3 | Người bán đồng ý → sàn chuyển về `smartomni://oauth/<sàn>` → app gửi kết quả, tải lại trạng thái, báo "Đã kết nối …" / lỗi (vd: "Bạn đã từ chối cấp quyền"). Quay lại app không qua sàn = hủy, không báo | ✅ `POST …/callback` |
+| 2 | Bấm **Kết nối** (hoặc **Kết nối lại**) → sheet "Kết nối <sàn>": 3 bước, quyền sẽ đọc, công tắc tự nhập (TikTok: "Sắp có") → **Mở <sàn>** mở trang ủy quyền ngoài app | ✅ `POST …/{shopee,tiktok-shop}/authorization` |
+| 3 | Người bán đồng ý → sàn chuyển về `smartomni://oauth/<sàn>` → app gửi kết quả, (Shopee) lưu lựa chọn tự nhập, tải lại trạng thái, hiện thẻ "Đã kết nối …" (tên shop, Shop ID, nút Xong) / báo lỗi (vd: "Bạn đã từ chối cấp quyền"). Quay lại app không qua sàn = hủy, không báo | ✅ `POST …/callback`, `PATCH …/shopee/settings` |
 | 4 | Thẻ đã kết nối: công tắc "Tự nhập sản phẩm & đơn" (Shopee gọi BE, TikTok còn mẫu), **Ngắt kết nối** | ✅ `PATCH …/shopee/settings`, `POST …/disconnect` |
 
 > BE `9558375` bỏ kết nối bằng App Key; chỉ OAuth. Staff không thấy nút Kết nối / Ngắt kết nối.
