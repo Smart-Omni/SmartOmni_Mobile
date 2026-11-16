@@ -129,6 +129,28 @@ void main() {
       );
     });
 
+    test('404 STORE_NOT_FOUND → shopNotFound', () async {
+      final backend = FakeBackend(
+        (o) async => (
+          404,
+          {
+            ...apiError('Không tìm thấy cửa hàng với subdomain: abc'),
+            'code': 'STORE_NOT_FOUND',
+          },
+        ),
+      );
+      await expectLater(
+        RegistrationRemoteRepository(fakeDio(backend)).register(request),
+        throwsA(
+          isA<RegisterFailure>().having(
+            (f) => f.kind,
+            'kind',
+            RegisterFailureKind.shopNotFound,
+          ),
+        ),
+      );
+    });
+
     test('400 → lỗi khác, giữ message của BE', () async {
       final backend = FakeBackend(
         (o) async => (400, apiError('Mật khẩu phải từ 6 đến 100 ký tự')),

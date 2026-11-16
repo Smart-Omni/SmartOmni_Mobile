@@ -284,6 +284,45 @@ void main() {
     expect(await storage.readRefreshToken(), 'r1');
   });
 
+  testWidgets('BE thật: 404 STORE_NOT_FOUND → "Không tìm thấy cửa hàng" dưới '
+      'ô mã cửa hàng', (tester) async {
+    final backend = FakeBackend(
+      (o) async => (
+        404,
+        {
+          ...apiError('Không tìm thấy cửa hàng với subdomain: khongco'),
+          'code': 'STORE_NOT_FOUND',
+        },
+      ),
+    );
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await pumpSmartOmniApp(
+      tester,
+      overrides: [
+        registerUseRemoteProvider.overrideWithValue(true),
+        registrationRepositoryProvider.overrideWithValue(
+          RegistrationRemoteRepository(fakeDio(backend)),
+        ),
+      ],
+    );
+    await tapVisible(tester, find.byKey(const Key('login_register')));
+    await _fill(tester, shop: 'khongco');
+    await tapVisible(tester, find.byKey(const Key('register_terms')));
+    await tapVisible(tester, find.byKey(const Key('register_submit')));
+
+    expect(backend.requests, hasLength(1));
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('register_shop_code')),
+        matching: find.text('Không tìm thấy cửa hàng'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byType(RegisterScreen), findsOneWidget);
+  });
+
   testWidgets('OTP mở thẳng (không qua A-05) thì có nút Về Đăng ký', (
     tester,
   ) async {

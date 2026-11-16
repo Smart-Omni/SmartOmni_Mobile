@@ -89,7 +89,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         case RegisterFailureKind.emailTaken:
           setState(() => _emailError = f.message);
         case RegisterFailureKind.shopNotFound:
-          setState(() => _shopError = f.message);
+          setState(() => _shopError = context.l10n.registerShopNotFound);
         case RegisterFailureKind.other:
           showSoToast(context, f.message);
       }

@@ -64,5 +64,6 @@
   "resetResendCode": "Send new code",
   "resetCodeInvalid": "The code is wrong or already used.",
   "resetFailedTitle": "Password not reset",
+  "registerShopNotFound": "Store not found",
   "resetMockHint": "Mock build: valid code {code}, expired code {expired}."
 }
