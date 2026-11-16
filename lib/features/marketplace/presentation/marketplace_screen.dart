@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/auth/user_role.dart';
 import '../../../core/design/design.dart';
 import '../../../core/models/platform.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../l10n/l10n.dart';
+import '../../auth/presentation/auth_controller.dart';
 import '../domain/marketplace_connection.dart';
+import 'marketplace_oauth.dart';
 import 'marketplace_providers.dart';
 
-/// T-10 Kết nối sàn (chỉ Tenant Admin), DESIGN.md mục 8b: hai thẻ sàn +
-/// hàng "Nâng cao: nhập App Key".
-/// - Mock: mọi thứ là dữ liệu mẫu, kết nối bằng form App Key.
-/// - BE thật: trạng thái và ngắt kết nối gọi API. BE bắt kết nối qua OAuth
-///   (App Key luôn bị từ chối) nên ẩn form App Key, nút Kết nối tắt "Sắp có".
-///   Công tắc tự nhập vẫn là mẫu.
+/// T-10 Kết nối sàn (chỉ Tenant Admin), DESIGN.md mục 8b: hai thẻ sàn.
+/// Kết nối qua OAuth của sàn ([MarketplaceOAuthController]); BE `9558375`
+/// đã bỏ kết nối bằng App Key.
+/// - Mock: mọi thứ là dữ liệu mẫu, OAuth giả không mở trình duyệt.
+/// - BE thật: trạng thái, kết nối, ngắt kết nối, công tắc tự nhập Shopee gọi
+///   API. Công tắc tự nhập TikTok vẫn là mẫu (BE chưa có API).
+/// Staff không được kết nối / ngắt kết nối (BE chỉ cho Tenant Admin).
 class MarketplaceScreen extends ConsumerWidget {
   const MarketplaceScreen({super.key});
 
@@ -35,8 +40,8 @@ class MarketplaceScreen extends ConsumerWidget {
                   children: [
                     SoMockBanner(
                       message: connectRemote
-                          ? 'Công tắc tự nhập là dữ liệu mẫu, backend chưa có '
-                                'API.'
+                          ? 'Công tắc tự nhập của TikTok Shop là dữ liệu mẫu, '
+                                'backend chưa có API.'
                           : 'Kết nối sàn đang là dữ liệu mẫu.',
                     ),
                     const SizedBox(height: SoSpace.s16),
@@ -147,49 +152,31 @@ class _PlatformCardState extends ConsumerState<_PlatformCard> {
     );
   }
 
-  /// Nút kết nối: mock mở form App Key; BE thật tắt kèm "Sắp có" (OAuth
-  /// chưa làm).
-  Widget _connectButton({
-    required Key key,
-    required String label,
-    required bool oauthOnly,
-  }) {
-    final button = SoButton(
+  /// Bắt đầu OAuth; kết quả báo qua [MarketplaceOAuthListener].
+  Future<void> _connect() async {
+    try {
+      await ref.read(marketplaceOAuthProvider.notifier).connect(_platform);
+    } catch (e) {
+      if (mounted) showSoToast(context, oauthErrorMessage(context.l10n, e));
+    }
+  }
+
+  Widget _connectButton({required Key key, required String label}) {
+    final pending = ref.watch(marketplaceOAuthProvider);
+    return SoButton(
       key: key,
       label: label,
       size: SoButtonSize.small,
-      onPressed: null,
-    );
-    if (!oauthOnly) return button;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Flexible(child: button),
-            const SizedBox(width: SoSpace.s8),
-            SoStatusTag(
-              key: Key('connect_soon_${_platform.name}'),
-              label: 'Sắp có',
-              status: SoStatus.neutral,
-            ),
-          ],
-        ),
-        const SizedBox(height: SoSpace.s4),
-        Text(
-          'Kết nối qua ủy quyền của sàn sẽ có ở bản sau.',
-          style: context.textTheme.bodySmall?.copyWith(
-            color: context.soColors.ink2,
-          ),
-        ),
-      ],
+      loading: pending == _platform,
+      onPressed: _busy || pending != null ? null : _connect,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final c = context.soColors;
-    final oauthOnly = ref.watch(marketplaceUseRemoteProvider);
+    // Route T-10 chỉ cho Tenant Admin; vẫn chặn ở đây cho chắc.
+    final canManage = ref.watch(currentRoleProvider) != UserRole.staff;
     final conn = widget.connection;
     final status = conn?.status;
     final (label, tone) = status.tag;
@@ -222,15 +209,16 @@ class _PlatformCardState extends ConsumerState<_PlatformCard> {
               'Kết nối để nhập đơn và sản phẩm từ ${_platform.label}.',
               style: context.textTheme.bodyMedium?.copyWith(color: c.ink2),
             ),
-            const SizedBox(height: SoSpace.s12),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: _connectButton(
-                key: Key('connect_$name'),
-                label: 'Kết nối',
-                oauthOnly: oauthOnly,
+            if (canManage) ...[
+              const SizedBox(height: SoSpace.s12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: _connectButton(
+                  key: Key('connect_$name'),
+                  label: 'Kết nối',
+                ),
               ),
-            ),
+            ],
           ] else ...[
             const SizedBox(height: SoSpace.s12),
             Text(
@@ -262,17 +250,19 @@ class _PlatformCardState extends ConsumerState<_PlatformCard> {
               _AutoImportRow(
                 switchKey: Key('auto_import_$name'),
                 value: conn.autoImportProducts,
-                onChanged: _busy ? null : _setAutoImport,
+                onChanged: _busy || !canManage ? null : _setAutoImport,
               ),
               const Divider(height: 1),
-              const SizedBox(height: SoSpace.s12),
-              SoButton.secondary(
-                key: Key('disconnect_$name'),
-                label: 'Ngắt kết nối',
-                size: SoButtonSize.small,
-                expand: true,
-                onPressed: _busy ? null : _disconnect,
-              ),
+              if (canManage) ...[
+                const SizedBox(height: SoSpace.s12),
+                SoButton.secondary(
+                  key: Key('disconnect_$name'),
+                  label: 'Ngắt kết nối',
+                  size: SoButtonSize.small,
+                  expand: true,
+                  onPressed: _busy ? null : _disconnect,
+                ),
+              ],
             ] else ...[
               const SizedBox(height: SoSpace.s12),
               SoBanner(
@@ -281,28 +271,29 @@ class _PlatformCardState extends ConsumerState<_PlatformCard> {
                 title: 'Mất kết nối với ${_platform.label}',
                 message: 'Đơn và tồn kho đang ngừng đồng bộ.',
               ),
-              const SizedBox(height: SoSpace.s12),
-              Row(
-                children: [
-                  Expanded(
-                    child: SoButton.secondary(
-                      key: Key('disconnect_$name'),
-                      label: 'Ngắt kết nối',
-                      size: SoButtonSize.small,
-                      onPressed: _busy ? null : _disconnect,
+              if (canManage) ...[
+                const SizedBox(height: SoSpace.s12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SoButton.secondary(
+                        key: Key('disconnect_$name'),
+                        label: 'Ngắt kết nối',
+                        size: SoButtonSize.small,
+                        onPressed: _busy ? null : _disconnect,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: SoSpace.s12),
-                  Expanded(
-                    flex: 2,
-                    child: _connectButton(
-                      key: Key('reconnect_$name'),
-                      label: 'Kết nối lại',
-                      oauthOnly: oauthOnly,
+                    const SizedBox(width: SoSpace.s12),
+                    Expanded(
+                      flex: 2,
+                      child: _connectButton(
+                        key: Key('reconnect_$name'),
+                        label: 'Kết nối lại',
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ],
           ],
         ],

@@ -8,6 +8,7 @@ import 'package:smartomni_mobile/core/network/api_exception.dart';
 import 'package:smartomni_mobile/core/utils/mock_delay.dart';
 import 'package:smartomni_mobile/features/marketplace/data/marketplace_repositories.dart';
 import 'package:smartomni_mobile/features/marketplace/domain/marketplace_connection.dart';
+import 'package:smartomni_mobile/features/marketplace/presentation/marketplace_oauth.dart';
 import 'package:smartomni_mobile/features/marketplace/presentation/marketplace_providers.dart';
 import 'package:smartomni_mobile/features/marketplace/presentation/marketplace_screen.dart';
 import 'package:smartomni_mobile/l10n/l10n.dart';
@@ -34,12 +35,20 @@ Future<MarketplaceMockRepository> _pump(
       overrides: [
         appConfigProvider.overrideWithValue(testConfig),
         marketplaceRepositoryProvider.overrideWithValue(repo),
+        deepLinkSourceProvider.overrideWithValue(FakeDeepLinkSource()),
+        oauthPendingStoreProvider.overrideWithValue(
+          InMemoryOAuthPendingStore(),
+        ),
+        urlOpenerProvider.overrideWithValue(
+          (_) => throw StateError('mock không được mở trình duyệt'),
+        ),
       ],
       child: MaterialApp(
         theme: SoTheme.light(),
         locale: const Locale('vi'),
         supportedLocales: AppLocalizations.supportedLocales,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
+        builder: (_, child) => MarketplaceOAuthListener(child: child!),
         home: const MarketplaceScreen(),
       ),
     ),
@@ -249,6 +258,19 @@ void main() {
     );
     expect(find.byKey(const Key('connect_shopee')), findsOneWidget);
     expect(_inCard('shopee', find.text('123456789')), findsNothing);
+  });
+
+  testWidgets('T-10 mock: Kết nối lại chạy OAuth giả (không mở trình duyệt), '
+      'xong thẻ hết lỗi', (tester) async {
+    await _pump(tester);
+
+    await tapVisible(tester, find.byKey(const Key('reconnect_tiktokShop')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Đã kết nối TikTok Shop'), findsOneWidget);
+    expect(_status(tester, 'tiktokShop'), 'Đã kết nối');
+    expect(find.byKey(const Key('platform_error_tiktokShop')), findsNothing);
+    expect(find.byKey(const Key('auto_import_tiktokShop')), findsOneWidget);
   });
 
   testWidgets('T-10 vừa bề rộng 360dp', (tester) async {

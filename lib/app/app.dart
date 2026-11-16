@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/design/so_glass.dart';
 import '../core/design/so_theme.dart';
+import '../features/marketplace/presentation/marketplace_oauth.dart';
 import '../l10n/l10n.dart';
 import 'config/app_config.dart';
 import 'router/app_router.dart';
@@ -25,7 +26,10 @@ class SmartOmniApp extends ConsumerWidget {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       builder: (context, child) => SoGlassScope(
         enabled: ref.watch(glassEnabledProvider),
-        child: child ?? const SizedBox.shrink(),
+        // Deep link OAuth của T-10 đến ở bất kỳ màn nào.
+        child: MarketplaceOAuthListener(
+          child: child ?? const SizedBox.shrink(),
+        ),
       ),
     );
   }
