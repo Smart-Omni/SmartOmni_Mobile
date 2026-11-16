@@ -5,13 +5,14 @@ import '../../../core/models/platform.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/api_paths.dart';
 import '../../../core/network/api_response.dart';
-import '../../../core/utils/map_with_limit.dart';
 import '../../../core/utils/mock_delay.dart';
 import '../domain/product.dart';
 import '../domain/products_repository.dart';
 
 /// Gọi API thật của Catalog Service. BE trả thẳng entity (camelCase):
-/// `Product { id, name, description, status }`, SKU lấy riêng ở `/{id}/skus`.
+/// `Product { id, name, description, status }`, SKU lấy riêng: một sản phẩm ở
+/// `/{id}/skus`, cả danh sách một lần ở `/skus?productIds=…`
+/// (`ProductSku { id, productId, skuCode, variantName, basePrice }`).
 /// BE không trả link sàn, nên [Product.marketplaceUrls] luôn rỗng.
 class ProductsRemoteRepository implements ProductsRepository {
   ProductsRemoteRepository(this._dio);
@@ -21,8 +22,7 @@ class ProductsRemoteRepository implements ProductsRepository {
   @override
   Future<List<Product>> listProducts() async {
     try {
-      // shortcut: chỉ tải trang đầu 100 sản phẩm, rồi mỗi sản phẩm một lần
-      // gọi SKU (N+1, tối đa 4 cùng lúc). BE chưa có API trả kèm SKU.
+      // shortcut: chỉ tải trang đầu 100 sản phẩm.
       final res = await _dio.get<Object?>(
         ApiPaths.products,
         queryParameters: {'page': 0, 'size': 100, 'sort': 'createdAt,desc'},
@@ -31,10 +31,29 @@ class ProductsRemoteRepository implements ProductsRepository {
         res.data,
         (data) => PageResult.fromJson(data, Product.fromJson).items,
       );
-      return await mapWithLimit(
-        products,
-        (p) async => p.copyWith(skus: await _skus(p.id)),
+      if (products.isEmpty) return products;
+
+      final skuRes = await _dio.get<Object?>(
+        ApiPaths.productSkusBatch,
+        queryParameters: {
+          'productIds': [for (final p in products) p.id].join(','),
+        },
       );
+      final byProduct = unwrapResponse<Map<int, List<Sku>>>(skuRes.data, (
+        data,
+      ) {
+        final map = <int, List<Sku>>{};
+        for (final s in (data as List<dynamic>? ?? const [])) {
+          final json = s as JsonMap;
+          final productId = Json.asInt(json['productId']);
+          if (productId == null) continue;
+          (map[productId] ??= []).add(Sku.fromJson(json));
+        }
+        return map;
+      });
+      return [
+        for (final p in products) p.copyWith(skus: byProduct[p.id] ?? const []),
+      ];
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

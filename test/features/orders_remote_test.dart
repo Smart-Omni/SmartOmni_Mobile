@@ -38,6 +38,41 @@ Map<String, Object?> _order(
   'createdAt': _now.subtract(Duration(hours: id)).toUtc().toIso8601String(),
 };
 
+/// `OrderItemDto` như BE `3eb89ec` trả: `skuCode`, `productName` có trong DTO
+/// nhưng `OrderService.getOrderDetail` không điền (null).
+Map<String, Object?> _item(
+  int id,
+  int skuId,
+  int qty,
+  num price, {
+  String? skuCode,
+  String? productName,
+  String? imageUrl,
+}) => {
+  'id': id,
+  'skuId': skuId,
+  'skuCode': skuCode,
+  'productName': productName,
+  'quantity': qty,
+  'unitPrice': price,
+  'subtotal': price * qty,
+  'imageUrl': imageUrl,
+};
+
+/// `OrderDetailDto`: các trường của đơn + `items`.
+Map<String, Object?> _detail(
+  Map<String, Object?> order,
+  List<Map<String, Object?>> items,
+) => {
+  ...order,
+  'shippingMethod': null,
+  'courierScannedAt': null,
+  'returnReason': null,
+  'rejectReason': null,
+  'restockStatus': null,
+  'items': items,
+};
+
 Map<String, Object?> _page(List<Object?> content) => ok({
   'content': content,
   'totalElements': content.length,
@@ -47,22 +82,40 @@ Map<String, Object?> _page(List<Object?> content) => ok({
   'last': true,
 });
 
-/// BE giả của Order Service: đổi trạng thái thật sự lưu lại.
-FakeBackend _orderService(List<Map<String, Object?>> orders) =>
-    FakeBackend((RequestOptions o) async {
-      final status = RegExp(r'/orders/(\d+)/status$').firstMatch(o.path);
-      if (status != null) {
-        final order = orders.firstWhere(
-          (e) => e['id'] == int.parse(status.group(1)!),
-        );
-        order['status'] = o.queryParameters['status'];
-        return (200, ok(order));
+/// BE giả của Order Service: đổi trạng thái thật sự lưu lại. [items]: sản
+/// phẩm của từng đơn ở `GET /orders/{id}`; [detailError]: mã lỗi của lần gọi
+/// chi tiết đầu tiên (null = không lỗi).
+FakeBackend _orderService(
+  List<Map<String, Object?>> orders, {
+  Map<int, List<Map<String, Object?>>> items = const {},
+  int? detailError,
+}) {
+  var failDetail = detailError != null;
+  return FakeBackend((RequestOptions o) async {
+    final detail = RegExp(r'/orders/(\d+)$').firstMatch(o.path);
+    if (detail != null) {
+      if (failDetail) {
+        failDetail = false;
+        return (detailError!, apiError('Lỗi máy chủ'));
       }
-      if (o.path == ApiPaths.returns) {
-        return (200, ok({'id': 1, 'status': 'REQUESTED'}));
-      }
-      return (200, _page(orders));
-    });
+      final id = int.parse(detail.group(1)!);
+      final order = orders.firstWhere((e) => e['id'] == id);
+      return (200, ok(_detail(order, items[id] ?? const [])));
+    }
+    final status = RegExp(r'/orders/(\d+)/status$').firstMatch(o.path);
+    if (status != null) {
+      final order = orders.firstWhere(
+        (e) => e['id'] == int.parse(status.group(1)!),
+      );
+      order['status'] = o.queryParameters['status'];
+      return (200, ok(order));
+    }
+    if (o.path == ApiPaths.returns) {
+      return (200, ok({'id': 1, 'status': 'REQUESTED'}));
+    }
+    return (200, _page(orders));
+  });
+}
 
 void main() {
   group('OrdersRemoteRepository', () {
@@ -93,6 +146,45 @@ void main() {
         expect(hold.items, isEmpty);
       },
     );
+
+    test('chi tiết đơn đọc OrderDetailDto: items; BE không điền skuCode, '
+        'productName thì mã rỗng, tên "SKU #id"', () async {
+      final backend = _orderService(
+        [_order(100, 'TO_SHIP')],
+        items: {
+          100: [
+            _item(1, 10, 2, 125000),
+            _item(
+              2,
+              11,
+              1,
+              99000,
+              skuCode: 'AT-TRANG-M',
+              productName: 'Áo thun',
+              imageUrl: 'https://img.test/a.png',
+            ),
+          ],
+        },
+      );
+      final order = await OrdersRemoteRepository(
+        fakeDio(backend),
+      ).getOrder(100);
+
+      expect(backend.requests.single.path, ApiPaths.order(100));
+      expect(order.platformOrderId, 'SO100');
+      expect(order.status, OrderStatus.toShip);
+      final [a, b] = order.items;
+      expect(a.skuId, 10);
+      expect(a.skuCode, isEmpty);
+      expect(a.name, 'SKU #10');
+      expect(a.quantity, 2);
+      expect(a.unitPrice, 125000);
+      expect(a.subtotal, 250000);
+      expect(a.imageUrl, isNull);
+      expect(b.skuCode, 'AT-TRANG-M');
+      expect(b.name, 'Áo thun');
+      expect(b.imageUrl, 'https://img.test/a.png');
+    });
 
     test('Chuẩn bị hàng gửi PATCH ?status=TO_SHIP', () async {
       final backend = _orderService([_order(1, 'PENDING')]);
@@ -133,9 +225,15 @@ void main() {
   group('M-20/M-21 với BE thật', () {
     Future<FakeBackend> openOrders(
       WidgetTester tester,
-      List<Map<String, Object?>> orders,
-    ) async {
-      final backend = _orderService(orders);
+      List<Map<String, Object?>> orders, {
+      Map<int, List<Map<String, Object?>>> items = const {},
+      int? detailError,
+    }) async {
+      final backend = _orderService(
+        orders,
+        items: items,
+        detailError: detailError,
+      );
       await loginAs(
         tester,
         'staff@demo.vn',
@@ -161,7 +259,52 @@ void main() {
       expect(find.text('Chưa có đơn nào'), findsOneWidget);
     });
 
-    testWidgets('M-21: thẻ Sản phẩm trống; Chuẩn bị hàng → Chờ giao', (
+    testWidgets('M-21: sản phẩm từ GET /orders/{id}', (tester) async {
+      final backend = await openOrders(
+        tester,
+        [_order(1, 'PENDING')],
+        items: {
+          1: [
+            _item(1, 10, 2, 125000),
+            _item(2, 11, 1, 99000, skuCode: 'AT-TRANG-M', productName: 'Áo'),
+          ],
+        },
+      );
+      await tapVisible(tester, find.byKey(const Key('order_1')));
+
+      expect(backend.calls(ApiPaths.order(1)), 1);
+      expect(find.text('SKU #10'), findsOneWidget);
+      expect(find.text('2 × 125.000 ₫'), findsOneWidget);
+      expect(find.text('Áo'), findsOneWidget);
+      expect(find.text('AT-TRANG-M'), findsOneWidget);
+      expect(
+        find.text('Chưa có danh sách sản phẩm cho đơn này.'),
+        findsNothing,
+      );
+    });
+
+    testWidgets('M-21: chi tiết lỗi → vẫn hiện thông tin đơn từ danh sách, '
+        'Thử lại tải được sản phẩm', (tester) async {
+      await openOrders(
+        tester,
+        [_order(1, 'PENDING')],
+        items: {
+          1: [_item(1, 10, 2, 125000)],
+        },
+        detailError: 500,
+      );
+      await tapVisible(tester, find.byKey(const Key('order_1')));
+
+      expect(find.byKey(const Key('order_items_error')), findsOneWidget);
+      expect(find.text('Khách 1'), findsWidgets);
+      expect(find.byKey(const Key('order_prepare')), findsOneWidget);
+
+      await tapVisible(tester, find.byKey(const Key('order_items_retry')));
+      expect(find.byKey(const Key('order_items_error')), findsNothing);
+      expect(find.text('SKU #10'), findsOneWidget);
+    });
+
+    testWidgets('M-21: đơn không có sản phẩm; Chuẩn bị hàng → Chờ giao', (
       tester,
     ) async {
       final backend = await openOrders(tester, [_order(1, 'PENDING')]);

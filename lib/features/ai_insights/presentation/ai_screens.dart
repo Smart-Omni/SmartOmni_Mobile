@@ -19,7 +19,10 @@ import '../domain/demand_forecast.dart';
 
 final aiRepositoryProvider = Provider<AiRepository>((ref) {
   return ref.watch(forecastUseRemoteProvider)
-      ? AiRemoteRepository(ref.watch(dioProvider))
+      ? AiRemoteRepository(
+          ref.watch(dioProvider),
+          clock: ref.watch(clockProvider),
+        )
       : AiMockRepository(clock: ref.watch(clockProvider));
 });
 

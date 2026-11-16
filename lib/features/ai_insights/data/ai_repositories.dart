@@ -7,15 +7,31 @@ import '../../../core/network/api_response.dart';
 import '../../../core/utils/mock_delay.dart';
 import '../domain/demand_forecast.dart';
 
+/// `GET /api/v1/ai/forecast/{skuId}?from=yyyy-MM-dd&days=`: BE `3eb89ec` lọc
+/// theo khoảng ngày và sắp xếp tăng dần; app vẫn lọc / sắp lại bằng
+/// [upcomingForecast] cho chắc.
 class AiRemoteRepository implements AiRepository {
-  AiRemoteRepository(this._dio);
+  AiRemoteRepository(this._dio, {DateTime Function()? clock})
+    : _clock = clock ?? DateTime.now;
 
   final Dio _dio;
+  final DateTime Function() _clock;
+
+  /// Số ngày xin BE (M-51 chỉ hiện [forecastDays] ngày đầu).
+  static const requestDays = 14;
 
   @override
   Future<List<DemandForecast>> forecastForSku(int skuId) async {
+    final today = _clock();
+    final from =
+        '${today.year.toString().padLeft(4, '0')}-'
+        '${today.month.toString().padLeft(2, '0')}-'
+        '${today.day.toString().padLeft(2, '0')}';
     try {
-      final res = await _dio.get<Object?>(ApiPaths.forecast(skuId));
+      final res = await _dio.get<Object?>(
+        ApiPaths.forecast(skuId),
+        queryParameters: {'from': from, 'days': requestDays},
+      );
       return unwrapResponse<List<DemandForecast>>(
         res.data,
         (data) => [

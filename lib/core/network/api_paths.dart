@@ -33,6 +33,7 @@ abstract final class ApiPaths {
 
   // Đơn hàng
   static const orders = '/api/v1/orders';
+  static String order(int orderId) => '/api/v1/orders/$orderId';
   static String orderStatus(int orderId) => '/api/v1/orders/$orderId/status';
   static const returns = '/api/v1/returns';
 
@@ -40,6 +41,9 @@ abstract final class ApiPaths {
   static const products = '/api/v1/products';
   static String product(int id) => '/api/v1/products/$id';
   static String productSkus(int id) => '/api/v1/products/$id/skus';
+
+  /// SKU của nhiều sản phẩm một lần: `?productIds=1,2,3`.
+  static const productSkusBatch = '/api/v1/products/skus';
 
   // Tồn kho
   static const inventoryList = '/api/v1/inventory';

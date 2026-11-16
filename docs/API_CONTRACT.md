@@ -1,11 +1,11 @@
 # Hợp đồng API (màn hình ↔ backend)
 
-Backend: [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/SmartOmni_BE), nhánh `develop`, đối chiếu ở commit `4cae7a2` (Merge PR #33 `feature/security-tenant-isolation`, gồm PR #32 sửa thông báo lỗi). Lần đối chiếu trước: `fda1ab2`.
+Backend: [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/SmartOmni_BE), nhánh `develop`, đối chiếu ở commit `3eb89ec` (Merge PR #34 `fix/shopee-return-and-platform-apis`; tài liệu BE: `TAILIEU_SUA_LOI_SHOPEE_VA_NEN_TANG.md`). Lần đối chiếu trước: `4cae7a2`, `fda1ab2`.
 
 - Mọi request đi qua **Nginx Gateway** `:8080`, header `Authorization: Bearer <JWT>` (trừ login/quên mật khẩu).
 - Response chuẩn: `{ "success": bool, "message": string?, "code": string?, "data": T, "timestamp": ISO-8601 }`. `code` là mã lỗi ổn định (từ `4cae7a2`), vd. `TOKEN_REVOKED`, `FEATURE_NOT_AVAILABLE`, `SKU_LIMIT_EXCEEDED`, `VALIDATION_ERROR`.
 - Phân trang có **2 kiểu** (app đọc cả hai ở `PageResult.fromJson`):
-  - `Page` mặc định của Spring (products, inventory, orders): `?page=0&size=20&sort=createdAt,desc` → `data: { content: [...], totalElements, totalPages, number, size, first, last, … }`.
+  - `Page` mặc định của Spring (products, inventory, orders): `?page=0&size=20&sort=createdAt,desc` (inventory không nhận `sort`, BE tự sắp theo `skuId`) → `data: { content: [...], totalElements, totalPages, number, size, first, last, … }`.
   - `PageResponse` snake_case (`/api/v1/users`): `?page=0&size=10&sortBy=createdAt&sortDir=desc` → `data: { content, total_elements, total_pages, page_number, page_size, first, last, has_next, has_previous }`.
 - Enum gửi/nhận viết HOA: `SHOPEE`, `TIKTOK_SHOP`, `PENDING`, `TO_SHIP`...
 
@@ -15,7 +15,7 @@ Chú thích cột **Trạng thái**:
 - ⚪ **Chưa làm** - chưa có màn hình (mục "Sắp có").
 - 🔜 **Đang nối** - BE đã có API (`fda1ab2`), app đang nối trong nhánh `feature/api-be-1111`; tới khi xong vẫn dùng mock.
 
-## 0. Tình trạng nối API (BE `develop` @ `4cae7a2`)
+## 0. Tình trạng nối API (BE `develop` @ `3eb89ec`)
 
 Khi `USE_MOCK=false`, chức năng nào gọi API thật được chọn ở `lib/app/config/api_availability.dart` (`connectedFeatures`); chức năng chưa nối được dùng Mock và hiện `SoMockBanner`. Mọi đường dẫn API nằm ở `lib/core/network/api_paths.dart`. BE sửa xong: sửa đường dẫn (nếu đổi) rồi thêm chức năng vào `connectedFeatures`.
 
@@ -28,15 +28,31 @@ Khi `USE_MOCK=false`, chức năng nào gọi API thật được chọn ở `li
 | A-03 Quên mật khẩu | `POST /api/v1/auth/forgot-password` | |
 | A-04 Đặt lại mật khẩu | `POST /api/v1/auth/reset-password` | Gửi thêm ô nhập lại mật khẩu |
 | Tự gia hạn phiên | `POST /api/v1/auth/refresh` | Không bị đá ra khi token hết hạn |
-| A-05 Đăng ký khách | `POST /api/v1/auth/register` | Bỏ OTP khi dùng BE thật; mã cửa hàng gửi làm `subdomain` |
+| A-05 Đăng ký khách | `POST /api/v1/auth/register` | Bỏ OTP khi dùng BE thật; mã cửa hàng gửi làm `subdomain`, BE gắn khách vào cửa hàng đó. Sai mã: 404 `STORE_NOT_FOUND` → "Không tìm thấy cửa hàng" dưới ô mã |
 | M-50 Thông tin tài khoản | `GET /api/v1/users/me`, `GET /api/v1/tenants/me` | Tên, email, tên cửa hàng thật |
 | Đổi mật khẩu (C-40, M-50 đang ghi "Sắp có") | `POST /api/v1/auth/change-password` | Bật lên được vì API đã có |
-| M-30, M-31, M-32 Sản phẩm | `GET /api/v1/products`, `GET /api/v1/products/{id}`, `GET /api/v1/products/{id}/skus`, `POST /api/v1/products` | Danh sách gọi thêm `/skus` cho từng sản phẩm (tối đa 4 cùng lúc). BE không trả link sàn: ẩn chấm kênh ở M-30, ẩn nhóm "Liên kết sàn" ở M-31. Nhãn tồn kho ẩn tới khi nối tồn kho. Gói Free quá 100 SKU: 400 `SKU_LIMIT_EXCEEDED`, hiện ở banner |
-| M-20, M-21 Đơn hàng, hoàn/trả | `GET /api/v1/orders`, `PATCH /api/v1/orders/{id}/status?status=TO_SHIP`, `POST /api/v1/returns` | M-21 lấy dữ liệu từ danh sách; thẻ "Sản phẩm" trống ("Chưa có danh sách sản phẩm cho đơn này."). App chỉ cho chuyển sang `TO_SHIP` (chặn cả ở repository). Hộp thư (còn mock) dùng đơn mẫu riêng và không mở M-21 từ thẻ đơn |
+| M-30, M-31, M-32 Sản phẩm | `GET /api/v1/products`, `GET /api/v1/products/skus?productIds=…`, `GET /api/v1/products/{id}`, `GET /api/v1/products/{id}/skus`, `POST /api/v1/products` | SKU của cả danh sách lấy một lần ở `/products/skus?productIds=1,2,3` (danh sách rỗng thì không gọi). BE không trả link sàn: ẩn chấm kênh ở M-30, ẩn nhóm "Liên kết sàn" ở M-31. Nhãn tồn kho ẩn tới khi nối tồn kho. Gói Free quá 100 SKU: 400 `SKU_LIMIT_EXCEEDED`, hiện ở banner |
+| M-20, M-21 Đơn hàng, hoàn/trả | `GET /api/v1/orders`, `GET /api/v1/orders/{id}`, `PATCH /api/v1/orders/{id}/status?status=TO_SHIP`, `POST /api/v1/returns` | M-21 hiện ngay dữ liệu từ danh sách, sản phẩm tải ở `GET /orders/{id}` (đang tải: khung xám; lỗi: "Không tải được danh sách sản phẩm." + Thử lại). BE chưa điền `skuCode`, `productName` nên tạm hiện "SKU #id". App chỉ cho chuyển sang `TO_SHIP` (chặn cả ở repository). Hộp thư (còn mock) dùng đơn mẫu riêng và không mở M-21 từ thẻ đơn |
 | T-10 Kết nối sàn | `GET /api/v1/marketplace-connections/{shopee,tiktok-shop}`, `POST …/{shopee,tiktok-shop}/disconnect` | Trạng thái và ngắt kết nối. BE bắt kết nối qua OAuth nên app ẩn form App Key, nút "Kết nối"/"Kết nối lại" tắt "Sắp có". Công tắc tự nhập vẫn là mẫu |
-| M-51 Dự báo AI | `GET /api/v1/ai/forecast/{skuId}` | App sắp xếp theo ngày, chỉ lấy từ hôm nay, tối đa 7 ngày; dòng không đọc được ngày bị bỏ. Danh sách SKU để chọn lấy từ tồn kho (M-40). Chỉ gói Pro (403 `FEATURE_NOT_AVAILABLE`) |
-| M-40 Tồn kho | `GET /api/v1/inventory`, `POST /api/v1/inventory/{skuId}/adjust` | Ghép với danh sách sản phẩm (dùng chung M-30) để có mã SKU, tên. SKU chưa có dòng tồn hiện tồn 0 / giữ 0 (Hết hàng), đặt tồn được ngay; dòng tồn không khớp SKU nào hiện "SKU #id". Nhãn tồn ở M-30, M-31 hiện lại |
-| T-20 Nhân viên | `GET /api/v1/users`, `POST /api/v1/users`, `PATCH /api/v1/users/{id}/status` | Danh sách, thêm (họ tên + email + mật khẩu tạm, role `MANAGER`), khóa / mở khóa. App chặn chủ cửa hàng tự khóa (BE không chặn) |
+| M-51 Dự báo AI | `GET /api/v1/ai/forecast/{skuId}?from=<hôm nay>&days=14` | BE lọc và sắp xếp; app vẫn sắp xếp, chỉ lấy từ hôm nay, tối đa 7 ngày; dòng không đọc được ngày bị bỏ. Danh sách SKU để chọn lấy từ tồn kho (M-40). Chỉ gói Pro (403 `FEATURE_NOT_AVAILABLE`) |
+| M-40 Tồn kho | `GET /api/v1/inventory`, `POST /api/v1/inventory/{skuId}/adjust` | Đọc thẳng `InventoryItemDto` (mã SKU, tên sản phẩm, `availableQuantity`, đủ SKU kể cả tồn 0), giữ thứ tự BE. Tên biến thể ghép từ danh sách sản phẩm (dùng chung M-30). Dòng tồn không khớp SKU: BE trả `SKU-<id>` / "Unknown Product". Nhãn tồn ở M-30, M-31 hiện lại |
+| T-20 Nhân viên | `GET /api/v1/users`, `POST /api/v1/users`, `PATCH /api/v1/users/{id}/status` | Danh sách (role `MANAGER` và `STAFF` vào qua lời mời), thêm (họ tên + email + mật khẩu tạm, role `MANAGER`), khóa / mở khóa. App chặn chủ cửa hàng tự khóa (BE không chặn) |
+
+### ✅ BE đã sửa ở `3eb89ec` (trước đây trong bảng lỗi gửi BE)
+
+Mã C2–C8, B4, B5 theo `TAILIEU_SUA_LOI_SHOPEE_VA_NEN_TANG.md` của BE. Đọc code BE, chưa chạy với BE thật.
+
+| Mã | Lỗi cũ | BE `3eb89ec` | App |
+|---|---|---|---|
+| C4 | M-30 N+1: mỗi sản phẩm một lần gọi `/{id}/skus` | `GET /api/v1/products/skus?productIds=1,2,3` → `List<ProductSku>` (lọc tenant) | Đã dùng: 1 request cho cả danh sách |
+| C2, C8 | M-21 không có sản phẩm của đơn | `GET /api/v1/orders/{id}` → `OrderDetailDto` kèm `items: [OrderItemDto { id, skuId, skuCode, productName, quantity, unitPrice, subtotal, imageUrl }]` | Đã dùng (xem dòng lỗi mới về `skuCode`/`productName`) |
+| C5, C8 | M-40 thiếu SKU chưa đặt tồn, thiếu tên | `Page<InventoryItemDto> { skuId, skuCode, productName, quantityOnHand, reservedQuantity, availableQuantity }`, đủ SKU (tồn 0), sắp theo `skuId` | Đã dùng; bỏ `sort` |
+| C6 | M-51 trả ngày đã qua, không sắp xếp | `?from=yyyy-MM-dd&days=`, `ORDER BY forecast_date ASC`, mặc định từ hôm nay | Đã dùng `from=<hôm nay>&days=14` |
+| - | A-05 khách không gắn cửa hàng | `register` gắn theo `subdomain` (hoặc `tenant_id`); sai mã 404 `STORE_NOT_FOUND`, cửa hàng khóa 403 `TENANT_LOCKED` | Đã dùng |
+| - | A-05 tra mã cửa hàng trả 404 | `c9caf20` thêm RLS cho đọc công khai tenant | Chưa chạy lại; ô mã vẫn chỉ kiểm định dạng khi dùng BE thật |
+| B4 | App Key luôn 400 | Endpoint `POST /api/v1/marketplace-connections` đánh dấu `@Deprecated`, thông báo chỉ sang OAuth | Giữ: ẩn form App Key khi dùng BE thật |
+| C7 | Không có `autoImportProducts` | `ShopeeConnectionDto.autoImportProducts` + `PATCH /api/v1/marketplace-connections/shopee/settings` `{ auto_import_products }` | Chưa dùng (công tắc vẫn mẫu) |
+| B5 | OAuth không quay về app | `POST /api/v1/marketplace-connections/shopee/authorization` nhận `redirect_uri` (whitelist `smartomni://*`, localhost, `*.smartomni.vn`) → `authorization_url` | Chưa dùng (nút Kết nối vẫn "Sắp có") |
 
 ### ✅ BE đã sửa ở `4cae7a2` (trước đây trong bảng lỗi gửi BE)
 
@@ -61,6 +77,7 @@ Khi `USE_MOCK=false`, chức năng nào gọi API thật được chọn ở `li
 
 ### BE mới có, app chưa dùng
 
+- `3eb89ec`: `POST /api/v1/orders` (`CreateManualOrderRequest`, `source = MANUAL`) tạo đơn để thử ở môi trường dev; `POST /api/v1/returns/{id}/inspection` (kho kiểm hàng hoàn trước khi nhập lại kho); lời mời nhân viên `POST/GET /api/v1/users/invitations`, `DELETE /api/v1/users/invitations/{id}`, `GET /api/v1/users/me/invitations`, `POST /api/v1/users/me/invitations/{id}/accept` (người nhận thành role `STAFF`); OAuth và cài đặt Shopee ở trên (B5, C7).
 - `POST /api/v1/tiktok/connect` (`TiktokConnectController`), body `TiktokConnectRequest { code, state, error, shopId, shopName }`: nhận kết quả OAuth của TikTok Shop. App chưa dùng; có thể dùng cho OAuth TikTok trên mobile khi BE hỗ trợ `redirect_uri` riêng cho app (B5).
 - `TenantProfileResponse` có thêm `tenantUrl`.
 
@@ -77,16 +94,10 @@ Trước `fda1ab2`, các đường dưới đây trả 404 (controller còn ở 
 | Màn trong app | API | Lỗi | Nguyên nhân |
 |---|---|---|---|
 | M-10, M-60/61, T-30, T-40, T-50, C-00, C-10, C-11, C-12, C-20, C-30 | - | Chưa có API | BE chưa làm các chức năng này |
-| A-05 Đăng ký khách | `/api/v1/auth/register` | Khách không gắn cửa hàng | `AuthServiceImpl.register` bỏ qua `subdomain`/`tenant_id`, khách tạo ra không gắn cửa hàng nào |
-| A-05 Ô mã cửa hàng | `GET /api/v1/tenants/public/by-subdomain/{subdomain}` | 404 | Trả 404 cho khách chưa đăng nhập kể cả cửa hàng có thật (RLS chưa thiết lập ngữ cảnh đọc công khai). App chỉ kiểm định dạng mã. Chưa chạy lại với `fda1ab2` |
 | Mọi màn cần đăng nhập | - | Token hết hạn trả 403 (body rỗng) thay vì 401 | `SecurityConfig` chưa có `authenticationEntryPoint` (vẫn còn ở `4cae7a2`). App đang tự refresh trước khi token hết hạn (đọc `exp`) để né lỗi này |
 | Mọi màn cần đăng nhập | `POST /api/v1/auth/refresh` | Không phân biệt phiên bị thu hồi với hết hạn | API refresh nên trả mã riêng (vd. `TOKEN_REVOKED`) khi refresh token bị thu hồi do khóa/đổi quyền, để app phân biệt với hết hạn thường. Hiện trả 401 `INVALID_TOKEN` cho cả hai |
-| M-30 Sản phẩm | `GET /api/v1/products` | Tải chậm khi nhiều sản phẩm (N+1) | `Product` không kèm SKU, nên app gọi thêm `GET /{id}/skus` cho từng sản phẩm (100 sản phẩm = 101 request). Đề xuất danh sách trả kèm `skus`, hoặc `GET /api/v1/products/skus?productIds=1,2,3` |
-| M-40 Tồn kho | `GET /api/v1/inventory` | Thiếu SKU chưa đặt tồn | BE chỉ tạo dòng `inventory` khi `adjust`/`restock`, nên SKU mới không có trong danh sách. App tự thêm các SKU này với tồn 0. Đề xuất trả mọi SKU của tenant (tồn 0 nếu chưa có dòng) |
-| M-21 Chi tiết đơn | - | Không có sản phẩm của đơn | Entity `OrderItem` có nhưng không gắn vào `Order` và không có API đọc. Đề xuất `GET /api/v1/orders/{id}` kèm `items` |
-| M-51 Dự báo AI | `GET /api/v1/ai/forecast/{skuId}` | Trả cả ngày đã qua, không theo thứ tự | `findByTenantIdAndSkuId` không `ORDER BY` và không lọc ngày. App tự lọc. Đề xuất sắp xếp theo `forecastDate`, chỉ trả từ hôm nay (hoặc nhận `?from=&days=`) |
-| T-10 Kết nối bằng App Key | `POST /api/v1/marketplace-connections` | Luôn 400 | `MarketplaceConnectionService.connect` từ chối cả `SHOPEE` (`SHOPEE_USE_AUTHORIZATION_FLOW`) lẫn `TIKTOK_SHOP` (`TIKTOK_USE_AUTHORIZATION_FLOW`), mà enum chỉ có 2 sàn này. Đề xuất bỏ endpoint hoặc ghi rõ chỉ dùng OAuth |
-| T-10 Công tắc tự nhập | `GET /api/v1/marketplace-connections/{sàn}` | Không có `autoImportProducts`, không bật/tắt được | `ShopeeConnectionDto`, `TiktokConnectionDto` không có trường này và chưa có API đổi. App giữ công tắc ở dạng mẫu |
+| M-21 Chi tiết đơn | `GET /api/v1/orders/{id}` | Sản phẩm không có mã SKU, tên | `OrderItemDto` khai báo `skuCode`, `productName` nhưng `OrderService.getOrderDetail` không điền (entity `OrderItem` chỉ có `skuId`), nên luôn `null`. App tạm hiện "SKU #<skuId>". Đề xuất điền từ `product_skus` + `products` |
+| T-10 Công tắc tự nhập (TikTok) | `GET /api/v1/marketplace-connections/tiktok-shop` | Không có `autoImportProducts` | `3eb89ec` chỉ thêm cho Shopee (`ShopeeConnectionDto` + `PATCH …/shopee/settings`); `TiktokConnectionDto` chưa có. App giữ công tắc ở dạng mẫu cho cả hai sàn |
 | Chạy thử | - | Không có sẵn tài khoản | BE chưa có dữ liệu demo. Phải tự tạo: mở cửa hàng qua web FE (`/api/v1/tenants/onboarding`) và đăng ký khách qua app |
 
 ## 1. Xác thực
@@ -98,7 +109,7 @@ Trước `fda1ab2`, các đường dưới đây trả 404 (controller còn ở 
 | Đăng xuất | `POST /api/v1/auth/logout` | header `Authorization` | ✅ | BE blacklist access token, xóa refresh token. Lỗi vẫn xóa token ở máy |
 | Quên mật khẩu | `POST /api/v1/auth/forgot-password` | `{ email }` | ✅ | |
 | Đặt lại mật khẩu | `POST /api/v1/auth/reset-password` | `{ token, new_password, confirm_password }` (6–100 ký tự) | ✅ | |
-| Đăng ký khách (A-05) | `POST /api/v1/auth/register` | `{ email, password (6–100), full_name, phone, subdomain }` → `AuthResponse` (201) | ✅ | Không có OTP: vào thẳng app. Ô "Mã cửa hàng" chỉ kiểm `^[a-z0-9-]{3,30}$` (chữ thường) rồi gửi làm `subdomain`; BE hiện bỏ qua trường này. Email trùng: 409. Mock vẫn có OTP |
+| Đăng ký khách (A-05) | `POST /api/v1/auth/register` | `{ email, password (6–100), full_name, phone, subdomain }` → `AuthResponse` (201) | ✅ | Không có OTP: vào thẳng app. Ô "Mã cửa hàng" chỉ kiểm `^[a-z0-9-]{3,30}$` (chữ thường) rồi gửi làm `subdomain`; BE gắn khách vào cửa hàng đó, sai mã thì 404 `STORE_NOT_FOUND` ("Không tìm thấy cửa hàng" dưới ô mã). Email trùng: 409. Mock vẫn có OTP |
 | Hồ sơ (M-50, C-40) | `GET /api/v1/users/me` | → `UserProfileResponse` (snake_case): `{ id, email, full_name, phone, avatar, role, status, tenant_id, subdomain, created_at, updated_at }` | ✅ | Thẻ hồ sơ hiện họ tên, email |
 | Tên cửa hàng, gói (M-50, M-51) | `GET /api/v1/tenants/me` | → `TenantProfileResponse` (camelCase): `{ id, companyName, subdomain, tenantUrl, status, planType, …, storefront: { storeName, logoUrl, … } }` | ✅ | Chỉ gọi khi có `tenant_id`. Tên = `storefront.storeName`, trống thì `companyName`. `planType` (vd. `PRO`, `FREE`) quyết định M-51 có khóa sẵn không. Lỗi thì thẻ vẫn hiện tên, email |
 | Đổi mật khẩu (C-40) | `POST /api/v1/auth/change-password` | `{ current_password, new_password (6–100), confirm_password }` | ✅ | Cần token. Lỗi 400 kèm `message` (sai mật khẩu hiện tại / trùng / không khớp). BE thu hồi refresh token nên app đăng xuất ngay, báo "Đã đổi mật khẩu, vui lòng đăng nhập lại." |
@@ -116,16 +127,16 @@ JWT payload: `{ sub: "<userId>", role, tenantId?, tenant_id?, subdomain?, iat, e
 |---|---|---|---|---|
 | Tổng quan | - | - | 🟡 | `dashboardSummaryProvider` |
 | Danh sách đơn | `GET /api/v1/orders?page=0&size=20&sort=createdAt,desc` | → `Page<Order>` (camelCase: `platform, platformOrderId, status, customerName, customerPhone, shippingAddress, totalAmount, trackingNumber, slaDeadline, source, createdAt`) | ✅ | `OrdersRemoteRepository.fetchOrders` |
-| Chi tiết đơn | - (lấy từ danh sách) | - | ✅ | BE chưa có API chi tiết, đơn chưa có danh sách sản phẩm. Đề xuất `GET /api/v1/orders/{id}` kèm `items` |
+| Chi tiết đơn | `GET /api/v1/orders/{id}` | → `OrderDetailDto` (camelCase: các trường của `Order` + `shippingMethod, courierScannedAt, returnReason, rejectReason, restockStatus, items: [{ id, skuId, skuCode, productName, quantity, unitPrice, subtotal, imageUrl }]`) | ✅ | `OrdersRemoteRepository.getOrder`, `orderDetailProvider`. Chỉ gọi khi đơn hàng nối BE thật |
 | Chuyển trạng thái đơn | `PATCH /api/v1/orders/{id}/status` | `?status=TO_SHIP` | ✅ | App chỉ cho `PENDING → TO_SHIP` |
 | Ghi nhận hoàn/trả | `POST /api/v1/returns` | `CreateReturnRequest { orderId, reason }` → `ReturnRefund` (`REQUESTED`) | ✅ | |
 | In vận đơn | - | - | 🟡 | Đề xuất `GET /api/v1/orders/{id}/shipping-label` (PDF); app dùng tem mẫu |
-| Danh sách sản phẩm | `GET /api/v1/products?page=0&size=100&sort=createdAt,desc` | → `Page<Product>` (camelCase: `id, name, description, status: ACTIVE\|HIDDEN`); SKU lấy riêng `GET /{id}/skus` → `[ProductSku { id, productId, skuCode, variantName, basePrice }]` | ✅ | `ProductsRemoteRepository.listProducts`. Chỉ tải trang đầu 100 |
+| Danh sách sản phẩm | `GET /api/v1/products?page=0&size=100&sort=createdAt,desc` | → `Page<Product>` (camelCase: `id, name, description, status: ACTIVE\|HIDDEN`); SKU của cả trang lấy một lần `GET /api/v1/products/skus?productIds=1,2,3` → `[ProductSku { id, productId, skuCode, variantName, basePrice }]`, ghép theo `productId` | ✅ | `ProductsRemoteRepository.listProducts`. Chỉ tải trang đầu 100 |
 | Chi tiết sản phẩm | `GET /api/v1/products/{id}` + `GET /api/v1/products/{id}/skus` | - | ✅ | |
 | Tạo sản phẩm | `POST /api/v1/products` | `CreateProductRequest { name, description?, skus: [{ skuCode, variantName?, basePrice? }] }` | ✅ | |
-| Danh sách tồn kho | `GET /api/v1/inventory?page=0&size=500&sort=skuId,asc` | → `Page<Inventory>` (camelCase: `skuId, quantityOnHand, reservedQuantity`); tên SP, mã SKU ghép từ danh sách sản phẩm | ✅ | `InventoryRemoteRepository` + `buildInventoryItems`. Chỉ tải trang đầu 500 |
+| Danh sách tồn kho | `GET /api/v1/inventory?page=0&size=500` | → `Page<InventoryItemDto>` (camelCase: `skuId, skuCode, productName, quantityOnHand, reservedQuantity, availableQuantity`), đủ SKU, sắp theo `skuId`; tên biến thể ghép từ danh sách sản phẩm | ✅ | `InventoryRemoteRepository` + `buildInventoryItems`. Chỉ tải trang đầu 500 |
 | Đặt lại tồn | `POST /api/v1/inventory/{skuId}/adjust` | `?quantity=<số tồn MỚI>` | ✅ | BE **gán** số lượng, không cộng/trừ |
-| Dự báo theo SKU | `GET /api/v1/ai/forecast/{skuId}` | → `[DemandForecast { skuId, forecastDate (yyyy-MM-dd), predictedQuantity, recommendedReorderQty }]` | ✅ | |
+| Dự báo theo SKU | `GET /api/v1/ai/forecast/{skuId}` | `?from=yyyy-MM-dd&days=14` → `[DemandForecast { skuId, forecastDate (yyyy-MM-dd), predictedQuantity, recommendedReorderQty }]` | ✅ | |
 | Gợi ý sản phẩm | `GET /api/v1/ai/recommendations/{skuId}` | | ⚪ | Chưa có màn hình |
 | Cảnh báo AI | - | - | 🟡 | Đề xuất `GET /api/v1/ai/alerts` |
 | Hộp thư CSKH | - | - | ⚪ | Chờ Message Service |
@@ -136,7 +147,7 @@ JWT payload: `{ sub: "<userId>", role, tenantId?, tenant_id?, subdomain?, iat, e
 |---|---|---|---|---|
 | Trạng thái kết nối sàn | `GET /api/v1/marketplace-connections/shopee`, `/tiktok-shop` → `ShopeeConnectionDto` / `TiktokConnectionDto` (`id, status, needsReconnect, shopId, shopName, connectedAt, …`; chưa kết nối: `data: null`); ngắt: `POST …/{shopee,tiktok-shop}/disconnect` (chỉ Tenant Admin) | - | ✅ | `MISSING_SCOPE`/`REFRESH_FAILED`/`REVOKED`/`ERROR` = lỗi kết nối. Công tắc tự nhập vẫn mock |
 | Kết nối sàn | `POST /api/v1/marketplace-connections` | `{ platform, appKey, appSecret, autoImportProducts }` | 🟡 | BE luôn trả 400 (bắt OAuth); app chỉ dùng form App Key ở chế độ mock | |
-| Quản lý Staff | `GET /api/v1/users?page=0&size=100&sortBy=createdAt&sortDir=asc` → `PageResponse<UserProfileResponse>` (snake_case); `POST /api/v1/users` `{ email, password (6–100), full_name (bắt buộc, ≤ 100), role: "MANAGER" }` (409 `EMAIL_EXISTS`); `PATCH /api/v1/users/{id}/status` `{ status: ACTIVE\|DISABLED }` | | ✅ | `StaffRemoteRepository`. Chủ cửa hàng = role `TENANT_ADMIN`; chỉ hiện `TENANT_ADMIN`/`ADMIN`/`MANAGER`. Chỉ tải trang đầu 100 người |
+| Quản lý Staff | `GET /api/v1/users?page=0&size=100&sortBy=createdAt&sortDir=asc` → `PageResponse<UserProfileResponse>` (snake_case); `POST /api/v1/users` `{ email, password (6–100), full_name (bắt buộc, ≤ 100), role: "MANAGER" }` (409 `EMAIL_EXISTS`); `PATCH /api/v1/users/{id}/status` `{ status: ACTIVE\|DISABLED }` | | ✅ | `StaffRemoteRepository`. Chủ cửa hàng = role `TENANT_ADMIN`; chỉ hiện `TENANT_ADMIN`/`ADMIN`/`MANAGER`/`STAFF`. Chỉ tải trang đầu 100 người |
 | Phát voucher | - | - | 🟡 | Phụ thuộc API tạo voucher của sàn; app dùng mock (`VoucherRepository`) |
 | Gói SaaS | - | - | 🟡 | `subscription_plans`, `tenant_invoices` đã có trong ERD; app dùng mock (`SubscriptionRepository`), chưa thanh toán trong app |
 | Hỗ trợ | - | - | 🟡 | Bảng `support_tickets` đã có, Nginx đã route `/api/support-tickets/`; app dùng mock (`SupportRepository`): danh sách + tạo (tiêu đề, mô tả) |
@@ -176,10 +187,10 @@ Quy ước chung: response `{ success, message, data, timestamp }`, enum viết 
 |---|---|---|
 | M-10 Tổng quan | `GET /api/dashboard/summary` → `{ ordersToday, pending, toShip, lowStockSkus, revenueToday?, revenueByChannel?, revenueLast7Days? }` (trường doanh thu chỉ trả cho Admin) | `dashboardSummaryProvider` (`dashboard_data.dart`) |
 | M-10 Cảnh báo AI | `GET /api/v1/ai/alerts` → `[{ skuId, skuCode, productName, type, message }]` | `dashboardSummaryProvider` (`dashboard_data.dart`) |
-| M-21 Chi tiết đơn | `GET /api/v1/orders/{id}` kèm `items: [{ skuCode, productName, variantName, quantity, unitPrice }]` | Đơn lấy từ danh sách; `items` chỉ có ở `OrdersMockRepository` |
+| M-21 Chi tiết đơn | Đã nối `GET /api/v1/orders/{id}` (mục 2). Còn đề xuất: điền `skuCode`, `productName` và thêm `variantName` cho `items` | `OrdersMockRepository` (chỉ chế độ mock) |
 | M-22 In vận đơn | `GET /api/v1/orders/{id}/shipping-label` → `application/pdf`; `409` + `errorCode: LABEL_NOT_READY` khi sàn chưa tạo tem | `ShippingLabelMockRepository` (tem mẫu PDF) |
-| M-30 Sản phẩm | Đã nối `GET /api/v1/products` (mục 2). Còn đề xuất: tìm theo `keyword`, trả kèm SKU (tránh N+1) và link sàn | `ProductsMockRepository` (chỉ chế độ mock) |
-| M-40 Tồn kho | Đã nối `GET /api/v1/inventory` (mục 2). Còn đề xuất: lọc `?lowStock=true`, trả kèm `skuCode`, `productName`, trả cả SKU chưa có dòng tồn | `InventoryMockRepository` (chỉ chế độ mock) |
+| M-30 Sản phẩm | Đã nối `GET /api/v1/products` và `/products/skus` (mục 2). Còn đề xuất: tìm theo `keyword` và link sàn | `ProductsMockRepository` (chỉ chế độ mock) |
+| M-40 Tồn kho | Đã nối `GET /api/v1/inventory` (mục 2). Còn đề xuất: lọc `?lowStock=true`, trả kèm `variantName` | `InventoryMockRepository` (chỉ chế độ mock) |
 | M-60 Hộp thư CSKH | `GET /api/conversations?filter=ALL\|COMPLAINT\|UNREPLIED&platform=` | `InboxMockRepository.listConversations` |
 | M-61 Hội thoại | `GET /api/conversations/{id}`, `GET /api/conversations/{id}/messages`, `POST /api/conversations/{id}/messages` `{ text }` → tin có `deliveryStatus` (`SENDING` / `SENT` / `UNKNOWN`), `POST /api/conversations/{id}/read`, `POST /api/conversations/{id}/resolve`, `PUT /api/conversations/{id}/order` `{ orderId }` | `InboxMockRepository` (chờ Message Service) |
 

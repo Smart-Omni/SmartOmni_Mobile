@@ -30,6 +30,19 @@ class OrdersRemoteRepository implements OrdersRepository {
     }
   }
 
+  @override
+  Future<Order> getOrder(int orderId) async {
+    try {
+      final res = await _dio.get<Object?>(ApiPaths.order(orderId));
+      return unwrapResponse<Order>(
+        res.data,
+        (data) => Order.fromJson(data! as JsonMap),
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
   /// BE nhận mọi chuyển trạng thái (chỉ ghi log), nên app tự chặn: chỉ
   /// được chuyển sang TO_SHIP ("Chuẩn bị hàng", từ PENDING).
   @override
@@ -89,6 +102,18 @@ class OrdersMockRepository implements OrdersRepository {
       size: size,
       totalElements: _orders.length,
       totalPages: (_orders.length / size).ceil(),
+    );
+  }
+
+  @override
+  Future<Order> getOrder(int orderId) async {
+    await MockDelay.short();
+    return _orders.firstWhere(
+      (o) => o.id == orderId,
+      orElse: () => throw const ApiException(
+        type: ApiErrorType.notFound,
+        message: 'Đơn hàng không tồn tại',
+      ),
     );
   }
 

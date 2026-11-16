@@ -12,8 +12,9 @@ class StaffRemoteRepository implements StaffRepository {
 
   final Dio _dio;
 
-  /// Role hiện ở T-20: chủ cửa hàng và nhân viên.
-  static const _shownRoles = {'TENANT_ADMIN', 'ADMIN', 'MANAGER'};
+  /// Role hiện ở T-20: chủ cửa hàng và nhân viên (`MANAGER` do chủ tạo,
+  /// `STAFF` vào qua lời mời, BE `3eb89ec`).
+  static const _shownRoles = {'TENANT_ADMIN', 'ADMIN', 'MANAGER', 'STAFF'};
 
   /// Chủ cửa hàng ở lần tải gần nhất. BE không chặn tự khóa mình, app chặn.
   final _ownerIds = <int>{};

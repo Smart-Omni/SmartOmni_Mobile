@@ -71,6 +71,7 @@
   "resetResendCode": "Gửi lại mã",
   "resetCodeInvalid": "Mã không đúng hoặc đã được dùng.",
   "resetFailedTitle": "Chưa đặt lại được mật khẩu",
+  "registerShopNotFound": "Không tìm thấy cửa hàng",
   "resetMockHint": "Bản mock: mã đúng {code}, mã hết hạn {expired}.",
   "@resetMockHint": {
     "placeholders": {

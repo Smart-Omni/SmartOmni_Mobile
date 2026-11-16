@@ -8,10 +8,8 @@ import '../domain/registration.dart';
 import 'auth_remote_repository.dart';
 
 /// `POST /api/v1/auth/register` (`RegisterRequest` của BE). BE trả
-/// `AuthResponse` ngay, không có bước OTP.
-///
-/// BE hiện bỏ qua `subdomain`: khách tạo ra chưa gắn cửa hàng nào
-/// (docs/API_CONTRACT.md mục 0).
+/// `AuthResponse` ngay, không có bước OTP. BE `3eb89ec` gắn khách vào cửa
+/// hàng theo `subdomain`; sai mã thì 404 `STORE_NOT_FOUND`.
 class RegistrationRemoteRepository implements RegistrationRepository {
   RegistrationRemoteRepository(this._dio);
 
@@ -36,7 +34,6 @@ class RegistrationRemoteRepository implements RegistrationRepository {
       );
     } on DioException catch (e) {
       final error = ApiException.fromDio(e);
-      // BE: 409 + EMAIL_ALREADY_EXISTS (errorCode chưa gửi ra, dựa vào 409).
       final taken =
           error.statusCode == 409 || error.code == 'EMAIL_ALREADY_EXISTS';
       throw taken
@@ -44,6 +41,8 @@ class RegistrationRemoteRepository implements RegistrationRepository {
               RegisterFailureKind.emailTaken,
               'Email này đã có tài khoản.',
             )
+          : error.code == 'STORE_NOT_FOUND'
+          ? RegisterFailure(RegisterFailureKind.shopNotFound, error.message)
           : RegisterFailure(RegisterFailureKind.other, error.message);
     }
   }

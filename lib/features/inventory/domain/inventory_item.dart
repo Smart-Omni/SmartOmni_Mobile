@@ -13,6 +13,7 @@ class InventoryItem {
     required this.quantityOnHand,
     this.reservedQuantity = 0,
     this.variantName,
+    this.availableQuantity,
   });
 
   /// Ngưỡng cảnh báo sắp hết hàng (tạm đặt cứng; sau này lấy từ cấu hình/AI).
@@ -28,8 +29,12 @@ class InventoryItem {
   /// Mã để hiện: SKU không khớp sản phẩm nào (mã rỗng) thì `SKU #<id>`.
   String get displayCode => skuCode.isEmpty ? 'SKU #$skuId' : skuCode;
 
+  /// Số có thể bán BE tính sẵn (`InventoryItemDto.availableQuantity`).
+  /// `null` (mock) thì tự tính.
+  final int? availableQuantity;
+
   /// Có thể bán = tồn thực tế - đang giữ chỗ.
-  int get available => quantityOnHand - reservedQuantity;
+  int get available => availableQuantity ?? quantityOnHand - reservedQuantity;
 
   bool get isOutOfStock => available <= 0;
 
@@ -41,6 +46,7 @@ class InventoryItem {
       ? StockLevel.low
       : StockLevel.ok;
 
+  /// Đổi tồn thì bỏ [availableQuantity] của BE (đã cũ), tự tính lại.
   InventoryItem copyWith({int? quantityOnHand}) => InventoryItem(
     skuId: skuId,
     skuCode: skuCode,
@@ -81,8 +87,8 @@ enum InventoryFilter {
 }
 
 abstract class InventoryRepository {
-  /// Tồn từng SKU. Remote: `GET /api/v1/inventory` ghép với [products]
-  /// (lấy mã SKU, tên sản phẩm). Mock: bỏ qua [products].
+  /// Tồn từng SKU. Remote: `GET /api/v1/inventory`, ghép tên biến thể từ
+  /// [products]. Mock: bỏ qua [products].
   Future<List<InventoryItem>> listInventory(List<Product> products);
 
   /// POST /api/v1/inventory/{skuId}/adjust?quantity=
@@ -90,55 +96,59 @@ abstract class InventoryRepository {
   Future<void> setStock({required int skuId, required int newQuantity});
 }
 
-/// Một dòng entity `Inventory` của BE (camelCase).
+/// Một dòng `InventoryItemDto` của BE (camelCase). BE trả đủ SKU của
+/// tenant (SKU chưa đặt tồn: tồn 0), sắp theo `skuId`.
 class InventoryRow {
   const InventoryRow({
     required this.skuId,
     required this.quantityOnHand,
     required this.reservedQuantity,
+    this.skuCode,
+    this.productName,
+    this.availableQuantity,
   });
 
   factory InventoryRow.fromJson(JsonMap json) => InventoryRow(
     skuId: Json.asInt(json['skuId']) ?? 0,
+    skuCode: json['skuCode'] as String?,
+    productName: json['productName'] as String?,
     quantityOnHand: Json.asInt(json['quantityOnHand']) ?? 0,
     reservedQuantity: Json.asInt(json['reservedQuantity']) ?? 0,
+    availableQuantity: Json.asInt(json['availableQuantity']),
   );
 
   final int skuId;
+  final String? skuCode;
+  final String? productName;
   final int quantityOnHand;
   final int reservedQuantity;
+
+  /// BE tính sẵn: `max(0, tồn − giữ chỗ)`.
+  final int? availableQuantity;
 }
 
-/// Ghép dòng tồn của BE với SKU của [products] (theo thứ tự sản phẩm):
-/// - SKU chưa có dòng tồn (BE chỉ tạo dòng khi đặt tồn lần đầu) vẫn hiện với
-///   tồn 0 / giữ 0, để đặt tồn được ngay.
-/// - Dòng tồn không khớp SKU nào: tên `SKU #<id>`, không có mã SKU.
+/// Dòng tồn của BE thành [InventoryItem], giữ thứ tự BE. Mã SKU, tên sản
+/// phẩm, số có thể bán đọc thẳng từ BE; tên biến thể (BE không trả) lấy từ
+/// [products] nếu tìm thấy SKU. Thiếu cả hai thì tên là `SKU #<id>`.
 List<InventoryItem> buildInventoryItems(
   List<InventoryRow> rows,
   List<Product> products,
 ) {
-  final bySku = {for (final r in rows) r.skuId: r};
-  final known = <int>{};
-  return [
+  final skus = {
     for (final p in products)
-      for (final sku in p.skus)
-        if (known.add(sku.id))
-          InventoryItem(
-            skuId: sku.id,
-            skuCode: sku.skuCode,
-            productName: p.name,
-            variantName: sku.variantName,
-            quantityOnHand: bySku[sku.id]?.quantityOnHand ?? 0,
-            reservedQuantity: bySku[sku.id]?.reservedQuantity ?? 0,
-          ),
+      for (final s in p.skus) s.id: (product: p, sku: s),
+  };
+  return [
     for (final r in rows)
-      if (!known.contains(r.skuId))
-        InventoryItem(
-          skuId: r.skuId,
-          skuCode: '',
-          productName: 'SKU #${r.skuId}',
-          quantityOnHand: r.quantityOnHand,
-          reservedQuantity: r.reservedQuantity,
-        ),
+      InventoryItem(
+        skuId: r.skuId,
+        skuCode: r.skuCode ?? skus[r.skuId]?.sku.skuCode ?? '',
+        productName:
+            r.productName ?? skus[r.skuId]?.product.name ?? 'SKU #${r.skuId}',
+        variantName: skus[r.skuId]?.sku.variantName,
+        quantityOnHand: r.quantityOnHand,
+        reservedQuantity: r.reservedQuantity,
+        availableQuantity: r.availableQuantity,
+      ),
   ];
 }

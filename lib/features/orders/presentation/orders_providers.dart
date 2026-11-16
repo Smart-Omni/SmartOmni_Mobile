@@ -25,6 +25,12 @@ final ordersUseRemoteProvider = Provider<bool>(
   (ref) => ref.watch(appConfigProvider).usesRemote(ApiFeature.orders),
 );
 
+/// Chi tiết đơn kèm sản phẩm (M-21). Chỉ gọi khi đơn hàng nối BE thật; mock
+/// đã có sẵn sản phẩm trong danh sách.
+final orderDetailProvider = FutureProvider.autoDispose.family<Order, int>(
+  (ref, orderId) => ref.watch(ordersRepositoryProvider).getOrder(orderId),
+);
+
 /// Trang đầu danh sách đơn. Kéo để làm mới = `ref.invalidate(ordersPageProvider)`.
 /// TODO(pagination): tải thêm trang khi cuộn cuối danh sách.
 final ordersPageProvider = FutureProvider.autoDispose<PageResult<Order>>(

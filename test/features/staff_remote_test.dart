@@ -63,6 +63,21 @@ void main() {
       expect(members[2].active, isFalse);
     });
 
+    test(
+      'nhân viên role STAFF (vào qua lời mời) cũng hiện, khóa được',
+      () async {
+        final backend = FakeBackend(
+          (o) async =>
+              (200, _page([..._users, _user(12, 'STAFF', name: 'Phan Mời')])),
+        );
+        final members = await StaffRemoteRepository(fakeDio(backend)).list();
+        final invited = members.firstWhere((m) => m.id == 12);
+        expect(invited.name, 'Phan Mời');
+        expect(invited.isOwner, isFalse);
+        expect(canToggleStaff(invited), isTrue);
+      },
+    );
+
     test('thêm nhân viên gửi CreateUserRequest với role MANAGER', () async {
       final backend = FakeBackend(
         (o) async => (200, ok(_user(7, 'MANAGER', name: 'Nguyễn Mới'))),

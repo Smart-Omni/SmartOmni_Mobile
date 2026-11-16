@@ -7,6 +7,7 @@ import '../../../app/router/routes.dart';
 import '../../../core/design/design.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/state_views.dart';
+import '../../../l10n/l10n.dart';
 import '../domain/order.dart';
 import '../domain/order_rules.dart';
 import 'order_ui.dart';
@@ -15,7 +16,9 @@ import 'return_sheet.dart';
 
 /// M-21 Chi tiết đơn.
 ///
-/// Backend chưa có `GET /api/orders/{id}` nên đơn được truyền từ màn danh sách.
+/// Đơn được truyền từ màn danh sách và hiện ngay. Khi nối BE thật, sản phẩm
+/// của đơn tải thêm ở `GET /api/v1/orders/{id}`; đang tải / lỗi thì phần còn
+/// lại vẫn hiện từ dữ liệu danh sách.
 /// Nhân viên chỉ được chuyển PENDING -> TO_SHIP ("Chuẩn bị hàng"); các trạng
 /// thái sau do sàn tự cập nhật nên không có nút.
 class OrderDetailScreen extends ConsumerStatefulWidget {
@@ -37,7 +40,9 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
       final updated = await ref
           .read(ordersRepositoryProvider)
           .updateStatus(_order.id, next);
-      ref.invalidate(ordersPageProvider);
+      ref
+        ..invalidate(ordersPageProvider)
+        ..invalidate(orderDetailProvider(_order.id));
       if (!mounted) return;
       setState(() => _order = updated);
       showSoToast(context, 'Đã chuyển sang ${next.label}');
@@ -56,6 +61,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final o = _order;
+    final remote = ref.watch(ordersUseRemoteProvider);
     final next = o.status.manualTransitions.firstOrNull;
     final canReturn = canRecordReturn(o.status);
 
@@ -85,7 +91,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
           padding: SoSpace.page,
           sliver: SliverList.list(
             children: [
-              if (!ref.watch(ordersUseRemoteProvider)) ...[
+              if (!remote) ...[
                 const SoMockBanner(
                   key: Key('order_mock_banner'),
                   message: 'Đơn hàng và hoàn/trả đang là dữ liệu mẫu.',
@@ -115,7 +121,16 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
               ],
               _HeaderCard(order: o),
               const _GroupTitle('Sản phẩm'),
-              _ItemsCard(order: o),
+              if (remote)
+                switch (ref.watch(orderDetailProvider(o.id))) {
+                  AsyncData(:final value) => _ItemsCard(items: value.items),
+                  AsyncError() => _ItemsError(
+                    onRetry: () => ref.invalidate(orderDetailProvider(o.id)),
+                  ),
+                  _ => const _ItemsLoading(),
+                }
+              else
+                _ItemsCard(items: o.items),
               const _GroupTitle('Khách hàng'),
               _CustomerCard(order: o),
               const _GroupTitle('Tiến trình'),
@@ -152,7 +167,7 @@ class _GroupTitle extends StatelessWidget {
 }
 
 class _Card extends StatelessWidget {
-  const _Card({required this.child, this.padding = SoSpace.card});
+  const _Card({super.key, required this.child, this.padding = SoSpace.card});
 
   final Widget child;
   final EdgeInsetsGeometry padding;
@@ -215,15 +230,66 @@ class _HeaderCard extends StatelessWidget {
   }
 }
 
-class _ItemsCard extends StatelessWidget {
-  const _ItemsCard({required this.order});
+/// Sản phẩm của đơn đang tải (BE thật).
+class _ItemsLoading extends StatelessWidget {
+  const _ItemsLoading();
 
-  final Order order;
+  @override
+  Widget build(BuildContext context) {
+    return const _Card(
+      key: Key('order_items_loading'),
+      child: Row(
+        children: [
+          SoSkeleton(width: 48, height: 48),
+          SizedBox(width: SoSpace.s12),
+          Expanded(child: SoSkeleton(height: 20)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Không tải được sản phẩm của đơn; phần còn lại của M-21 vẫn dùng được.
+class _ItemsError extends StatelessWidget {
+  const _ItemsError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Card(
+      key: const Key('order_items_error'),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Không tải được danh sách sản phẩm.',
+              style: context.textTheme.bodyMedium?.copyWith(
+                color: context.soColors.ink2,
+              ),
+            ),
+          ),
+          SoButton.ghost(
+            key: const Key('order_items_retry'),
+            label: context.l10n.retry,
+            size: SoButtonSize.small,
+            onPressed: onRetry,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ItemsCard extends StatelessWidget {
+  const _ItemsCard({required this.items});
+
+  final List<OrderItem> items;
 
   @override
   Widget build(BuildContext context) {
     final c = context.soColors;
-    if (order.items.isEmpty) {
+    if (items.isEmpty) {
       return _Card(
         child: Text(
           'Chưa có danh sách sản phẩm cho đơn này.',
@@ -235,26 +301,14 @@ class _ItemsCard extends StatelessWidget {
       padding: EdgeInsets.zero,
       child: Column(
         children: [
-          for (final (i, item) in order.items.indexed) ...[
+          for (final (i, item) in items.indexed) ...[
             if (i > 0) const Divider(),
             Padding(
               padding: SoSpace.card,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: c.fill,
-                      borderRadius: SoRadius.mdAll,
-                    ),
-                    child: Icon(
-                      LucideIcons.image,
-                      size: SoSize.iconSmall,
-                      color: c.muted,
-                    ),
-                  ),
+                  _ItemImage(url: item.imageUrl),
                   const SizedBox(width: SoSpace.s12),
                   Expanded(child: _ItemText(item: item)),
                 ],
@@ -263,6 +317,37 @@ class _ItemsCard extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Ảnh 48 của sản phẩm; chưa có / lỗi tải thì ô icon.
+class _ItemImage extends StatelessWidget {
+  const _ItemImage({required this.url});
+
+  final String? url;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.soColors;
+    final placeholder = Icon(
+      LucideIcons.image,
+      size: SoSize.iconSmall,
+      color: c.muted,
+    );
+    final url = this.url;
+    return Container(
+      width: 48,
+      height: 48,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(color: c.fill, borderRadius: SoRadius.mdAll),
+      child: url == null || url.isEmpty
+          ? placeholder
+          : Image.network(
+              url,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => placeholder,
+            ),
     );
   }
 }
@@ -283,8 +368,10 @@ class _ItemText extends StatelessWidget {
         const SizedBox(height: SoSpace.s8),
         Row(
           children: [
-            Flexible(child: SoCodeTag(item.skuCode)),
-            const SizedBox(width: SoSpace.s12),
+            if (item.skuCode.isNotEmpty) ...[
+              Flexible(child: SoCodeTag(item.skuCode)),
+              const SizedBox(width: SoSpace.s12),
+            ],
             const Spacer(),
             Text(
               '${item.quantity} × ${Formatters.vnd(item.unitPrice)}',

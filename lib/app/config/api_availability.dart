@@ -14,7 +14,7 @@ enum ApiFeature {
   marketplace,
 }
 
-/// Chức năng đã nối được với BE `develop` @ `d4ea062` (docs/API_CONTRACT.md
+/// Chức năng đã nối được với BE `develop` @ `3eb89ec` (docs/API_CONTRACT.md
 /// mục 0). BE sửa xong chức năng nào thì thêm vào đây là app gọi API thật.
 const connectedFeatures = {
   ApiFeature.auth,

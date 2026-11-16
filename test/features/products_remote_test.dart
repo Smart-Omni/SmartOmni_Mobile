@@ -50,18 +50,16 @@ Map<String, Object?> _page(List<Object?> content) => ok({
 
 /// BE giả của Catalog Service, có thể thêm sản phẩm qua POST.
 class _Catalog {
-  _Catalog({this.failSkusOf, this.postError, this.delay = Duration.zero}) {
+  _Catalog({this.failSkus = false, this.postError}) {
     backend = FakeBackend(_handle);
   }
 
-  final int? failSkusOf;
+  /// `GET /products/skus` trả 500.
+  final bool failSkus;
 
   /// Phản hồi lỗi cho POST tạo sản phẩm (null = tạo thành công).
   final (int, Object?)? postError;
-  final Duration delay;
   late final FakeBackend backend;
-  var running = 0;
-  var peak = 0;
 
   final products = [
     _product(1, 'Áo thun'),
@@ -88,13 +86,16 @@ class _Catalog {
       ];
       return (200, ok(created));
     }
+    if (o.path == ApiPaths.productSkusBatch) {
+      if (failSkus) return (500, apiError('Lỗi máy chủ'));
+      // `@RequestParam List<Long> productIds`: "1,2,3".
+      final ids = (o.queryParameters['productIds'] as String)
+          .split(',')
+          .map(int.parse);
+      return (200, ok([for (final id in ids) ...?skus[id]]));
+    }
     if (m != null && m.group(2) != null) {
       final id = int.parse(m.group(1)!);
-      running++;
-      if (running > peak) peak = running;
-      await Future<void>.delayed(delay);
-      running--;
-      if (id == failSkusOf) return (500, apiError('Lỗi máy chủ'));
       return (200, ok(skus[id] ?? const []));
     }
     if (m != null) {
@@ -107,7 +108,7 @@ class _Catalog {
 
 void main() {
   group('ProductsRemoteRepository.listProducts', () {
-    test('đọc Page<Product> + SKU từng sản phẩm: HIDDEN = đã ẩn, giá "từ" '
+    test('đọc Page<Product> + SKU: HIDDEN = đã ẩn, giá "từ" '
         'nhỏ nhất, basePrice null = 0, không có link sàn', () async {
       final catalog = _Catalog();
       final list = await ProductsRemoteRepository(
@@ -129,21 +130,34 @@ void main() {
       expect(list.every((p) => p.marketplaceUrls.isEmpty), isTrue);
     });
 
-    test('gọi /skus song song, tối đa 4 cùng lúc, giữ thứ tự', () async {
-      final catalog = _Catalog(delay: const Duration(milliseconds: 10));
-      for (var id = 4; id <= 10; id++) {
-        catalog.products.add(_product(id, 'SP $id'));
-      }
+    test('SKU lấy một lần ở /products/skus?productIds=1,2,3, ghép theo '
+        'productId; sản phẩm không có SKU thì rỗng', () async {
+      final catalog = _Catalog();
+      catalog.products.add(_product(4, 'Khăn'));
       final list = await ProductsRemoteRepository(
         fakeDio(catalog.backend),
       ).listProducts();
 
-      expect(catalog.peak, 4);
-      expect([for (final p in list) p.id], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+      expect(catalog.backend.requests, hasLength(2));
+      final skuReq = catalog.backend.requests.last;
+      expect(skuReq.path, ApiPaths.productSkusBatch);
+      expect(skuReq.queryParameters, {'productIds': '1,2,3,4'});
+      expect(catalog.backend.calls(ApiPaths.productSkus(1)), 0);
+      expect(list.firstWhere((p) => p.id == 2).skus.single.skuCode, 'QJ-29');
+      expect(list.firstWhere((p) => p.id == 4).skus, isEmpty);
     });
 
-    test('một lần gọi /skus lỗi → cả danh sách lỗi', () async {
-      final catalog = _Catalog(failSkusOf: 2);
+    test('danh sách sản phẩm rỗng → không gọi /products/skus', () async {
+      final catalog = _Catalog()..products.clear();
+      final list = await ProductsRemoteRepository(
+        fakeDio(catalog.backend),
+      ).listProducts();
+      expect(list, isEmpty);
+      expect(catalog.backend.requests.single.path, ApiPaths.products);
+    });
+
+    test('/products/skus lỗi → cả danh sách lỗi', () async {
+      final catalog = _Catalog(failSkus: true);
       await expectLater(
         ProductsRemoteRepository(fakeDio(catalog.backend)).listProducts(),
         throwsA(isA<ApiException>()),
@@ -173,10 +187,10 @@ void main() {
   group('M-30/31/32 với BE thật', () {
     Future<_Catalog> openProducts(
       WidgetTester tester, {
-      int? failSkusOf,
+      bool failSkus = false,
       (int, Object?)? postError,
     }) async {
-      final catalog = _Catalog(failSkusOf: failSkusOf, postError: postError);
+      final catalog = _Catalog(failSkus: failSkus, postError: postError);
       await loginAs(
         tester,
         'admin@demo.vn',
@@ -208,7 +222,7 @@ void main() {
     });
 
     testWidgets('M-30: /skus lỗi → báo lỗi + Thử lại', (tester) async {
-      await openProducts(tester, failSkusOf: 1);
+      await openProducts(tester, failSkus: true);
       expect(find.text('Không tải được sản phẩm'), findsOneWidget);
       expect(find.text('Thử lại'), findsOneWidget);
     });
