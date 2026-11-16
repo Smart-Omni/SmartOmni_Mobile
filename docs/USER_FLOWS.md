@@ -236,10 +236,11 @@ Có **toàn bộ flow của Staff**, thêm:
 | Bước | Nội dung | API |
 |---|---|---|
 | 1 | Hai thẻ: Shopee, TikTok Shop - trạng thái: Chưa kết nối / Đã kết nối (shop ID) / Lỗi - cần kết nối lại / Đã ngắt | 🟡 list |
-| 2 | Bấm **Kết nối** → bottom sheet: App Key, App Secret, công tắc "Tự động nhập sản phẩm" | |
-| 3 | Gửi → thành công / lỗi (vd: "Mỗi sàn chỉ 1 shop") | ✅ `POST /api/marketplace-connections` |
+| 2 | Bấm **Kết nối** (hoặc **Kết nối lại**) → mở trang ủy quyền của sàn ngoài app | ✅ `POST …/{shopee,tiktok-shop}/authorization` |
+| 3 | Người bán đồng ý → sàn chuyển về `smartomni://oauth/<sàn>` → app gửi kết quả, tải lại trạng thái, báo "Đã kết nối …" / lỗi (vd: "Bạn đã từ chối cấp quyền"). Quay lại app không qua sàn = hủy, không báo | ✅ `POST …/callback` |
+| 4 | Thẻ đã kết nối: công tắc "Tự nhập sản phẩm & đơn" (Shopee gọi BE, TikTok còn mẫu), **Ngắt kết nối** | ✅ `PATCH …/shopee/settings`, `POST …/disconnect` |
 
-> Thực tế Shopee/TikTok dùng OAuth (mở trang sàn để cấp quyền). Khi BE làm OAuth, flow đổi thành: bấm Kết nối → mở trình duyệt → đăng nhập sàn → quay về app.
+> BE `9558375` bỏ kết nối bằng App Key; chỉ OAuth. Staff không thấy nút Kết nối / Ngắt kết nối.
 
 ### F-T3. Quản lý nhân viên (T-20) 🟡
 Danh sách Staff (tên, email, trạng thái) → Mời/Tạo Staff (email, mật khẩu tạm) → Vô hiệu hóa / kích hoạt lại. (Chưa chốt Staff có quyền con.)

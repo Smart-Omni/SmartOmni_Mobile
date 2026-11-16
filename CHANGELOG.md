@@ -18,7 +18,9 @@ Nối app với BE [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/Smart
 - M-40 Tồn kho gọi API thật (`/api/v1/inventory`): ghép với danh sách sản phẩm; SKU chưa có dòng tồn hiện tồn 0 và đặt tồn được ngay; dòng không khớp SKU hiện "SKU #id".
 - M-20/M-21 Đơn hàng gọi API thật (`/api/v1/orders`, `/api/v1/returns`). Thẻ "Sản phẩm" ở M-21 để trống vì BE chưa trả sản phẩm của đơn. App chỉ cho chuyển `PENDING → TO_SHIP`.
 - M-51 Dự báo gọi API thật (`/api/v1/ai/forecast/{skuId}`): sắp xếp theo ngày, chỉ lấy từ hôm nay, tối đa 7 ngày.
-- T-10 Kết nối sàn: trạng thái và ngắt kết nối gọi API thật. BE chỉ cho kết nối qua OAuth nên khi dùng BE thật app ẩn form App Key, nút "Kết nối" tắt "Sắp có". Công tắc tự nhập vẫn là mẫu.
+- T-10 Kết nối sàn: trạng thái và ngắt kết nối gọi API thật.
+- T-10 kết nối Shopee / TikTok Shop qua OAuth: **Kết nối** mở trang ủy quyền của sàn ngoài app, sàn chuyển về `smartomni://oauth/<shopee|tiktok>` (gói `app_links`; Android intent-filter, iOS `CFBundleURLTypes`), app gửi kết quả cho BE, tải lại trạng thái và báo "Đã kết nối …". Xử lý được cả khi app bị tắt lúc đang ở trình duyệt. Lỗi báo tiếng Việt (địa chỉ quay về không hợp lệ, phiên kết nối sai / hết hạn / đã dùng, "Bạn đã từ chối cấp quyền"); quay lại app không qua sàn thì hủy, không báo lỗi. Staff không thấy nút Kết nối / Ngắt kết nối.
+- T-10 công tắc tự nhập Shopee gọi API thật (`PATCH …/shopee/settings`); TikTok BE chưa có nên vẫn là mẫu.
 - Phiên bị thu hồi (BE `4cae7a2`, 401 `TOKEN_REVOKED` khi tài khoản bị khóa hoặc đổi quyền): refresh cũng thất bại thì đăng xuất và màn đăng nhập báo "Phiên đăng nhập đã bị thu hồi (tài khoản bị khóa hoặc đổi quyền). Vui lòng đăng nhập lại." Hết phiên khác giữ thông báo cũ.
 - M-21 hiện sản phẩm của đơn từ `GET /api/v1/orders/{id}` (BE `3eb89ec`): ảnh, tên, mã SKU, số lượng × đơn giá. Thông tin đơn từ danh sách hiện ngay; phần sản phẩm có trạng thái đang tải và lỗi kèm "Thử lại". BE chưa điền mã SKU, tên sản phẩm nên tạm hiện "SKU #id".
 - T-20 hiện cả nhân viên role `STAFF` (vào qua lời mời, BE `3eb89ec`).
@@ -27,6 +29,7 @@ Nối app với BE [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/Smart
 - M-51 chỉ có ở gói Pro: cửa hàng không ở gói PRO (biết qua `planType` của `/api/v1/tenants/me`, hoặc BE trả 403 `FEATURE_NOT_AVAILABLE`) thấy "Dự báo AI chỉ có ở gói Pro", không có nút "Thử lại", không mở sheet chọn SKU khi đã biết gói.
 
 ### Thay đổi
+- T-10 bỏ form "Kết nối bằng App Key" (cả chế độ mock) vì BE `9558375` chỉ cho kết nối qua OAuth; chế độ mock chạy OAuth giả, không mở trình duyệt.
 - T-20 thêm nhân viên với role `STAFF` thay cho `MANAGER` (BE `9558375` bỏ `MANAGER`, migration V21); danh sách không còn hiện `MANAGER`. Phiên cũ mang `MANAGER` vẫn được coi là nhân viên. Tài khoản demo ở chế độ mock đổi sang `STAFF`.
 - M-30 lấy SKU của cả danh sách trong 1 request (`GET /api/v1/products/skus?productIds=…`) thay vì mỗi sản phẩm một request; danh sách rỗng thì không gọi.
 - M-40 đọc thẳng `InventoryItemDto` (mã SKU, tên sản phẩm, số có thể bán, đủ SKU kể cả tồn 0) theo thứ tự BE; chỉ ghép tên biến thể từ danh sách sản phẩm. Không gửi `sort` nữa.
