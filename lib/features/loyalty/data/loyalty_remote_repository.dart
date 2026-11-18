@@ -1,4 +1,10 @@
+import 'package:dio/dio.dart';
+
+import '../../../core/models/platform.dart';
+import '../../../core/network/api_exception.dart';
+import '../../../core/network/api_paths.dart';
 import '../../../core/network/api_response.dart';
+import '../../../core/utils/formatters.dart';
 import '../domain/loyalty_repository.dart';
 import '../domain/loyalty_rules.dart';
 
@@ -56,4 +62,80 @@ abstract final class LoyaltyJson {
     for (final e in (data is List ? data : const []))
       if (e is JsonMap) claim(e),
   ];
+
+  /// `LoyaltyRewardRequestDto` (`/me/vouchers`): `{ id, tenantId, campaignId,
+  /// campaignName, discountPercent, customerId, requestKey, status, code,
+  /// externalVoucherId, failureReason, requestedAt, issuedAt, updatedAt }`.
+  ///
+  /// BE chưa có sàn và hạn dùng (lỗi L4) nên để `null`. Mô tả ghép từ
+  /// `campaignName` và `discountPercent`.
+  static CustomerVoucher voucher(JsonMap json) {
+    final code = Json.asString(json['code'])?.trim();
+    final name = Json.asString(json['campaignName'])?.trim();
+    final percent = Json.asDouble(json['discountPercent']);
+    final parts = [
+      if (name != null && name.isNotEmpty) name,
+      if (percent != null && percent > 0) 'Giảm ${Formatters.number(percent)}%',
+    ];
+    return CustomerVoucher(
+      id: Json.asInt(json['id']),
+      code: code == null || code.isEmpty ? null : code,
+      description: parts.isEmpty ? 'Voucher' : parts.join(' · '),
+      status: VoucherIssueStatus.fromBackend(json['status']),
+    );
+  }
+
+  /// Danh sách `LoyaltyRewardRequestDto`; phần tử không phải object thì bỏ.
+  static List<CustomerVoucher> vouchers(Object? data) => [
+    for (final e in (data is List ? data : const []))
+      if (e is JsonMap) voucher(e),
+  ];
+}
+
+/// C-20 gọi `/api/v1/loyalty/me`, `/me/claims`, `/me/vouchers` (chỉ role
+/// CUSTOMER). BE lấy tenant và khách từ JWT nên không gửi `tenantId` hay
+/// header `X-Tenant-Id`; tham số `tenantId` của interface bị bỏ qua.
+///
+/// C-30 claim đơn vẫn chạy mock qua [claims]: `POST /loyalty/claims` đòi
+/// `orderId` nội bộ và `totalAmount`, khách chỉ biết mã đơn trên sàn (lỗi L2).
+class LoyaltyRemoteRepository implements LoyaltyRepository {
+  LoyaltyRemoteRepository(this._dio, {required LoyaltyRepository claims})
+    : _claims = claims;
+
+  final Dio _dio;
+  final LoyaltyRepository _claims;
+
+  @override
+  Future<LoyaltySummary> getSummary(int tenantId) async {
+    // Gọi song song; lỗi request nào trước thì ném lỗi đó.
+    final [profile, history] = await Future.wait<Object?>([
+      _get(ApiPaths.loyaltyMe, (d) => d),
+      _get(ApiPaths.loyaltyMyClaims, LoyaltyJson.claims),
+    ], eagerError: true);
+    return LoyaltyJson.summary(profile, history: history! as List<PointEntry>);
+  }
+
+  @override
+  Future<List<CustomerVoucher>> getVouchers(int tenantId) =>
+      _get(ApiPaths.loyaltyMyVouchers, LoyaltyJson.vouchers);
+
+  @override
+  Future<ClaimResult> claimOrder({
+    required int tenantId,
+    required Platform platform,
+    required String orderCode,
+  }) => _claims.claimOrder(
+    tenantId: tenantId,
+    platform: platform,
+    orderCode: orderCode,
+  );
+
+  Future<T> _get<T>(String path, T Function(Object? data) parse) async {
+    try {
+      final res = await _dio.get<Object?>(path);
+      return unwrapResponse<T>(res.data, parse);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
 }

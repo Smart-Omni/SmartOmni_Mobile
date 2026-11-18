@@ -48,19 +48,54 @@ class LoyaltySummary {
       backendPointsToNext ?? LoyaltyRules.pointsToNextTier(totalPoints);
 }
 
+/// Trạng thái phát voucher (`status` của `LoyaltyRewardRequestDto`: BE lưu
+/// chữ thường `pending` / `issued` / `failed`).
+enum VoucherIssueStatus {
+  issued(null),
+  pending('Đang phát'),
+  failed('Chưa phát được'),
+
+  /// Giá trị BE mới hoặc thiếu.
+  unknown('Đang xử lý');
+
+  const VoucherIssueStatus(this.label);
+
+  /// Nhãn trung tính cho voucher chưa phát xong; `null` khi đã phát.
+  final String? label;
+
+  static VoucherIssueStatus fromBackend(Object? value) =>
+      switch (value?.toString().trim().toLowerCase()) {
+        'issued' => issued,
+        'pending' => pending,
+        'failed' => failed,
+        _ => unknown,
+      };
+}
+
 /// Voucher Tenant Admin phát cho khách (khách dùng mã trên app sàn).
 class CustomerVoucher {
   const CustomerVoucher({
-    required this.code,
-    required this.platform,
+    this.id,
+    this.code,
+    this.platform,
     required this.description,
     this.expiresAt,
+    this.status = VoucherIssueStatus.issued,
   });
 
-  final String code;
-  final Platform platform;
+  /// Id yêu cầu đổi thưởng ở BE; `null` với dữ liệu mẫu.
+  final int? id;
+
+  /// Mã dùng trên sàn; `null` khi chưa phát xong (BE chỉ có mã khi `issued`).
+  final String? code;
+
+  /// `null` khi BE chưa trả sàn (lỗi L4): ẩn nhãn sàn.
+  final Platform? platform;
   final String description;
+
+  /// `null` khi không có hạn hoặc BE chưa trả (lỗi L4).
   final DateTime? expiresAt;
+  final VoucherIssueStatus status;
 }
 
 /// Kết quả claim thành công (thẻ kết quả C-30).
