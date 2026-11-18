@@ -9,7 +9,9 @@ import '../../auth/presentation/auth_controller.dart';
 import '../../customer_shop/domain/customer_shop.dart';
 import '../../customer_shop/presentation/customer_shop_providers.dart';
 import '../../customer_shop/presentation/customer_shops_screen.dart';
+import 'account_providers.dart';
 import 'account_widgets.dart';
+import 'change_password_sheet.dart';
 
 /// C-40 Tài khoản của khách (DESIGN.md mục 8b): thẻ hồ sơ, nhóm "Cửa hàng
 /// đã tham gia" (+ Thêm), nhóm "Cài đặt", Đăng xuất.
@@ -35,11 +37,7 @@ class CustomerAccountScreen extends StatelessWidget {
                     title: 'Sửa thông tin cá nhân',
                     comingSoon: true,
                   ),
-                  SoListRow(
-                    icon: LucideIcons.lock,
-                    title: 'Đổi mật khẩu',
-                    comingSoon: true,
-                  ),
+                  _ChangePasswordRow(),
                   SoListRow(
                     icon: LucideIcons.fileText,
                     title: 'Điều khoản & quyền riêng tư',
@@ -57,16 +55,32 @@ class CustomerAccountScreen extends StatelessWidget {
   }
 }
 
-/// Thẻ hồ sơ của khách: ô chữ cái tròn + email. Họ tên, SĐT thêm khi backend
-/// trả về trong phiên đăng nhập.
+class _ChangePasswordRow extends StatelessWidget {
+  const _ChangePasswordRow();
+
+  @override
+  Widget build(BuildContext context) => SoListRow(
+    key: const Key('account_change_password'),
+    icon: LucideIcons.lock,
+    title: 'Đổi mật khẩu',
+    onTap: () => showChangePasswordSheet(context),
+  );
+}
+
+/// Thẻ hồ sơ của khách: ô chữ cái tròn, họ tên, email (`users/me`). Hồ sơ
+/// chưa tải xong thì dùng tạm dữ liệu trong phiên.
 class _CustomerProfileCard extends ConsumerWidget {
   const _CustomerProfileCard();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.soColors;
-    final email = ref.watch(currentSessionProvider)?.email ?? '';
-    final initial = email.isEmpty ? '?' : email.characters.first.toUpperCase();
+    final session = ref.watch(currentSessionProvider);
+    final profile = ref.watch(accountProfileProvider).value;
+    final email = profile?.email ?? session?.email ?? '';
+    final name = profile?.fullName ?? session?.fullName;
+    final title = name ?? email;
+    final initial = title.isEmpty ? '?' : title.characters.first.toUpperCase();
     return Container(
       key: const Key('customer_profile'),
       padding: SoSpace.card,
@@ -88,11 +102,24 @@ class _CustomerProfileCard extends ConsumerWidget {
           ),
           const SizedBox(width: SoSpace.s12),
           Expanded(
-            child: Text(
-              email,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: context.textTheme.titleMedium,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  key: const Key('customer_profile_name'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.textTheme.titleMedium,
+                ),
+                if (name != null)
+                  Text(
+                    email,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.textTheme.bodySmall,
+                  ),
+              ],
             ),
           ),
         ],

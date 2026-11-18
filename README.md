@@ -1,7 +1,7 @@
 # SmartOmni Mobile
 
 App Flutter cho nền tảng **SmartOmni** - SaaS quản lý bán hàng đa kênh trên **Shopee** và **TikTok Shop**.
-Backend: [Hxvf123/SmartOmmi_BE](https://github.com/Hxvf123/SmartOmmi_BE) (Java Spring Boot, đi qua Nginx Gateway cổng `8080`).
+Backend: [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/SmartOmni_BE) (Java Spring Boot, đi qua Nginx Gateway cổng `8080`).
 
 Một app duy nhất, **một màn hình đăng nhập chung**. Sau khi đăng nhập, app tự đưa người dùng vào khu vực theo role:
 
@@ -17,7 +17,7 @@ Một app duy nhất, **một màn hình đăng nhập chung**. Sau khi đăng n
 ## Chạy nhanh (5 phút)
 
 ```bash
-git clone https://github.com/tuankiet710/SmartOmni_Mobile.git
+git clone https://github.com/Smart-Omni/SmartOmni_Mobile.git
 cd SmartOmni_Mobile
 flutter pub get
 

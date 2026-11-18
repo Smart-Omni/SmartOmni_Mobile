@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../app/config/api_availability.dart';
 import '../../../app/config/app_config.dart';
 import '../../../core/design/design.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/utils/clock.dart';
 import '../../../core/utils/formatters.dart';
+import '../../account/presentation/account_providers.dart';
 import '../../account/presentation/account_widgets.dart';
 import '../../inventory/domain/inventory_item.dart';
 import '../../inventory/presentation/inventory_providers.dart';
@@ -15,22 +18,46 @@ import '../data/ai_repositories.dart';
 import '../domain/demand_forecast.dart';
 
 final aiRepositoryProvider = Provider<AiRepository>((ref) {
-  final config = ref.watch(appConfigProvider);
-  return config.useMock
-      ? AiMockRepository()
-      : AiRemoteRepository(ref.watch(dioProvider));
+  return ref.watch(forecastUseRemoteProvider)
+      ? AiRemoteRepository(
+          ref.watch(dioProvider),
+          clock: ref.watch(clockProvider),
+        )
+      : AiMockRepository(clock: ref.watch(clockProvider));
 });
 
+/// `false`: dự báo là dữ liệu mẫu.
+final forecastUseRemoteProvider = Provider<bool>(
+  (ref) => ref.watch(appConfigProvider).usesRemote(ApiFeature.aiForecast),
+);
+
+/// `true` khi dùng BE thật và `tenants/me` cho biết cửa hàng không ở gói
+/// Pro: M-51 hiện ngay trạng thái "chỉ có ở gói Pro", không gọi dự báo.
+/// Chưa biết gói (mock, lỗi, thiếu `planType`) thì `false`: M-51 gọi dự báo
+/// và dựa vào 403 `FEATURE_NOT_AVAILABLE`.
+final forecastLockedProvider = FutureProvider.autoDispose<bool>((ref) async {
+  if (!ref.watch(forecastUseRemoteProvider)) return false;
+  try {
+    return (await ref.watch(accountProfileProvider.future)).isKnownNonPro;
+  } catch (_) {
+    return false;
+  }
+});
+
+/// Mã BE trả kèm 403 khi gói của cửa hàng không có tính năng.
+const featureNotAvailableCode = 'FEATURE_NOT_AVAILABLE';
+
+/// Dự báo 7 ngày tới (từ hôm nay) của một SKU.
 final skuForecastProvider = FutureProvider.autoDispose
-    .family<List<DemandForecast>, int>(
-      (ref, skuId) => ref.watch(aiRepositoryProvider).forecastForSku(skuId),
-    );
+    .family<List<DemandForecast>, int>((ref, skuId) async {
+      final days = await ref.watch(aiRepositoryProvider).forecastForSku(skuId);
+      return upcomingForecast(days, ref.watch(clockProvider)());
+    });
 
 /// M-51 Dự báo nhu cầu 7 ngày tới của một SKU (DESIGN.md mục 8b).
 ///
 /// Vào từ M-31 thì đã có [skuId]; vào từ M-50 thì chưa, màn tự mở sheet
-/// "Chọn SKU". Danh sách SKU và số "có thể bán" lấy từ tồn kho (dữ liệu mẫu,
-/// backend chưa có API danh sách tồn).
+/// "Chọn SKU". Danh sách SKU và số "có thể bán" lấy từ tồn kho (M-40).
 class SkuForecastScreen extends ConsumerStatefulWidget {
   const SkuForecastScreen({super.key, this.skuId});
 
@@ -42,18 +69,27 @@ class SkuForecastScreen extends ConsumerStatefulWidget {
 
 class _SkuForecastScreenState extends ConsumerState<SkuForecastScreen> {
   late int? _skuId = widget.skuId;
+  bool _autoPicked = false;
 
   @override
   void initState() {
     super.initState();
     if (_skuId == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _pickSku();
-      });
+      // Chờ biết gói: gói không phải Pro thì không mở sheet chọn SKU.
+      ref.listenManual(forecastLockedProvider, (_, next) {
+        if (next case AsyncData(value: false) when !_autoPicked) {
+          _autoPicked = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _pickSku();
+          });
+        }
+      }, fireImmediately: true);
     }
   }
 
   Future<void> _pickSku() async {
+    // Đã mở (tự động hoặc người dùng bấm): không tự mở thêm lần nữa.
+    _autoPicked = true;
     final picked = await showSoBottomSheet<int>(
       context: context,
       builder: (_) => _SkuPickerSheet(selected: _skuId),
@@ -64,9 +100,13 @@ class _SkuForecastScreenState extends ConsumerState<SkuForecastScreen> {
   @override
   Widget build(BuildContext context) {
     final skuId = _skuId;
-    final useMock = ref.watch(appConfigProvider).useMock;
+    // Còn dữ liệu mẫu trên màn khi dự báo hoặc tồn kho chưa nối BE.
+    final mock =
+        !ref.watch(forecastUseRemoteProvider) ||
+        !ref.watch(inventoryUseRemoteProvider);
     final stock = ref.watch(inventoryListProvider);
     final item = stock.value?.where((i) => i.skuId == skuId).firstOrNull;
+    final locked = ref.watch(forecastLockedProvider).value;
 
     return SoScaffold(
       appBar: const SoAppBar(
@@ -83,30 +123,53 @@ class _SkuForecastScreenState extends ConsumerState<SkuForecastScreen> {
           padding: SoSpace.page,
           sliver: SliverList.list(
             children: [
-              SoMockBanner(
-                message: useMock
-                    ? 'Dự báo, danh sách SKU và số tồn đang là dữ liệu mẫu.'
-                    : 'Danh sách SKU và số tồn là dữ liệu mẫu, backend chưa '
-                          'có API.',
-              ),
-              const SizedBox(height: SoSpace.s16),
-              _SkuCard(
-                skuId: skuId,
-                item: item,
-                loading: stock.isLoading && item == null,
-                onChange: _pickSku,
-              ),
-              if (skuId != null)
-                _ForecastSection(
-                  skuId: skuId,
-                  // Tồn chưa tải xong hoặc SKU không có trong dữ liệu mẫu: "—".
-                  available: item?.available,
-                  onChangeSku: _pickSku,
+              if (mock) ...[
+                const SoMockBanner(
+                  message:
+                      'Dự báo, danh sách SKU và số tồn đang là dữ liệu mẫu.',
                 ),
+                const SizedBox(height: SoSpace.s16),
+              ],
+              if (locked ?? false)
+                const _ProOnlyState()
+              else ...[
+                _SkuCard(
+                  skuId: skuId,
+                  item: item,
+                  loading: stock.isLoading && item == null,
+                  onChange: _pickSku,
+                ),
+                // Chờ biết gói rồi mới gọi dự báo.
+                if (skuId != null && locked != null)
+                  _ForecastSection(
+                    skuId: skuId,
+                    // Tồn chưa tải xong hoặc SKU không có trong dữ liệu mẫu: "—".
+                    available: item?.available,
+                    onChangeSku: _pickSku,
+                  ),
+              ],
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Gói không phải Pro: không có nút (đổi SKU hay thử lại đều bị chặn như
+/// nhau). [message] là message của BE khi biết qua 403.
+class _ProOnlyState extends StatelessWidget {
+  const _ProOnlyState({this.message});
+
+  final String? message;
+
+  @override
+  Widget build(BuildContext context) {
+    return SoEmptyState(
+      key: const Key('forecast_pro_only'),
+      icon: LucideIcons.lock,
+      title: 'Dự báo AI chỉ có ở gói Pro',
+      message: message ?? 'Nâng cấp lên gói Pro để xem dự báo nhu cầu.',
     );
   }
 }
@@ -159,7 +222,7 @@ class _SkuCard extends StatelessWidget {
             runSpacing: SoSpace.s4,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              SoCodeTag(item.skuCode),
+              SoCodeTag(item.displayCode),
               StockLevelTag(level: item.level),
             ],
           ),
@@ -239,6 +302,9 @@ class _ForecastSection extends ConsumerWidget {
           ),
         ],
       ),
+      AsyncError(:final error)
+          when error is ApiException && error.code == featureNotAvailableCode =>
+        _ProOnlyState(message: error.message),
       AsyncError(:final error) => SoEmptyState.error(
         title: 'Không tải được dự báo',
         message: error is ApiException ? error.message : null,
@@ -441,7 +507,7 @@ class _SkuPickerSheet extends ConsumerWidget {
         ),
         AsyncError() => SoEmptyState.error(
           title: 'Không tải được danh sách SKU',
-          onAction: () => ref.invalidate(inventoryListProvider),
+          onAction: () => reloadInventory(ref),
         ),
         _ => const SoListGroup(children: [SoSkeletonList(count: 3)]),
       },
@@ -486,7 +552,7 @@ class _PickerRow extends StatelessWidget {
                         runSpacing: SoSpace.s4,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          SoCodeTag(item.skuCode),
+                          SoCodeTag(item.displayCode),
                           StockLevelTag(level: item.level),
                         ],
                       ),

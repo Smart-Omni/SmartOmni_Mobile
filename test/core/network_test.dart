@@ -33,7 +33,7 @@ void main() {
   });
 
   group('PageResult.fromJson', () {
-    test('đọc kiểu Page cũ của Spring', () {
+    test('đọc kiểu Page mặc định của Spring (products, inventory, orders)', () {
       final page = PageResult.fromJson({
         'content': [
           {'id': 1},
@@ -60,10 +60,57 @@ void main() {
       expect(page.page, 1);
       expect(page.hasMore, isFalse);
     });
+
+    test('đọc PageResponse snake_case của /api/v1/users', () {
+      final page = PageResult.fromJson({
+        'content': [
+          {'id': 4},
+          {'id': 5},
+        ],
+        'total_elements': 12,
+        'total_pages': 2,
+        'page_number': 0,
+        'page_size': 10,
+        'first': true,
+        'last': false,
+        'has_next': true,
+        'has_previous': false,
+      }, (j) => j['id']);
+      expect(page.items, [4, 5]);
+      expect(page.page, 0);
+      expect(page.size, 10);
+      expect(page.totalElements, 12);
+      expect(page.totalPages, 2);
+      expect(page.hasMore, isTrue);
+    });
   });
 
   group('ApiException.fromDio', () {
     RequestOptions req() => RequestOptions(path: '/api/x');
+
+    test('403 STAFF_NO_TENANT → câu "chưa thuộc cửa hàng" từ arb', () {
+      final e = ApiException.fromDio(
+        DioException(
+          requestOptions: req(),
+          type: DioExceptionType.badResponse,
+          response: Response(
+            requestOptions: req(),
+            statusCode: 403,
+            data: {
+              'success': false,
+              'message': 'Tài khoản nhân viên chưa thuộc cửa hàng nào',
+              'code': 'STAFF_NO_TENANT',
+            },
+          ),
+        ),
+      );
+      expect(e.type, ApiErrorType.forbidden);
+      expect(e.code, 'STAFF_NO_TENANT');
+      expect(
+        e.message,
+        'Tài khoản nhân viên chưa thuộc cửa hàng nào. Liên hệ chủ cửa hàng.',
+      );
+    });
 
     test('lấy message backend khi lỗi 401', () {
       final e = ApiException.fromDio(

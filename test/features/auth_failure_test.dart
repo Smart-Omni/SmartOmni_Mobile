@@ -60,6 +60,17 @@ void main() {
         kind(_api(403, 'bất kỳ', code: 'ACCOUNT_TEMP_LOCKED')),
         LoginFailureKind.temporarilyLocked,
       );
+      // Câu BE có chữ "cửa hàng" nhưng không phải cửa hàng bị khóa.
+      expect(
+        kind(
+          _api(
+            403,
+            'Tài khoản nhân viên chưa thuộc cửa hàng nào',
+            code: 'STAFF_NO_TENANT',
+          ),
+        ),
+        LoginFailureKind.staffNoTenant,
+      );
     });
 
     test('lỗi mạng / máy chủ -> other, giữ thông điệp', () {

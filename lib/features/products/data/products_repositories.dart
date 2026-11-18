@@ -3,34 +3,78 @@ import 'package:dio/dio.dart';
 import '../../../core/mock/mock_data.dart';
 import '../../../core/models/platform.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/network/api_paths.dart';
 import '../../../core/network/api_response.dart';
 import '../../../core/utils/mock_delay.dart';
 import '../domain/product.dart';
 import '../domain/products_repository.dart';
 
-/// Gọi API thật của Catalog Service. Endpoint nào backend chưa có thì
-/// chuyển cho [_fallback] (mock).
+/// Gọi API thật của Catalog Service. BE trả thẳng entity (camelCase):
+/// `Product { id, name, description, status }`, SKU lấy riêng: một sản phẩm ở
+/// `/{id}/skus`, cả danh sách một lần ở `/skus?productIds=…`
+/// (`ProductSku { id, productId, skuCode, variantName, basePrice }`).
+/// BE không trả link sàn, nên [Product.marketplaceUrls] luôn rỗng.
 class ProductsRemoteRepository implements ProductsRepository {
-  ProductsRemoteRepository(this._dio, this._fallback);
+  ProductsRemoteRepository(this._dio);
 
   final Dio _dio;
-  final ProductsRepository _fallback;
 
   @override
-  Future<List<Product>> listProducts() => _fallback.listProducts();
+  Future<List<Product>> listProducts() async {
+    try {
+      // shortcut: chỉ tải trang đầu 100 sản phẩm.
+      final res = await _dio.get<Object?>(
+        ApiPaths.products,
+        queryParameters: {'page': 0, 'size': 100, 'sort': 'createdAt,desc'},
+      );
+      final products = unwrapResponse<List<Product>>(
+        res.data,
+        (data) => PageResult.fromJson(data, Product.fromJson).items,
+      );
+      if (products.isEmpty) return products;
+
+      final skuRes = await _dio.get<Object?>(
+        ApiPaths.productSkusBatch,
+        queryParameters: {
+          'productIds': [for (final p in products) p.id].join(','),
+        },
+      );
+      final byProduct = unwrapResponse<Map<int, List<Sku>>>(skuRes.data, (
+        data,
+      ) {
+        final map = <int, List<Sku>>{};
+        for (final s in (data as List<dynamic>? ?? const [])) {
+          final json = s as JsonMap;
+          final productId = Json.asInt(json['productId']);
+          if (productId == null) continue;
+          (map[productId] ??= []).add(Sku.fromJson(json));
+        }
+        return map;
+      });
+      return [
+        for (final p in products) p.copyWith(skus: byProduct[p.id] ?? const []),
+      ];
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<List<Sku>> _skus(int productId) async {
+    final res = await _dio.get<Object?>(ApiPaths.productSkus(productId));
+    return unwrapResponse<List<Sku>>(
+      res.data,
+      (data) => [
+        for (final s in (data as List<dynamic>? ?? const []))
+          Sku.fromJson(s as JsonMap),
+      ],
+    );
+  }
 
   @override
   Future<Product> getProduct(int id) async {
     try {
-      final productRes = await _dio.get<Object?>('/api/products/$id');
-      final skusRes = await _dio.get<Object?>('/api/products/$id/skus');
-      final skus = unwrapResponse(
-        skusRes.data,
-        (data) => [
-          for (final s in (data as List<dynamic>? ?? const []))
-            Sku.fromJson(s as JsonMap),
-        ],
-      );
+      final productRes = await _dio.get<Object?>(ApiPaths.product(id));
+      final skus = await _skus(id);
       return unwrapResponse<Product>(
         productRes.data,
         (data) => Product.fromJson(data! as JsonMap, skus: skus),
@@ -44,7 +88,7 @@ class ProductsRemoteRepository implements ProductsRepository {
   Future<Product> createProduct(CreateProductInput input) async {
     try {
       final res = await _dio.post<Object?>(
-        '/api/products',
+        ApiPaths.products,
         data: input.toJson(),
       );
       return unwrapResponse<Product>(

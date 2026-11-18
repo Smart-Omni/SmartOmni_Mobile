@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -7,6 +9,7 @@ import 'package:smartomni_mobile/app/bootstrap.dart';
 import 'package:smartomni_mobile/app/config/app_config.dart';
 import 'package:smartomni_mobile/core/storage/token_storage.dart';
 import 'package:smartomni_mobile/features/auth/data/auth_mock_repository.dart';
+import 'package:smartomni_mobile/features/marketplace/presentation/marketplace_oauth.dart';
 import 'package:smartomni_mobile/core/utils/mock_delay.dart';
 
 /// Cấu hình dùng trong test: luôn chạy mock, không gọi mạng.
@@ -30,6 +33,10 @@ Future<InMemoryTokenStorage> pumpSmartOmniApp(
       overrides: [
         appConfigProvider.overrideWithValue(testConfig),
         tokenStorageProvider.overrideWithValue(storage),
+        deepLinkSourceProvider.overrideWithValue(FakeDeepLinkSource()),
+        oauthPendingStoreProvider.overrideWithValue(
+          InMemoryOAuthPendingStore(),
+        ),
         ...overrides,
       ],
       child: const SmartOmniApp(),
@@ -86,4 +93,20 @@ void useNarrowPhone(WidgetTester tester) {
   tester.view.physicalSize = const Size(360, 780);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
+}
+
+/// Deep link giả: [initial] lúc mở app, [send] khi app đang chạy.
+class FakeDeepLinkSource implements DeepLinkSource {
+  FakeDeepLinkSource([this.initial]);
+
+  final Uri? initial;
+  final _links = StreamController<Uri>.broadcast();
+
+  void send(Uri uri) => _links.add(uri);
+
+  @override
+  Future<Uri?> initialLink() async => initial;
+
+  @override
+  Stream<Uri> get links => _links.stream;
 }

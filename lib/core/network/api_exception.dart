@@ -1,4 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/widgets.dart' show Locale;
+
+import '../../l10n/generated/app_localizations.dart';
 
 /// Loại lỗi để UI hiển thị thông báo phù hợp.
 enum ApiErrorType {
@@ -31,6 +34,15 @@ class ApiException implements Exception {
   /// Mã lỗi nghiệp vụ nếu backend gửi kèm (`errorCode`), vd. `ACCOUNT_TEMP_LOCKED`.
   final String? code;
 
+  /// 403 của BE khi tài khoản STAFF chưa thuộc cửa hàng nào (`tenantId` null)
+  /// gọi API dữ liệu của cửa hàng.
+  static const staffNoTenantCode = 'STAFF_NO_TENANT';
+
+  /// Câu hiện cho [staffNoTenantCode] (từ `app_vi.arb`; mọi thông điệp của
+  /// [ApiException] đều tiếng Việt).
+  static String get staffNoTenantMessage =>
+      lookupAppLocalizations(const Locale('vi')).staffNoTenant;
+
   /// Chuyển [DioException] thành [ApiException].
   ///
   /// Backend trả lỗi dạng: `{ "success": false, "message": "...", "timestamp": "..." }`.
@@ -52,11 +64,14 @@ class ApiException implements Exception {
           message: 'Không thể kết nối máy chủ. Kiểm tra mạng và thử lại.',
         );
       case DioExceptionType.badResponse:
+        final code = _extractCode(e.response?.data);
         return ApiException(
           type: _typeForStatus(status),
-          message: serverMessage ?? _defaultMessageForStatus(status),
+          message: code == staffNoTenantCode
+              ? staffNoTenantMessage
+              : serverMessage ?? _defaultMessageForStatus(status),
           statusCode: status,
-          code: _extractCode(e.response?.data),
+          code: code,
         );
       default: // cancel, badCertificate, unknown, ...
         if (e.error is ApiException) return e.error! as ApiException;

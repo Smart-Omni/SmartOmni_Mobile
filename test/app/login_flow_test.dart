@@ -124,7 +124,7 @@ void main() {
   testWidgets('token hết hạn -> về màn đăng nhập', (tester) async {
     final token = JwtDecoder.buildUnsigned({
       'sub': '2',
-      'role': 'MANAGER',
+      'role': 'STAFF',
       'exp': 1000,
     });
     final storage = await pumpSmartOmniApp(tester, savedToken: token);

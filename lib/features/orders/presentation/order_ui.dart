@@ -12,14 +12,14 @@ extension OrderStatusUi on OrderStatus {
     OrderStatus.toShip => SoStatus.brand,
     OrderStatus.shipped || OrderStatus.delivering => SoStatus.info,
     OrderStatus.completed => SoStatus.success,
-    OrderStatus.cancelled => SoStatus.neutral,
+    OrderStatus.cancelled || OrderStatus.onHold => SoStatus.neutral,
     OrderStatus.returned => SoStatus.danger,
   };
 }
 
 extension OrderUi on Order {
-  /// "Áo thun… và 1 sản phẩm khác". Backend chưa trả sản phẩm trong đơn
-  /// qua API, khi đó hiện dòng "Chưa có thông tin sản phẩm".
+  /// "Áo thun… và 1 sản phẩm khác". Danh sách đơn của BE không kèm sản
+  /// phẩm, khi đó hiện dòng "Chưa có thông tin sản phẩm".
   String get productSummary {
     if (items.isEmpty) return 'Chưa có thông tin sản phẩm';
     final first = items.first.name;

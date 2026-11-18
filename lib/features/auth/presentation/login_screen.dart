@@ -309,6 +309,11 @@ class _FailureBanner extends StatelessWidget {
         title: l10n.loginTenantLockedTitle,
         message: l10n.loginTenantLockedMessage,
       ),
+      LoginFailureKind.staffNoTenant => SoBanner(
+        key: key,
+        tone: SoBannerTone.warning,
+        title: l10n.staffNoTenant,
+      ),
       LoginFailureKind.superAdmin => SoBanner(
         key: key,
         tone: SoBannerTone.info,

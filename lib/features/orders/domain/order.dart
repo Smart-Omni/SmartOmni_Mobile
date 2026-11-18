@@ -9,7 +9,11 @@ enum OrderStatus {
   delivering('DELIVERING', 'Đang giao'),
   completed('COMPLETED', 'Hoàn tất'),
   cancelled('CANCELLED', 'Đã hủy'),
-  returned('RETURNED', 'Trả hàng');
+  returned('RETURNED', 'Trả hàng'),
+
+  /// Sàn tạm giữ đơn (TikTok `IN_CANCEL`/`ON_HOLD`, đang xử lý trả hàng).
+  /// Sàn tự chuyển tiếp sang Chờ giao hoặc Đã hủy, người bán không thao tác.
+  onHold('ON_HOLD', 'Tạm giữ');
 
   const OrderStatus(this.backendValue, this.label);
 
@@ -34,7 +38,8 @@ enum OrderStatus {
 
 enum OrderSource { webhook, polling, manual }
 
-/// Đơn hàng (entity `orders` của backend).
+/// Đơn hàng: entity `Order` ở danh sách, `OrderDetailDto` (kèm `items`) ở
+/// `GET /api/v1/orders/{id}`. Cả hai camelCase.
 class Order {
   const Order({
     required this.id,
@@ -47,6 +52,8 @@ class Order {
     this.shippingAddress,
     this.source,
     this.createdAt,
+    this.trackingNumber,
+    this.slaDeadline,
     this.items = const [],
   });
 
@@ -63,7 +70,12 @@ class Order {
   final OrderSource? source;
   final DateTime? createdAt;
 
-  /// Backend chưa trả danh sách sản phẩm trong đơn qua API -> hiện chỉ có ở mock.
+  /// Có trong entity BE, chưa hiện ở M-21 (DESIGN.md chưa có chỗ).
+  final String? trackingNumber;
+  final DateTime? slaDeadline;
+
+  /// Sản phẩm của đơn. Danh sách đơn của BE không kèm (rỗng); có ở
+  /// `GET /api/v1/orders/{id}` và ở mock.
   final List<OrderItem> items;
 
   factory Order.fromJson(JsonMap json) => Order(
@@ -82,6 +94,12 @@ class Order {
       _ => null,
     },
     createdAt: Json.asDate(json['createdAt']),
+    trackingNumber: json['trackingNumber'] as String?,
+    slaDeadline: Json.asDate(json['slaDeadline']),
+    items: [
+      for (final i in (json['items'] as List<dynamic>? ?? const []))
+        OrderItem.fromJson(i as JsonMap),
+    ],
   );
 
   Order copyWith({OrderStatus? status}) => Order(
@@ -95,20 +113,51 @@ class Order {
     shippingAddress: shippingAddress,
     source: source,
     createdAt: createdAt,
+    trackingNumber: trackingNumber,
+    slaDeadline: slaDeadline,
     items: items,
   );
 }
 
+/// Một dòng sản phẩm của đơn (`OrderItemDto`).
 class OrderItem {
   const OrderItem({
     required this.skuCode,
     required this.name,
     required this.quantity,
     required this.unitPrice,
+    this.skuId,
+    this.subtotal,
+    this.imageUrl,
   });
 
+  /// BE `3eb89ec` khai báo `skuCode`, `productName` nhưng chưa điền (luôn
+  /// null): khi đó mã rỗng và tên là `SKU #<skuId>`.
+  factory OrderItem.fromJson(JsonMap json) {
+    final skuId = Json.asInt(json['skuId']);
+    final name = (json['productName'] as String?)?.trim();
+    return OrderItem(
+      skuId: skuId,
+      skuCode: (json['skuCode'] as String?)?.trim() ?? '',
+      name: name == null || name.isEmpty
+          ? (skuId == null ? 'Sản phẩm' : 'SKU #$skuId')
+          : name,
+      quantity: Json.asInt(json['quantity']) ?? 0,
+      unitPrice: Json.asDouble(json['unitPrice']) ?? 0,
+      subtotal: Json.asDouble(json['subtotal']),
+      imageUrl: json['imageUrl'] as String?,
+    );
+  }
+
+  final int? skuId;
+
+  /// Mã SKU; rỗng khi BE không trả.
   final String skuCode;
   final String name;
   final int quantity;
   final double unitPrice;
+
+  /// Thành tiền BE tính (`unitPrice × quantity`).
+  final double? subtotal;
+  final String? imageUrl;
 }

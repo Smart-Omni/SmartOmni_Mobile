@@ -2,40 +2,57 @@ import 'package:dio/dio.dart';
 
 import '../../../core/models/platform.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/network/api_paths.dart';
 import '../../../core/network/api_response.dart';
 import '../../../core/utils/mock_delay.dart';
 import '../domain/marketplace_connection.dart';
 
+/// Integration Service, chỉ OAuth (BE `9558375` bỏ kết nối bằng App Key).
+/// Công tắc tự nhập: Shopee gọi BE; TikTok BE chưa có API nên chỉ giữ trong
+/// phiên chạy app.
 class MarketplaceRemoteRepository implements MarketplaceRepository {
-  MarketplaceRemoteRepository(this._dio, this._fallback);
+  MarketplaceRemoteRepository(this._dio);
 
   final Dio _dio;
-  final MarketplaceRepository _fallback;
+  bool _tiktokAutoImport = false;
 
   @override
-  Future<List<MarketplaceConnection>> listConnections() =>
-      _fallback.listConnections();
+  Future<List<MarketplaceConnection>> listConnections() async {
+    try {
+      final all = await Future.wait(Platform.values.map(_current));
+      return [
+        for (final c in all)
+          if (c != null)
+            c.platform == Platform.tiktokShop
+                ? c.copyWith(autoImportProducts: _tiktokAutoImport)
+                : c,
+      ];
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  /// Chưa từng kết nối: BE trả `data: null`.
+  Future<MarketplaceConnection?> _current(Platform p) async {
+    final res = await _dio.get<Object?>(ApiPaths.marketplaceConnection(p));
+    return unwrapResponse<MarketplaceConnection?>(
+      res.data,
+      (data) => data is JsonMap
+          ? MarketplaceConnection.fromConnectionDto(data, p)
+          : null,
+    );
+  }
 
   @override
-  Future<MarketplaceConnection> connect({
-    required Platform platform,
-    required String appKey,
-    required String appSecret,
-    bool autoImportProducts = false,
-  }) async {
+  Future<OAuthStart> startAuthorization(Platform platform) async {
     try {
       final res = await _dio.post<Object?>(
-        '/api/marketplace-connections',
-        data: {
-          'platform': platform.backendValue,
-          'appKey': appKey,
-          'appSecret': appSecret,
-          'autoImportProducts': autoImportProducts,
-        },
+        ApiPaths.marketplaceAuthorization(platform),
+        data: {'redirect_uri': oauthRedirectUri(platform).toString()},
       );
-      return unwrapResponse<MarketplaceConnection>(
+      return unwrapResponse<OAuthStart>(
         res.data,
-        (data) => MarketplaceConnection.fromJson(data! as JsonMap),
+        (data) => OAuthStart.fromJson(data! as JsonMap),
       );
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
@@ -43,11 +60,48 @@ class MarketplaceRemoteRepository implements MarketplaceRepository {
   }
 
   @override
-  Future<void> disconnect(Platform platform) => _fallback.disconnect(platform);
+  Future<MarketplaceConnection> completeAuthorization(
+    OAuthCallback callback,
+  ) async {
+    final p = callback.platform;
+    try {
+      final res = await _dio.post<Object?>(
+        ApiPaths.marketplaceCallback(p),
+        data: callback.toRequestBody(),
+      );
+      return unwrapResponse<MarketplaceConnection>(
+        res.data,
+        (data) => MarketplaceConnection.fromConnectionDto(data! as JsonMap, p),
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
 
   @override
-  Future<void> setAutoImport(Platform platform, {required bool enabled}) =>
-      _fallback.setAutoImport(platform, enabled: enabled);
+  Future<void> disconnect(Platform platform) async {
+    try {
+      await _dio.post<Object?>(ApiPaths.marketplaceDisconnect(platform));
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  @override
+  Future<void> setAutoImport(Platform platform, {required bool enabled}) async {
+    if (platform == Platform.tiktokShop) {
+      _tiktokAutoImport = enabled;
+      return;
+    }
+    try {
+      await _dio.patch<Object?>(
+        ApiPaths.shopeeSettings,
+        data: {'auto_import_products': enabled},
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
 }
 
 class MarketplaceMockRepository implements MarketplaceRepository {
@@ -84,14 +138,50 @@ class MarketplaceMockRepository implements MarketplaceRepository {
     return List.unmodifiable(_connections);
   }
 
+  /// `state` của lần bắt đầu gần nhất mỗi sàn (giống BE: dùng một lần).
+  final _states = <Platform, String>{};
+  var _stateSeq = 0;
+
+  /// Không có trang ủy quyền thật: trả thẳng deep link mà sàn sẽ gọi về khi
+  /// người bán đồng ý, nên app không mở trình duyệt.
   @override
-  Future<MarketplaceConnection> connect({
-    required Platform platform,
-    required String appKey,
-    required String appSecret,
-    bool autoImportProducts = false,
-  }) async {
+  Future<OAuthStart> startAuthorization(Platform platform) async {
     await MockDelay.short();
+    final state = 'mock-${++_stateSeq}';
+    _states[platform] = state;
+    return OAuthStart(
+      authorizationUrl: oauthRedirectUri(platform).replace(
+        queryParameters: {
+          'code': 'mock-code',
+          'state': state,
+          if (platform == Platform.shopee) 'shop_id': '123456789',
+        },
+      ),
+      expiresAt: _clock().add(const Duration(minutes: 10)),
+    );
+  }
+
+  @override
+  Future<MarketplaceConnection> completeAuthorization(
+    OAuthCallback callback,
+  ) async {
+    await MockDelay.short();
+    final platform = callback.platform;
+    final prefix = platform == Platform.shopee ? 'SHOPEE' : 'TIKTOK';
+    if (callback.state == null || callback.state != _states.remove(platform)) {
+      throw ApiException(
+        type: ApiErrorType.validation,
+        message: 'Authorization state is missing or invalid',
+        code: '${prefix}_STATE_INVALID',
+      );
+    }
+    if (callback.denied) {
+      throw ApiException(
+        type: ApiErrorType.validation,
+        message: 'The seller did not authorize SmartOmni',
+        code: '${prefix}_AUTHORIZATION_DENIED',
+      );
+    }
     if (!canConnect(_connections, platform)) {
       throw ApiException(
         type: ApiErrorType.validation,
@@ -107,7 +197,6 @@ class MarketplaceMockRepository implements MarketplaceRepository {
       shopId: platform == Platform.shopee ? '123456789' : '7495120036',
       shopName: 'Shop Demo',
       lastSyncedAt: _clock(),
-      autoImportProducts: autoImportProducts,
     );
     _connections.add(c);
     return c;

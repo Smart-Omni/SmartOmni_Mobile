@@ -1,13 +1,14 @@
 /// Vai trò người dùng trong app mobile.
 ///
-/// Ánh xạ từ giá trị `role` trong JWT / LoginResponse của backend:
+/// Ánh xạ từ `role` trong JWT / `user_info.role` (enum `User.UserRole` của BE):
 ///
 /// | Backend        | App           | Ghi chú                                   |
 /// |----------------|---------------|-------------------------------------------|
-/// | `ADMIN`        | tenantAdmin   | Chủ cửa hàng (Tenant Admin)               |
-/// | `MANAGER`      | staff         | Tên cũ trong code BE, nghiệp vụ gọi Staff |
-/// | `STAFF`        | staff         | Dự phòng nếu BE đổi tên enum              |
-/// | `CUSTOMER`     | customer      | BE chưa có, hiện chỉ có ở mock            |
+/// | `TENANT_ADMIN` | tenantAdmin   | Chủ cửa hàng (Tenant Admin)               |
+/// | `ADMIN`        | tenantAdmin   | Tên cũ, giữ để tương thích                |
+/// | `STAFF`        | staff         | Nhân viên (BE `9558375` gộp MANAGER vào)  |
+/// | `MANAGER`      | staff         | Đã bỏ ở BE (V21); JWT cũ có thể còn mang  |
+/// | `CUSTOMER`     | customer      | Khách đăng ký qua A-05                    |
 /// | `SUPER_ADMIN`  | superAdmin    | Không hỗ trợ trên mobile (dùng web)       |
 enum UserRole {
   customer,
@@ -21,8 +22,8 @@ enum UserRole {
       case 'ADMIN':
       case 'TENANT_ADMIN':
         return UserRole.tenantAdmin;
-      case 'MANAGER':
       case 'STAFF':
+      case 'MANAGER': // JWT cũ trước V21; BE trả 401 TOKEN_REVOKED cho token này
         return UserRole.staff;
       case 'CUSTOMER':
         return UserRole.customer;

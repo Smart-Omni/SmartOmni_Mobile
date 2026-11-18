@@ -84,16 +84,16 @@ class OtpRules {
   }
 }
 
-/// ⚠️ Backend CHƯA có các API này (docs/API_CONTRACT.md mục 3) -> mock.
+/// Đăng ký khách. Remote: `POST /api/v1/auth/register`, BE trả phiên luôn
+/// (không OTP). Mock: gửi OTP rồi mới có phiên ([verifyEmail]).
 abstract class RegistrationRepository {
-  /// POST /api/customers/register { shopCode, fullName, email, phone,
-  /// password } -> gửi OTP tới email. Ném [RegisterFailure].
-  Future<void> register(RegistrationRequest request);
+  /// Ném [RegisterFailure]. Trả phiên khi vào thẳng app được (BE thật),
+  /// `null` khi phải xác minh OTP trước (mock).
+  Future<Session?> register(RegistrationRequest request);
 
-  /// Gửi lại OTP. Chưa có trong API_CONTRACT; dự kiến gọi lại `register`.
+  /// Gửi lại OTP (chỉ mock; BE chưa có OTP).
   Future<void> resendOtp(String email);
 
-  /// POST /api/customers/verify-email { email, otp } -> { accessToken }.
-  /// Ném [OtpFailure].
+  /// Xác minh OTP (chỉ mock). Ném [OtpFailure].
   Future<Session> verifyEmail({required String email, required String otp});
 }

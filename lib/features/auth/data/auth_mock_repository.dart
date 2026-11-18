@@ -14,10 +14,10 @@ class MockAccounts {
   /// email -> (userId, role backend, tenantId)
   static const accounts = <String, (int, String, int?)>{
     'admin@demo.vn': (1, 'ADMIN', 1),
-    'staff@demo.vn': (2, 'MANAGER', 1),
+    'staff@demo.vn': (2, 'STAFF', 1),
     'customer@demo.vn': (3, 'CUSTOMER', 1),
     'superadmin@demo.vn': (99, 'SUPER_ADMIN', null),
-    'disabled@demo.vn': (4, 'MANAGER', 1),
+    'disabled@demo.vn': (4, 'STAFF', 1),
     'shoplocked@demo.vn': (5, 'ADMIN', 2),
   };
 
@@ -113,7 +113,7 @@ class AuthMockRepository implements AuthRepository {
         statusCode: 403,
       );
     }
-    if (password != (registered?.password ?? MockAccounts.password)) {
+    if (password != _store.passwordFor(key, fallback: MockAccounts.password)) {
       final count = (_failedAttempts[key] ?? 0) + 1;
       _failedAttempts[key] = count;
       if (count >= MockAccounts.maxFailedAttempts) {
@@ -145,7 +145,7 @@ class AuthMockRepository implements AuthRepository {
   }
 
   @override
-  Future<void> logout() => MockDelay.short();
+  Future<void> logout({String? accessToken}) => MockDelay.short();
 
   @override
   Future<void> forgotPassword(String email) => MockDelay.short();
@@ -154,6 +154,7 @@ class AuthMockRepository implements AuthRepository {
   Future<void> resetPassword({
     required String token,
     required String newPassword,
+    required String confirmPassword,
   }) async {
     await MockDelay.short();
     if (token == MockAccounts.expiredResetCode) {

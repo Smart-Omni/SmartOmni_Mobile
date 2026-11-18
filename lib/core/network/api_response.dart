@@ -27,11 +27,14 @@ T unwrapResponse<T>(Object? body, T Function(Object? data) parse) {
   return parse(body['data']);
 }
 
-/// Kết quả phân trang (Spring `Page<T>`).
+/// Kết quả phân trang.
 ///
-/// Hỗ trợ cả 2 kiểu JSON mà Spring Boot 3 có thể trả:
-/// - Kiểu cũ: `{ content, number, size, totalElements, totalPages }`
-/// - Kiểu mới (PagedModel): `{ content, page: { number, size, totalElements, totalPages } }`
+/// Đọc được 3 kiểu JSON của BE:
+/// - `Page` mặc định của Spring (products, inventory, orders):
+///   `{ content, number, size, totalElements, totalPages }`
+/// - PagedModel: `{ content, page: { number, size, totalElements, totalPages } }`
+/// - `PageResponse` snake_case (`/api/v1/users`):
+///   `{ content, page_number, page_size, total_elements, total_pages }`
 class PageResult<T> {
   const PageResult({
     required this.items,
@@ -59,10 +62,12 @@ class PageResult<T> {
     final content = (map['content'] as List<dynamic>?) ?? const [];
     return PageResult<T>(
       items: content.whereType<Map<String, dynamic>>().map(parse).toList(),
-      page: (meta['number'] as num?)?.toInt() ?? 0,
-      size: (meta['size'] as num?)?.toInt() ?? content.length,
-      totalElements: (meta['totalElements'] as num?)?.toInt() ?? content.length,
-      totalPages: (meta['totalPages'] as num?)?.toInt() ?? 1,
+      page: Json.asInt(meta['number'] ?? meta['page_number']) ?? 0,
+      size: Json.asInt(meta['size'] ?? meta['page_size']) ?? content.length,
+      totalElements:
+          Json.asInt(meta['totalElements'] ?? meta['total_elements']) ??
+          content.length,
+      totalPages: Json.asInt(meta['totalPages'] ?? meta['total_pages']) ?? 1,
     );
   }
 }

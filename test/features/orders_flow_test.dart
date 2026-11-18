@@ -69,9 +69,10 @@ void main() {
   testWidgets('M-20: chip có số đếm, lọc theo trạng thái', (tester) async {
     await _openOrders(tester);
 
-    expect(_chipCount(tester, 'filter_all'), '7');
+    expect(_chipCount(tester, 'filter_all'), '8');
+    expect(_chipCount(tester, 'filter_onHold'), '1');
     expect(_chipCount(tester, 'filter_pending'), '3');
-    expect(find.byType(SoOrderRow), findsNWidgets(7));
+    expect(find.byType(SoOrderRow), findsNWidgets(8));
     expect(find.textContaining('Hôm nay'), findsOneWidget);
 
     await _tap(tester, find.byKey(const Key('filter_pending')));
@@ -95,7 +96,29 @@ void main() {
 
     // Đóng tìm kiếm -> hiện lại đủ.
     await _tap(tester, find.byKey(const Key('orders_search')));
-    expect(find.byType(SoOrderRow), findsNWidgets(7));
+    expect(find.byType(SoOrderRow), findsNWidgets(8));
+  });
+
+  testWidgets('M-21 Tạm giữ: banner info, không có Chuẩn bị hàng, vẫn '
+      'ghi nhận hoàn/trả, không có In vận đơn', (tester) async {
+    await _openOrders(tester);
+    await _tap(tester, find.byKey(const Key('filter_onHold')));
+    expect(find.byType(SoOrderRow), findsOneWidget);
+    await _tap(tester, find.byKey(const Key('order_1008')));
+
+    expect(find.byType(OrderDetailScreen), findsOneWidget);
+    expect(
+      tester.widget<SoStatusTag>(find.byKey(const Key('order_status'))).label,
+      'Tạm giữ',
+    );
+    final banner = tester.widget<SoBanner>(
+      find.byKey(const Key('order_on_hold_banner')),
+    );
+    expect(banner.tone, SoBannerTone.info);
+    expect(find.byKey(const Key('order_pending_banner')), findsNothing);
+    expect(find.byKey(const Key('order_prepare')), findsNothing);
+    expect(find.byKey(const Key('order_return')), findsOneWidget);
+    expect(find.byKey(const Key('order_label')), findsNothing);
   });
 
   testWidgets('M-21: Chuẩn bị hàng chuyển PENDING -> Chờ giao', (tester) async {

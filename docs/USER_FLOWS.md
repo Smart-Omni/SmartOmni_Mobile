@@ -13,7 +13,7 @@ flowchart TD
     Login -->|đúng| Role
     Login -->|Quên mật khẩu| Forgot["A-03 Quên mật khẩu"]
     Role -->|CUSTOMER| CHome["Khu Customer<br/>tab: Sản phẩm · Điểm & hạng · Claim đơn · Tài khoản"]
-    Role -->|MANAGER = Staff| MHome["Khu Merchant<br/>tab: Tổng quan · Đơn hàng · Sản phẩm · Tồn kho · Thêm"]
+    Role -->|STAFF| MHome["Khu Merchant<br/>tab: Tổng quan · Đơn hàng · Sản phẩm · Tồn kho · Thêm"]
     Role -->|ADMIN = Tenant Admin| MHome
     Role -->|SUPER_ADMIN| Deny["Báo lỗi: dùng Super Admin Console trên web"]
     Deny --> Login
@@ -79,7 +79,7 @@ Cần thiết kế: logo, ô nhập có icon hiện/ẩn mật khẩu, link "Qu�
 
 ### F-A3. Quên / đặt lại mật khẩu
 1. **A-03**: nhập email → `POST /api/auth/forgot-password` ✅ → luôn báo "Nếu email tồn tại, hướng dẫn đã được gửi" (không tiết lộ email có tồn tại).
-2. **A-04**: nhập **mã xác nhận** (token trong email) + mật khẩu mới ≥ 8 ký tự → `POST /api/auth/reset-password` ✅.
+2. **A-04**: nhập **mã xác nhận** (token trong email) + mật khẩu mới 6–100 ký tự + nhập lại → `POST /api/v1/auth/reset-password` ✅.
 3. Thành công → về A-02 với thông báo "Đã đặt lại mật khẩu".
 4. Lỗi: mã sai / đã dùng / hết hạn (30 phút).
 
@@ -236,10 +236,11 @@ Có **toàn bộ flow của Staff**, thêm:
 | Bước | Nội dung | API |
 |---|---|---|
 | 1 | Hai thẻ: Shopee, TikTok Shop - trạng thái: Chưa kết nối / Đã kết nối (shop ID) / Lỗi - cần kết nối lại / Đã ngắt | 🟡 list |
-| 2 | Bấm **Kết nối** → bottom sheet: App Key, App Secret, công tắc "Tự động nhập sản phẩm" | |
-| 3 | Gửi → thành công / lỗi (vd: "Mỗi sàn chỉ 1 shop") | ✅ `POST /api/marketplace-connections` |
+| 2 | Bấm **Kết nối** (hoặc **Kết nối lại**) → sheet "Kết nối <sàn>": 3 bước, quyền sẽ đọc, công tắc tự nhập (TikTok: "Sắp có") → **Mở <sàn>** mở trang ủy quyền ngoài app | ✅ `POST …/{shopee,tiktok-shop}/authorization` |
+| 3 | Người bán đồng ý → sàn chuyển về `smartomni://oauth/<sàn>` → app gửi kết quả, (Shopee) lưu lựa chọn tự nhập, tải lại trạng thái, hiện thẻ "Đã kết nối …" (tên shop, Shop ID, nút Xong) / báo lỗi (vd: "Bạn đã từ chối cấp quyền"). Quay lại app không qua sàn = hủy, không báo | ✅ `POST …/callback`, `PATCH …/shopee/settings` |
+| 4 | Thẻ đã kết nối: công tắc "Tự nhập sản phẩm & đơn" (Shopee gọi BE, TikTok còn mẫu), **Ngắt kết nối** | ✅ `PATCH …/shopee/settings`, `POST …/disconnect` |
 
-> Thực tế Shopee/TikTok dùng OAuth (mở trang sàn để cấp quyền). Khi BE làm OAuth, flow đổi thành: bấm Kết nối → mở trình duyệt → đăng nhập sàn → quay về app.
+> BE `9558375` bỏ kết nối bằng App Key; chỉ OAuth. Staff không thấy nút Kết nối / Ngắt kết nối.
 
 ### F-T3. Quản lý nhân viên (T-20) 🟡
 Danh sách Staff (tên, email, trạng thái) → Mời/Tạo Staff (email, mật khẩu tạm) → Vô hiệu hóa / kích hoạt lại. (Chưa chốt Staff có quyền con.)
@@ -269,7 +270,7 @@ Chỉ làm trên web portal, không làm trên mobile (chốt 22/10/2026). A-02 
 | Trạng thái màn hình | Mỗi màn có 4 trạng thái: đang tải (skeleton), có dữ liệu, rỗng, lỗi + Thử lại |
 | Thao tác ghi | Nút khóa khi đang gửi; thông báo thành công/thất bại (SnackBar); hỏi xác nhận với thao tác quan trọng |
 | Phân biệt sàn | Màu/logo riêng cho Shopee và TikTok Shop xuyên suốt (đơn, sản phẩm, voucher, hội thoại) |
-| Trạng thái đơn | Bộ màu badge cho 7 trạng thái |
+| Trạng thái đơn | Bộ màu badge cho 8 trạng thái |
 | Hạng khách | Bộ màu/biểu tượng cho 4 hạng |
 | Tiền tệ, ngày | `1.250.000 ₫`, `dd/MM/yyyy HH:mm` |
 | Dark mode | Nên hỗ trợ (theme đã có sẵn chế độ tối) |

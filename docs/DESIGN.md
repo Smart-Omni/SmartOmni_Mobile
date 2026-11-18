@@ -179,6 +179,7 @@ Giữ nguyên tên và tham số của bản 1 để màn hình không phải s�
 | COMPLETED | Hoàn tất | success |
 | CANCELLED | Đã hủy | neutral (nền `fill`, chữ ink2) |
 | RETURNED | Trả hàng | danger |
+| ON_HOLD | Tạm giữ | neutral (như CANCELLED: không cần người bán thao tác) |
 
 `SoStatus.kraft` của bản 1 đổi thành `SoStatus.brand`.
 
@@ -237,16 +238,15 @@ Mockup đầy đủ 41 màn: https://claude.ai/artifact/WE5CeBwvbjgsRvMcrewpCQ (
 | M-31 | Như bản đã code (thẻ đầu, nhóm SKU kèm nhãn tồn và lối vào AI, nhóm liên kết sàn + nút chép). |
 | M-32 | AppBar con "Sản phẩm mới" (nút đóng). Thẻ 1: Tên*, Mô tả. Nhóm "SKU" (nhãn "Nhiều SKU, ảnh, link sàn · Sắp có"): Mã SKU* (mono), Phân loại, Giá bán*. Thanh dưới: Hủy / **Lưu sản phẩm**. **Không** có ảnh, tồn ban đầu, công tắc sàn. |
 | M-50 | Thẻ hồ sơ. Nhóm "Công cụ": Hộp thư CSKH (số chưa đọc), Dự báo nhu cầu (nhãn AI). Nhóm "Quản trị cửa hàng" (chỉ Admin): Kết nối sàn (trạng thái 2 sàn), Nhân viên, Phát voucher, Gói dịch vụ, Yêu cầu hỗ trợ. Đăng xuất (chữ danger). |
-| M-51 | AppBar con "Dự báo nhu cầu" + nhãn AI. Thẻ chọn SKU ("Đổi SKU"). Thẻ kính: **Dự kiến bán 7 ngày** và **Nên nhập thêm** (metricSm), "Có thể bán hiện tại". Nhóm "Theo ngày": 7 hàng ngày + số cái. Chú thích "Dự báo chỉ để tham khảo". Không có biểu đồ (để sau). |
+| M-51 | AppBar con "Dự báo nhu cầu" + nhãn AI. Thẻ chọn SKU ("Đổi SKU"). Thẻ kính: **Dự kiến bán 7 ngày** và **Nên nhập thêm** (metricSm), "Có thể bán hiện tại". Nhóm "Theo ngày": 7 hàng ngày + số cái. Chú thích "Dự báo chỉ để tham khảo". Không có biểu đồ (để sau). Gói không phải Pro (biết trước qua `planType` của `tenants/me`, hoặc 403 `FEATURE_NOT_AVAILABLE`): trạng thái trống "Dự báo AI chỉ có ở gói Pro" + message BE (hoặc "Nâng cấp lên gói Pro để xem dự báo nhu cầu."), không nút, không mở sheet chọn SKU. |
 | M-60 | Màn con từ M-50 (không có thanh tab). Chip: Tất cả / Khiếu nại / Chưa trả lời / theo sàn. Hàng: chấm chưa đọc, tên khách, giờ, tin cuối (đậm nếu chưa đọc), kênh + nhãn (Khiếu nại danger, Chưa trả lời neutral, Cần kiểm tra warning, Đã giải quyết success). |
 | M-61 khiếu nại | AppBar: tên khách + kênh, nút "Đã giải quyết". Banner danger khóa (hạn phản hồi). Thẻ đơn liên quan (mã, trạng thái, sản phẩm) + "Đổi". Tin nhắn: khách trái (thẻ trắng), shop phải (brand); trạng thái tin: "Đã gửi" / "Chưa rõ đã gửi chưa · đối soát trước khi gửi lại". Ô soạn kính + nút ảnh + gửi. |
 | M-61 thường | Như trên, không banner. Chưa gắn đơn: thẻ viền nét đứt + nút "Tìm đơn". Nội dung không hỗ trợ: "Không xem được nội dung này". **Không** có trả lời nhanh. |
 | M-61 sheet | "Gắn đơn vào hội thoại": ô mã đơn (mono), danh sách `SoOrderRow` cùng sàn, chọn một → Hủy / Gắn đơn. |
-| T-10 | Hai thẻ sàn: tên shop, trạng thái, Shop ID, đồng bộ gần nhất, công tắc "Tự nhập sản phẩm & đơn", nút "Ngắt kết nối". Thẻ lỗi: banner danger + **Kết nối lại**. Hàng "Nâng cao: nhập App Key". |
-| T-10 OAuth | Sheet: 3 bước, danh sách quyền sẽ được đọc (Đơn hàng, Sản phẩm, Tồn kho, Tin nhắn), công tắc tự nhập, nút "Mở TikTok Shop", link "Nhập App Key thủ công". Chỉ dùng khi backend có OAuth. |
-| T-10 xong | Thẻ kính: dấu tích, "Đã kết nối …", Shop ID, tiến độ nhập sản phẩm (x / y), nút Xong. |
-| T-10 App Key | Sheet: chọn sàn (segmented), App Key (mono), App Secret (ẩn/hiện), công tắc tự nhập, Hủy / Kết nối. |
-| T-20 | Danh sách: chủ cửa hàng (bạn) + Staff (tên, email, trạng thái Đang hoạt động / Đã khóa). Chạm để vô hiệu hóa / kích hoạt lại. Thanh dưới: **Thêm nhân viên** (email + mật khẩu tạm). |
+| T-10 | Hai thẻ sàn: tên shop, trạng thái, Shop ID, đồng bộ gần nhất, công tắc "Tự nhập sản phẩm & đơn", nút "Ngắt kết nối". Thẻ lỗi: banner danger + **Kết nối lại**. |
+| T-10 OAuth | Sheet: 3 bước, danh sách quyền sẽ được đọc (Đơn hàng, Sản phẩm, Tồn kho, Tin nhắn), công tắc tự nhập, nút "Mở TikTok Shop" / "Mở Shopee". Công tắc tự nhập chỉ lưu lựa chọn; kết nối thành công mới gửi BE (Shopee). TikTok chưa có API: không có công tắc, ghi "Sắp có". Chỉ dùng khi backend có OAuth. |
+| T-10 xong | Thẻ kính: dấu tích, "Đã kết nối …", tên shop và Shop ID (trường nào DTO kết nối của BE có thì hiện), nút Xong. |
+| T-20 | Danh sách: chủ cửa hàng (bạn) + Staff (tên, email, trạng thái Đang hoạt động / Đã khóa). Chạm để vô hiệu hóa / kích hoạt lại. Thanh dưới: **Thêm nhân viên** (họ tên + email + mật khẩu tạm; họ tên bắt buộc, tối đa 100 ký tự, đặt trên ô Email). |
 | T-30 | Thẻ form: Phát cho (chip hạng có số khách + "Chọn từng khách"), Sàn (segmented), Giá trị giảm, Đơn tối thiểu, Hạn dùng; ghi chú "chỉ gửi email khi sàn xác nhận tạo thành công". Nhóm "Đợt phát gần đây" với trạng thái Đang tạo / Thành công / Lỗi / Chưa rõ · đối soát. Thanh dưới: "Phát cho N khách …" (chống bấm lặp). |
 | T-40 | Thẻ kính gói hiện tại (tên gói, hạn) + mức đã dùng: Số SKU, Kết nối sàn, Dung lượng ảnh (thanh capsule). Nhóm "Hóa đơn" (mã mono, số tiền, Đã/Chưa thanh toán). Hai nút: Đổi gói / Thanh toán. Tên gói, giá, hạn mức chờ backend. |
 | T-50 | Segmented "Chưa xong / Đã giải quyết". Hàng ticket: mã mono, thời gian, tiêu đề, dòng cuối; nhãn Mở / Đang xử lý / Đã giải quyết. Thanh dưới: **Tạo yêu cầu** (tiêu đề, mô tả). |

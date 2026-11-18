@@ -80,16 +80,18 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
       ref.invalidate(productsListProvider);
       if (!mounted) return;
       showSoToast(context, 'Đã tạo sản phẩm');
-      // Mở chi tiết (API thật) thay vì về M-30: ở bản thật danh sách M-30
-      // còn là dữ liệu mẫu nên sản phẩm mới chưa hiện ở đó.
+      // Mở chi tiết sản phẩm mới; quay lại thì M-30 đã tải lại.
       context.pushReplacement(Routes.merchantProductDetail(created.id));
     } catch (e) {
       if (!mounted) return;
       final message = e is ApiException
           ? e.message
           : 'Kiểm tra kết nối mạng rồi thử lại.';
+      // Vượt hạn mức SKU của gói là lỗi cả form, không phải lỗi ô Mã SKU
+      // (dù message có chữ "SKU").
+      final skuLimit = e is ApiException && e.code == 'SKU_LIMIT_EXCEEDED';
       setState(() {
-        if (message.toLowerCase().contains('sku')) {
+        if (!skuLimit && message.toLowerCase().contains('sku')) {
           _skuError = message;
         } else {
           _formError = message;

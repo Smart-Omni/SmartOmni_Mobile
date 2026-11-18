@@ -89,6 +89,21 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
         ),
       ),
       slivers: [
+        if (!ref.watch(ordersUseRemoteProvider))
+          const SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              SoSpace.screen,
+              SoSpace.s8,
+              SoSpace.screen,
+              0,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: SoMockBanner(
+                key: Key('orders_mock_banner'),
+                message: 'Đơn hàng đang là dữ liệu mẫu.',
+              ),
+            ),
+          ),
         switch (pageAsync) {
           AsyncData(:final value) => _OrderList(
             orders: value.items

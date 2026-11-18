@@ -44,6 +44,8 @@ List<OrderProgressStep> orderProgress(OrderStatus current) {
   return switch (current) {
     // Không biết đơn bị hủy ở bước nào: chỉ chắc chắn đã từng "Chờ xử lý".
     OrderStatus.cancelled => endedAt([OrderStatus.pending], current),
+    // Tạm giữ cũng không biết ở bước nào: như đơn hủy.
+    OrderStatus.onHold => endedAt([OrderStatus.pending], current),
     // Trả hàng chỉ xảy ra sau khi đơn đã giao (xem USER_FLOWS.md).
     OrderStatus.returned => endedAt(flow.sublist(0, 4), current),
     _ => [
@@ -88,7 +90,7 @@ enum LabelAvailability {
   /// Chưa có tem: sàn chỉ tạo sau khi nhân viên "Chuẩn bị hàng".
   afterPrepare,
 
-  /// Đơn đã xong / hủy / trả: không cần in tem, ẩn lối vào.
+  /// Đơn đã xong / hủy / trả / tạm giữ: không in tem, ẩn lối vào.
   none,
 }
 
@@ -99,7 +101,8 @@ LabelAvailability labelAvailability(OrderStatus status) => switch (status) {
   OrderStatus.pending => LabelAvailability.afterPrepare,
   OrderStatus.completed ||
   OrderStatus.cancelled ||
-  OrderStatus.returned => LabelAvailability.none,
+  OrderStatus.returned ||
+  OrderStatus.onHold => LabelAvailability.none,
 };
 
 /// Lọc đơn theo từ khóa: mã đơn hoặc tên khách, không phân biệt dấu/hoa thường.

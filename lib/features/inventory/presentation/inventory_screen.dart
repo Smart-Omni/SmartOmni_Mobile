@@ -25,7 +25,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     final saved = await showStockSheet(context, item);
     if (saved == null || !mounted) return;
     ref.invalidate(inventoryListProvider);
-    showSoToast(context, 'Đã lưu số tồn ${item.skuCode}: $saved');
+    showSoToast(context, 'Đã lưu số tồn ${item.displayCode}: $saved');
   }
 
   @override
@@ -35,7 +35,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       appBar: const SoAppBar.root(title: 'Tồn kho'),
       onRefresh: async.hasValue
           ? () async {
-              ref.invalidate(inventoryListProvider);
+              reloadInventory(ref);
               await ref.read(inventoryListProvider.future);
             }
           : null,
@@ -47,12 +47,13 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
             filter: _filter,
             onFilter: (f) => setState(() => _filter = f),
             onTap: _adjust,
+            stockRemote: ref.watch(inventoryUseRemoteProvider),
           ),
           AsyncError(:final error) => SliverToBoxAdapter(
             child: SoEmptyState.error(
               title: 'Không tải được tồn kho',
               message: AsyncValueView.errorMessage(error),
-              onAction: () => ref.invalidate(inventoryListProvider),
+              onAction: () => reloadInventory(ref),
             ),
           ),
           _ => const SliverPadding(
@@ -73,12 +74,16 @@ class _InventoryBody extends StatelessWidget {
     required this.filter,
     required this.onFilter,
     required this.onTap,
+    required this.stockRemote,
   });
 
   final List<InventoryItem> items;
   final InventoryFilter filter;
   final ValueChanged<InventoryFilter> onFilter;
   final ValueChanged<InventoryItem> onTap;
+
+  /// Tồn kho gọi API thật: không hiện dải "Dữ liệu mẫu".
+  final bool stockRemote;
 
   @override
   Widget build(BuildContext context) {
@@ -88,19 +93,16 @@ class _InventoryBody extends StatelessWidget {
 
     return SliverList.list(
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(
-            SoSpace.screen,
-            SoSpace.s8,
-            SoSpace.screen,
-            0,
+        if (!stockRemote)
+          const Padding(
+            padding: EdgeInsets.fromLTRB(
+              SoSpace.screen,
+              SoSpace.s8,
+              SoSpace.screen,
+              0,
+            ),
+            child: SoMockBanner(message: 'Tồn kho đang là dữ liệu mẫu.'),
           ),
-          child: SoMockBanner(
-            message:
-                'Danh sách tồn kho là dữ liệu mẫu. Lưu số tồn gọi API thật '
-                'khi tắt chế độ mock.',
-          ),
-        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(
             SoSpace.screen,
@@ -214,8 +216,11 @@ class _StockRow extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: context.textTheme.titleMedium,
                     ),
-                    const SizedBox(height: SoSpace.s4),
-                    SoCodeTag(item.skuCode),
+                    // SKU không khớp sản phẩm nào: chỉ có "SKU #id", không mã.
+                    if (item.skuCode.isNotEmpty) ...[
+                      const SizedBox(height: SoSpace.s4),
+                      SoCodeTag(item.skuCode),
+                    ],
                     const SizedBox(height: SoSpace.s8),
                     SoStockMeter.mini(
                       onHand: item.quantityOnHand,

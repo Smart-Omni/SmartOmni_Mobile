@@ -32,6 +32,11 @@ flowchart LR
 | `release.yml` → job `google-play` | Push tag `v*.*.*` (trừ v0.x) | Đẩy AAB lên Google Play kênh Internal | ⏸️ **Tắt** (mức 3) |
 | `dependabot.yml` | Hàng tuần | Tự mở PR nâng cấp thư viện | ✅ Bật |
 
+### Phiên bản Flutter: ghim 3.44.3
+Mọi workflow cài đúng **Flutter 3.44.3** (`flutter-version: 3.44.3` trong `subosito/flutter-action`), trùng bản trên máy dev, thay vì bản `stable` mới nhất.
+
+Lý do: Flutter 3.47+ deprecate `package:flutter/material.dart` (khuyên dùng `package:material_ui`). Lên stable 3.50.0 thì `flutter analyze` báo `deprecated_member_use` ở mọi file import `material.dart` và CI đỏ, dù code không đổi. Chuyển sang `material_ui` là việc riêng sau; khi làm xong thì nâng bản ghim ở cả 4 file workflow (`ci.yml`, `build-ios.yml`, `release.yml`, `distribute-firebase.yml`) cùng lúc với máy dev.
+
 ### Xem kết quả và tải APK
 1. Vào repo trên GitHub → tab **Actions**.
 2. Bấm vào lần chạy (ví dụ "CI") → xem từng bước, bước đỏ là lỗi, bấm vào để đọc log.

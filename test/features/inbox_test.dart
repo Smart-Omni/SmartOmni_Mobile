@@ -270,6 +270,29 @@ void main() {
     expect(find.byType(OrderDetailScreen), findsOneWidget);
   });
 
+  testWidgets('mock: Chuẩn bị hàng ở M-21 thì thẻ đơn trong hội thoại thấy '
+      'ngay (dùng chung đơn với M-20)', (tester) async {
+    await _openInbox(tester);
+    await tapVisible(tester, find.byKey(const Key('conversation_1')));
+    final card = find.byKey(const Key('conversation_order'));
+    expect(
+      find.descendant(of: card, matching: find.text('Chờ xử lý')),
+      findsOneWidget,
+    );
+
+    await tapVisible(tester, card);
+    expect(find.byType(OrderDetailScreen), findsOneWidget);
+    await tester.tap(find.byKey(const Key('order_prepare')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('so_app_bar_leading')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(of: card, matching: find.text('Chờ giao')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('M-61 thường: không banner, chưa gắn đơn có Tìm đơn', (
     tester,
   ) async {

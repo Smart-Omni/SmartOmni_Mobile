@@ -15,7 +15,7 @@ class RegistrationMockRepository implements RegistrationRepository {
   final DateTime Function() _now;
 
   @override
-  Future<void> register(RegistrationRequest request) async {
+  Future<Session?> register(RegistrationRequest request) async {
     await MockDelay.short();
     final email = request.email.trim().toLowerCase();
     if (MockAccounts.accounts.containsKey(email) ||
@@ -48,6 +48,7 @@ class RegistrationMockRepository implements RegistrationRepository {
         ),
       ),
     );
+    return null; // Cần OTP.
   }
 
   @override
