@@ -32,6 +32,7 @@ class LoyaltyScreen extends ConsumerWidget {
     final summaryAsync = ref.watch(loyaltySummaryProvider);
     final summary = summaryAsync.value;
     final noShop = shopAsync.hasValue && shop == null;
+    final remote = ref.watch(loyaltyUseRemoteProvider);
 
     return SoScaffold(
       appBar: SoAppBar.root(
@@ -54,12 +55,14 @@ class LoyaltyScreen extends ConsumerWidget {
               : summary != null
               ? SliverList.list(
                   children: [
-                    const SoMockBanner(
-                      message:
-                          'Điểm, voucher và lịch sử là dữ liệu mẫu, backend '
-                          'chưa có API.',
-                    ),
-                    const SizedBox(height: SoSpace.s16),
+                    if (!remote) ...[
+                      const SoMockBanner(
+                        message:
+                            'Điểm, voucher và lịch sử là dữ liệu mẫu, backend '
+                            'chưa có API.',
+                      ),
+                      const SizedBox(height: SoSpace.s16),
+                    ],
                     _TierCard(summary: summary),
                     const _Vouchers(),
                     const _SectionTitle('Lịch sử điểm'),
@@ -295,8 +298,9 @@ class _VoucherCard extends StatelessWidget {
       ),
     };
 
+    final code = v.code;
     return Container(
-      key: Key('voucher_${v.code}'),
+      key: Key('voucher_${code ?? 'id${v.id}'}'),
       padding: SoSpace.card,
       decoration: SoShape.card(c),
       child: Row(
@@ -312,26 +316,31 @@ class _VoucherCard extends StatelessWidget {
                   runSpacing: SoSpace.s4,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    SoCodeTag(v.code),
-                    SoChannelTag(platform: v.platform),
+                    if (code != null) SoCodeTag(code),
+                    if (v.platform case final p?) SoChannelTag(platform: p),
+                    if (v.status.label case final label?)
+                      SoStatusTag(label: label, status: SoStatus.neutral),
                     ?expiry,
                   ],
                 ),
               ],
             ),
           ),
-          const SizedBox(width: SoSpace.s12),
-          SoButton.secondary(
-            key: Key('copy_${v.code}'),
-            label: 'Sao chép',
-            size: SoButtonSize.small,
-            onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: v.code));
-              if (context.mounted) {
-                showSoToast(context, 'Đã sao chép ${v.code}');
-              }
-            },
-          ),
+          // Chỉ sao chép được khi đã có mã (voucher đã phát xong).
+          if (code != null) ...[
+            const SizedBox(width: SoSpace.s12),
+            SoButton.secondary(
+              key: Key('copy_$code'),
+              label: 'Sao chép',
+              size: SoButtonSize.small,
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: code));
+                if (context.mounted) {
+                  showSoToast(context, 'Đã sao chép $code');
+                }
+              },
+            ),
+          ],
         ],
       ),
     );
@@ -343,6 +352,15 @@ class _History extends StatelessWidget {
   const _History({required this.entries});
 
   final List<PointEntry> entries;
+
+  /// "125.000 ₫ · Claim ngày 01/11/2026"; thiếu phần nào thì bỏ phần đó.
+  static String? _subtitle(PointEntry e) {
+    final parts = [
+      if (e.amountPaid case final a?) Formatters.vnd(a),
+      if (e.claimedAt case final d?) 'Claim ngày ${Formatters.date(d)}',
+    ];
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -378,17 +396,20 @@ class _History extends StatelessWidget {
                           runSpacing: SoSpace.s4,
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            SoChannelTag(platform: e.platform),
+                            if (e.platform case final p?)
+                              SoChannelTag(platform: p),
                             Text(e.orderCode, style: context.soText.code),
                           ],
                         ),
-                        const SizedBox(height: SoSpace.s4),
-                        Text(
-                          'Claim ngày ${Formatters.date(e.claimedAt)}',
-                          style: context.textTheme.bodySmall?.copyWith(
-                            color: c.muted,
+                        if (_subtitle(e) case final sub?) ...[
+                          const SizedBox(height: SoSpace.s4),
+                          Text(
+                            sub,
+                            style: context.textTheme.bodySmall?.copyWith(
+                              color: c.muted,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),

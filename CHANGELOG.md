@@ -4,6 +4,15 @@ Ghi theo [Keep a Changelog](https://keepachangelog.com/vi/1.1.0/), phiên bản 
 
 ## [Unreleased]
 
+Đối chiếu BE `develop` commit `361e8b5` (đọc code, chưa chạy với BE thật).
+
+### Thêm
+- C-20 Điểm & hạng của khách gọi API thật (`/api/v1/loyalty/me`, `/me/claims`, `/me/vouchers`), không còn dải "Dữ liệu mẫu" khi dùng BE thật. Thẻ hạng dùng hạng và số điểm còn thiếu của BE (khớp quy tắc 500 / 1.000 / 1.500, 1 điểm / 1.000 ₫). Lịch sử hiện "Đơn #<id>" kèm số tiền, chưa có nhãn sàn (L3). Voucher chưa có sàn và hạn dùng (L4); nút "Sao chép" chỉ hiện khi đã có mã, voucher chưa phát xong có nhãn "Đang phát" / "Chưa phát được".
+
+### Thay đổi
+- C-30 Claim đơn và T-30 Phát voucher vẫn chạy dữ liệu mẫu: BE đòi id đơn nội bộ (L2), mô hình voucher chưa chốt (L1). Chưa có tính năng đổi điểm lấy voucher.
+- Ghi rõ BE lấy cửa hàng từ JWT, app không gửi header `X-Tenant-Id`; đổi cửa hàng ở C-00 (còn mock) không đổi dữ liệu C-20 khi dùng BE thật (L6). Đã rõ hạng thấp nhất BE luôn trả "Standard" (L5). Chi tiết ở `docs/API_CONTRACT.md` mục 0, L1–L6.
+
 ## [0.2.0] - 2026-11-18
 
 Bản demo (pre-release), không đưa lên Google Play. Nối app với BE [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/SmartOmni_BE) nhánh `develop`; **đã test với BE `develop` commit `9558375`**. Khi `USE_MOCK=false`, chức năng đã nối gọi API thật, chức năng chưa nối tự dùng dữ liệu mẫu và hiện dải "Dữ liệu mẫu" (bật/tắt ở `lib/app/config/api_availability.dart`; danh sách ở `docs/API_CONTRACT.md` mục 0).

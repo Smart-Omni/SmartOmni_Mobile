@@ -5,42 +5,97 @@ import 'loyalty_rules.dart';
 class PointEntry {
   const PointEntry({
     required this.orderCode,
-    required this.platform,
+    this.platform,
     required this.points,
-    required this.claimedAt,
+    this.claimedAt,
+    this.amountPaid,
   });
 
+  /// Mã đơn để hiện. BE (`LoyaltyClaimDto`) chưa có mã đơn trên sàn (lỗi L3)
+  /// nên tạm là `Đơn #<orderId>` (id nội bộ).
   final String orderCode;
-  final Platform platform;
+
+  /// Sàn của đơn; `null` khi BE chưa trả (lỗi L3): ẩn nhãn sàn.
+  final Platform? platform;
   final int points;
-  final DateTime claimedAt;
+  final DateTime? claimedAt;
+
+  /// Tiền hàng được tính điểm (VND), `null` nếu không biết.
+  final num? amountPaid;
 }
 
 /// Tổng quan điểm của khách.
+///
+/// BE (`GET /api/v1/loyalty/me`) tự tính hạng và số điểm còn thiếu; khi có
+/// thì dùng số của BE ([backendTier], [backendPointsToNext]), không có thì
+/// tính bằng [LoyaltyRules] (mock, hoặc BE trả thiếu / tên hạng lạ).
 class LoyaltySummary {
-  const LoyaltySummary({required this.totalPoints, required this.history});
+  const LoyaltySummary({
+    required this.totalPoints,
+    required this.history,
+    this.backendTier,
+    this.backendPointsToNext,
+  });
 
   final int totalPoints;
   final List<PointEntry> history;
+  final LoyaltyTier? backendTier;
+  final int? backendPointsToNext;
 
-  LoyaltyTier get tier => LoyaltyRules.tierFor(totalPoints);
+  LoyaltyTier get tier => backendTier ?? LoyaltyRules.tierFor(totalPoints);
 
-  int get pointsToNext => LoyaltyRules.pointsToNextTier(totalPoints);
+  int get pointsToNext =>
+      backendPointsToNext ?? LoyaltyRules.pointsToNextTier(totalPoints);
+}
+
+/// Trạng thái phát voucher (`status` của `LoyaltyRewardRequestDto`: BE lưu
+/// chữ thường `pending` / `issued` / `failed`).
+enum VoucherIssueStatus {
+  issued(null),
+  pending('Đang phát'),
+  failed('Chưa phát được'),
+
+  /// Giá trị BE mới hoặc thiếu.
+  unknown('Đang xử lý');
+
+  const VoucherIssueStatus(this.label);
+
+  /// Nhãn trung tính cho voucher chưa phát xong; `null` khi đã phát.
+  final String? label;
+
+  static VoucherIssueStatus fromBackend(Object? value) =>
+      switch (value?.toString().trim().toLowerCase()) {
+        'issued' => issued,
+        'pending' => pending,
+        'failed' => failed,
+        _ => unknown,
+      };
 }
 
 /// Voucher Tenant Admin phát cho khách (khách dùng mã trên app sàn).
 class CustomerVoucher {
   const CustomerVoucher({
-    required this.code,
-    required this.platform,
+    this.id,
+    this.code,
+    this.platform,
     required this.description,
     this.expiresAt,
+    this.status = VoucherIssueStatus.issued,
   });
 
-  final String code;
-  final Platform platform;
+  /// Id yêu cầu đổi thưởng ở BE; `null` với dữ liệu mẫu.
+  final int? id;
+
+  /// Mã dùng trên sàn; `null` khi chưa phát xong (BE chỉ có mã khi `issued`).
+  final String? code;
+
+  /// `null` khi BE chưa trả sàn (lỗi L4): ẩn nhãn sàn.
+  final Platform? platform;
   final String description;
+
+  /// `null` khi không có hạn hoặc BE chưa trả (lỗi L4).
   final DateTime? expiresAt;
+  final VoucherIssueStatus status;
 }
 
 /// Kết quả claim thành công (thẻ kết quả C-30).
@@ -101,9 +156,17 @@ class ClaimFailure implements Exception {
   String toString() => 'ClaimFailure(${kind.name})';
 }
 
-/// ⚠️ Backend CHƯA có API Customer Portal / loyalty -> toàn bộ là mock.
-/// API đề xuất xem docs/API_CONTRACT.md. Điểm, voucher, claim tính riêng
-/// theo từng cửa hàng ([tenantId]; API thật gửi qua header `X-Tenant-Id`).
+/// Điểm, voucher, claim của khách, tính riêng theo từng cửa hàng.
+///
+/// `tenantId` là cửa hàng đang xem ở C-00, chỉ bản mock dùng để tách dữ liệu
+/// mẫu giữa các cửa hàng. BE (`/api/v1/loyalty/*`) lấy tenant và khách từ
+/// JWT (`TenantContext`), nên bản Remote bỏ qua tham số này và không gửi
+/// header `X-Tenant-Id` (Nginx cũng xóa header đó). Muốn xem cửa hàng khác
+/// thì phải có JWT của cửa hàng đó: đổi cửa hàng ở C-00 (còn mock) không
+/// đổi dữ liệu Remote (lỗi L6, docs/API_CONTRACT.md mục 0).
+///
+/// Đã nối BE (`LoyaltyRemoteRepository`): [getSummary], [getVouchers].
+/// Còn mock: [claimOrder] (lỗi L2, docs/API_CONTRACT.md mục 0).
 abstract class LoyaltyRepository {
   Future<LoyaltySummary> getSummary(int tenantId);
 
