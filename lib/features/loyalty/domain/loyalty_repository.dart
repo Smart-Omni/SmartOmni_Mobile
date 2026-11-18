@@ -156,9 +156,16 @@ class ClaimFailure implements Exception {
   String toString() => 'ClaimFailure(${kind.name})';
 }
 
-/// ⚠️ Backend CHƯA có API Customer Portal / loyalty -> toàn bộ là mock.
-/// API đề xuất xem docs/API_CONTRACT.md. Điểm, voucher, claim tính riêng
-/// theo từng cửa hàng ([tenantId]; API thật gửi qua header `X-Tenant-Id`).
+/// Điểm, voucher, claim của khách, tính riêng theo từng cửa hàng.
+///
+/// `tenantId` là cửa hàng đang xem ở C-00, chỉ bản mock dùng để tách dữ liệu
+/// mẫu giữa các cửa hàng. BE (`/api/v1/loyalty/*`) lấy tenant và khách từ
+/// JWT (`TenantContext`), nên bản Remote bỏ qua tham số này và không gửi
+/// header `X-Tenant-Id` (Nginx cũng xóa header đó). Muốn xem cửa hàng khác
+/// thì phải có JWT của cửa hàng đó.
+///
+/// Đã nối BE (`LoyaltyRemoteRepository`): [getSummary], [getVouchers].
+/// Còn mock: [claimOrder] (lỗi L2, docs/API_CONTRACT.md mục 0).
 abstract class LoyaltyRepository {
   Future<LoyaltySummary> getSummary(int tenantId);
 
