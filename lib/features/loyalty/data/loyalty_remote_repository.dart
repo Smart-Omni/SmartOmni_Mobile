@@ -31,4 +31,29 @@ abstract final class LoyaltyJson {
           : toNext,
     );
   }
+
+  /// `LoyaltyClaimDto`: `{ id, orderId, customerId, eligibleAmountVnd,
+  /// pointsAwarded, claimedAt }`. BE trả mới trước cũ.
+  ///
+  /// Chưa có mã đơn trên sàn và sàn (lỗi L3): hiện `Đơn #<orderId>`, không
+  /// có nhãn sàn. Thiếu `pointsAwarded` thì tính từ `eligibleAmountVnd`.
+  static PointEntry claim(JsonMap json) {
+    final orderId = Json.asInt(json['orderId']);
+    final amount = Json.asDouble(json['eligibleAmountVnd']);
+    final points =
+        Json.asInt(json['pointsAwarded']) ??
+        (amount == null ? 0 : LoyaltyRules.pointsForAmount(amount));
+    return PointEntry(
+      orderCode: orderId == null ? 'Đơn không rõ mã' : 'Đơn #$orderId',
+      points: points < 0 ? 0 : points,
+      claimedAt: Json.asDate(json['claimedAt']),
+      amountPaid: amount,
+    );
+  }
+
+  /// Danh sách `LoyaltyClaimDto`; phần tử không phải object thì bỏ.
+  static List<PointEntry> claims(Object? data) => [
+    for (final e in (data is List ? data : const []))
+      if (e is JsonMap) claim(e),
+  ];
 }

@@ -121,4 +121,64 @@ void main() {
       );
     });
   });
+
+  group('LoyaltyJson.claims (GET /loyalty/me/claims)', () {
+    test('đọc LoyaltyClaimDto: "Đơn #<orderId>", không có sàn', () {
+      final list = LoyaltyJson.claims([
+        {
+          'id': 9,
+          'orderId': 1024,
+          'customerId': 42,
+          'eligibleAmountVnd': 125000.00,
+          'pointsAwarded': 125,
+          'claimedAt': '2026-11-01T03:15:00Z',
+        },
+        {
+          'id': 8,
+          'orderId': 1001,
+          'customerId': 42,
+          'eligibleAmountVnd': 520500,
+          'pointsAwarded': 520,
+          'claimedAt': '2026-10-20T10:00:00.123456Z',
+        },
+      ]);
+      expect(list, hasLength(2));
+      final e = list.first;
+      expect(e.orderCode, 'Đơn #1024');
+      expect(e.platform, isNull);
+      expect(e.points, 125);
+      expect(e.amountPaid, 125000);
+      expect(e.claimedAt, DateTime.utc(2026, 11, 1, 3, 15).toLocal());
+      // Giữ thứ tự BE (mới trước cũ).
+      expect(list.last.orderCode, 'Đơn #1001');
+    });
+
+    test(
+      'thiếu dữ liệu: thiếu điểm thì tính từ tiền, thiếu ngày, thiếu đơn',
+      () {
+        final e = LoyaltyJson.claim({
+          'orderId': '77',
+          'eligibleAmountVnd': '45900',
+          'claimedAt': null,
+        });
+        expect(e.orderCode, 'Đơn #77');
+        expect(e.points, 45);
+        expect(e.claimedAt, isNull);
+
+        final bare = LoyaltyJson.claim(const {});
+        expect(bare.orderCode, 'Đơn không rõ mã');
+        expect(bare.points, 0);
+        expect(bare.amountPaid, isNull);
+      },
+    );
+
+    test('data null hoặc phần tử hỏng: bỏ qua, không lỗi', () {
+      expect(LoyaltyJson.claims(null), isEmpty);
+      expect(LoyaltyJson.claims(const {}), isEmpty);
+      expect(
+        LoyaltyJson.claims([null, 'x', <String, dynamic>{}]),
+        hasLength(1),
+      );
+    });
+  });
 }

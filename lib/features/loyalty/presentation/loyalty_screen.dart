@@ -344,6 +344,15 @@ class _History extends StatelessWidget {
 
   final List<PointEntry> entries;
 
+  /// "125.000 ₫ · Claim ngày 01/11/2026"; thiếu phần nào thì bỏ phần đó.
+  static String? _subtitle(PointEntry e) {
+    final parts = [
+      if (e.amountPaid case final a?) Formatters.vnd(a),
+      if (e.claimedAt case final d?) 'Claim ngày ${Formatters.date(d)}',
+    ];
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.soColors;
@@ -378,17 +387,20 @@ class _History extends StatelessWidget {
                           runSpacing: SoSpace.s4,
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            SoChannelTag(platform: e.platform),
+                            if (e.platform case final p?)
+                              SoChannelTag(platform: p),
                             Text(e.orderCode, style: context.soText.code),
                           ],
                         ),
-                        const SizedBox(height: SoSpace.s4),
-                        Text(
-                          'Claim ngày ${Formatters.date(e.claimedAt)}',
-                          style: context.textTheme.bodySmall?.copyWith(
-                            color: c.muted,
+                        if (_subtitle(e) case final sub?) ...[
+                          const SizedBox(height: SoSpace.s4),
+                          Text(
+                            sub,
+                            style: context.textTheme.bodySmall?.copyWith(
+                              color: c.muted,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),

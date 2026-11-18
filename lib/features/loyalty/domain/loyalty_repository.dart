@@ -5,15 +5,23 @@ import 'loyalty_rules.dart';
 class PointEntry {
   const PointEntry({
     required this.orderCode,
-    required this.platform,
+    this.platform,
     required this.points,
-    required this.claimedAt,
+    this.claimedAt,
+    this.amountPaid,
   });
 
+  /// Mã đơn để hiện. BE (`LoyaltyClaimDto`) chưa có mã đơn trên sàn (lỗi L3)
+  /// nên tạm là `Đơn #<orderId>` (id nội bộ).
   final String orderCode;
-  final Platform platform;
+
+  /// Sàn của đơn; `null` khi BE chưa trả (lỗi L3): ẩn nhãn sàn.
+  final Platform? platform;
   final int points;
-  final DateTime claimedAt;
+  final DateTime? claimedAt;
+
+  /// Tiền hàng được tính điểm (VND), `null` nếu không biết.
+  final num? amountPaid;
 }
 
 /// Tổng quan điểm của khách.
