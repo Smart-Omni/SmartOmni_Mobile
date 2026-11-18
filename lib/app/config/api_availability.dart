@@ -12,9 +12,12 @@ enum ApiFeature {
   inventory,
   aiForecast,
   marketplace,
+
+  /// C-20 cho khách: thẻ hạng, lịch sử điểm, voucher. C-30 claim vẫn mock.
+  loyalty,
 }
 
-/// Chức năng đã nối được với BE `develop` @ `9558375` (docs/API_CONTRACT.md
+/// Chức năng đã nối được với BE `develop` @ `361e8b5` (docs/API_CONTRACT.md
 /// mục 0). BE sửa xong chức năng nào thì thêm vào đây là app gọi API thật.
 const connectedFeatures = {
   ApiFeature.auth,
@@ -26,6 +29,7 @@ const connectedFeatures = {
   ApiFeature.orders,
   ApiFeature.aiForecast,
   ApiFeature.marketplace,
+  ApiFeature.loyalty,
 };
 
 extension ApiAvailability on AppConfig {

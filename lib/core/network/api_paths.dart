@@ -52,6 +52,12 @@ abstract final class ApiPaths {
   // AI
   static String forecast(int skuId) => '/api/v1/ai/forecast/$skuId';
 
+  // Điểm & hạng của khách (C-20, chỉ role CUSTOMER). BE lấy tenant và
+  // khách từ JWT, không cần header `X-Tenant-Id`.
+  static const loyaltyMe = '/api/v1/loyalty/me';
+  static const loyaltyMyClaims = '/api/v1/loyalty/me/claims';
+  static const loyaltyMyVouchers = '/api/v1/loyalty/me/vouchers';
+
   // Kết nối sàn: chỉ OAuth (BE `9558375` bỏ `POST /marketplace-connections`
   // bằng App Key).
 

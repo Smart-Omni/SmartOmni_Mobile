@@ -17,15 +17,27 @@ class PointEntry {
 }
 
 /// Tổng quan điểm của khách.
+///
+/// BE (`GET /api/v1/loyalty/me`) tự tính hạng và số điểm còn thiếu; khi có
+/// thì dùng số của BE ([backendTier], [backendPointsToNext]), không có thì
+/// tính bằng [LoyaltyRules] (mock, hoặc BE trả thiếu / tên hạng lạ).
 class LoyaltySummary {
-  const LoyaltySummary({required this.totalPoints, required this.history});
+  const LoyaltySummary({
+    required this.totalPoints,
+    required this.history,
+    this.backendTier,
+    this.backendPointsToNext,
+  });
 
   final int totalPoints;
   final List<PointEntry> history;
+  final LoyaltyTier? backendTier;
+  final int? backendPointsToNext;
 
-  LoyaltyTier get tier => LoyaltyRules.tierFor(totalPoints);
+  LoyaltyTier get tier => backendTier ?? LoyaltyRules.tierFor(totalPoints);
 
-  int get pointsToNext => LoyaltyRules.pointsToNextTier(totalPoints);
+  int get pointsToNext =>
+      backendPointsToNext ?? LoyaltyRules.pointsToNextTier(totalPoints);
 }
 
 /// Voucher Tenant Admin phát cho khách (khách dùng mã trên app sàn).

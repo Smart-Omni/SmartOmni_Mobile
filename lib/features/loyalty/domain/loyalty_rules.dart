@@ -1,4 +1,6 @@
-/// Quy tắc điểm và hạng của SmartOmni (docs/project-context.md của backend).
+/// Quy tắc điểm và hạng của SmartOmni (docs/project-context.md của backend),
+/// khớp `LoyaltyTierCalculator` và `LoyaltyCustomerService` của BE `361e8b5`:
+/// 500 / 1.000 / 1.500 điểm, 1 điểm cho mỗi 1.000 ₫ (làm tròn xuống).
 ///
 /// Đặt logic ở đây (không nằm trong UI) để dễ viết unit test.
 /// Backend là nơi quyết định cuối cùng; app dùng các hàm này để hiển thị
@@ -17,6 +19,19 @@ enum LoyaltyTier {
 
   /// Số điểm tích lũy tối thiểu để đạt hạng.
   final int minPoints;
+
+  /// Đọc `tier` / `nextTier` của BE (`LoyaltyTierCalculator`: "Standard",
+  /// "Silver", "Platinum", "Diamond"; không phân biệt hoa thường). BE luôn
+  /// trả "Standard" cho hạng thấp nhất, nhưng `null`, chuỗi rỗng hay tên lạ
+  /// cũng trả `null` để nơi gọi tự tính hạng theo điểm.
+  static LoyaltyTier? fromBackend(Object? value) {
+    final name = value?.toString().trim().toLowerCase();
+    if (name == null || name.isEmpty) return null;
+    for (final t in LoyaltyTier.values) {
+      if (t.label.toLowerCase() == name) return t;
+    }
+    return null;
+  }
 
   /// Hạng kế tiếp, `null` nếu đã là hạng cao nhất.
   LoyaltyTier? get next => index + 1 < LoyaltyTier.values.length
