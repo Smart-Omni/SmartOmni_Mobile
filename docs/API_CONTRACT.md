@@ -37,7 +37,7 @@ Khi `USE_MOCK=false`, chức năng nào gọi API thật được chọn ở `li
 | M-51 Dự báo AI | `GET /api/v1/ai/forecast/{skuId}?from=<hôm nay>&days=14` | BE lọc và sắp xếp; app vẫn sắp xếp, chỉ lấy từ hôm nay, tối đa 7 ngày; dòng không đọc được ngày bị bỏ. Danh sách SKU để chọn lấy từ tồn kho (M-40). Chỉ gói Pro (403 `FEATURE_NOT_AVAILABLE`) |
 | M-40 Tồn kho | `GET /api/v1/inventory`, `POST /api/v1/inventory/{skuId}/adjust` | Đọc thẳng `InventoryItemDto` (mã SKU, tên sản phẩm, `availableQuantity`, đủ SKU kể cả tồn 0), giữ thứ tự BE. Tên biến thể ghép từ danh sách sản phẩm (dùng chung M-30). Dòng tồn không khớp SKU: BE trả `SKU-<id>` / "Unknown Product". Nhãn tồn ở M-30, M-31 hiện lại |
 | T-20 Nhân viên | `GET /api/v1/users`, `POST /api/v1/users`, `PATCH /api/v1/users/{id}/status` | Danh sách (chủ cửa hàng và role `STAFF`), thêm (họ tên + email + mật khẩu tạm, role `STAFF`), khóa / mở khóa. App chặn chủ cửa hàng tự khóa (BE không chặn) |
-| C-20 Điểm & hạng (khách) | `GET /api/v1/loyalty/me`, `GET /api/v1/loyalty/me/claims`, `GET /api/v1/loyalty/me/vouchers` | Chỉ role `CUSTOMER`. Thẻ hạng dùng `tier`, `pointsToNextTier` của BE (khớp `LoyaltyRules`: 500 / 1.000 / 1.500, 1 điểm / 1.000 ₫); `tier` lạ hoặc thiếu thì tự tính theo `totalPoints`. Lịch sử hiện "Đơn #<orderId>", không nhãn sàn (L3). Voucher ẩn sàn và hạn dùng (L4); nút "Sao chép" chỉ có khi có `code`; `status` khác `issued` hiện nhãn trung tính. Xem "Loyalty: L1–L5" |
+| C-20 Điểm & hạng (khách) | `GET /api/v1/loyalty/me`, `GET /api/v1/loyalty/me/claims`, `GET /api/v1/loyalty/me/vouchers` | Chỉ role `CUSTOMER`. Thẻ hạng dùng `tier`, `pointsToNextTier` của BE (khớp `LoyaltyRules`: 500 / 1.000 / 1.500, 1 điểm / 1.000 ₫); `tier` lạ hoặc thiếu thì tự tính theo `totalPoints`. Lịch sử hiện "Đơn #<orderId>", không nhãn sàn (L3). Voucher ẩn sàn và hạn dùng (L4); nút "Sao chép" chỉ có khi có `code`; `status` khác `issued` hiện nhãn trung tính. Xem "Loyalty: L1–L6" |
 
 ### 🆕 Thay đổi ở `9558375` (app đã xử lý)
 
@@ -100,7 +100,7 @@ Trước `fda1ab2`, các đường dưới đây trả 404 (controller còn ở 
 |---|---|---|
 | M-22 In vận đơn | `/api/v1/marketplace-connections/shopee/...` | Để sau buổi review |
 
-### Loyalty (BE `361e8b5`): L1–L5
+### Loyalty (BE `361e8b5`): L1–L6
 
 Đọc code BE (`LoyaltyController`, `LoyaltyCustomerService`, `LoyaltyRewardService`, `LoyaltyTierCalculator`, `dto/loyalty`), chưa chạy với BE thật. JSON camelCase như DTO Java (order-service không cấu hình snake_case), `Instant` là chuỗi ISO-8601, `BigDecimal` là số. Mọi endpoint lấy tenant và khách từ JWT (`TenantContext`), không đọc header `X-Tenant-Id`; thiếu thì 403 `TENANT_MISSING` / `TENANT_OR_USER_MISSING`.
 
@@ -115,14 +115,15 @@ DTO app đọc:
 | L2 | C-30 Claim đơn | `POST /api/v1/loyalty/claims` `{ orderId, totalAmount }` | Đòi `orderId` nội bộ và tổng tiền khớp tuyệt đối, khách chỉ biết mã đơn trên sàn | C-30 giữ mock + `SoMockBanner` (`LoyaltyRemoteRepository.claimOrder` chuyển sang mock). Đề xuất nhận `{ platform, orderCode }` (mã đơn trên sàn) và tự tra đơn, tiền |
 | L3 | C-20 Lịch sử điểm | `GET /api/v1/loyalty/me/claims` | Không có mã đơn trên sàn và sàn | App tạm hiện "Đơn #<orderId>" (id nội bộ), ẩn nhãn sàn. Đề xuất thêm `platformOrderCode`, `platform` |
 | L4 | C-20 Voucher | `GET /api/v1/loyalty/me/vouchers` | Không có sàn dùng voucher và hạn dùng | App ẩn nhãn sàn và hạn dùng. Đề xuất thêm `platform`, `expiresAt` (vd. lấy từ chiến dịch / voucher trên sàn) |
-| L5 | C-00 đổi cửa hàng → C-20 | mọi `/api/v1/loyalty/me*` | Tenant lấy từ JWT nên chỉ xem được cửa hàng đã đăng ký; khách không có cách xem điểm ở cửa hàng khác | C-00 còn mock: đổi cửa hàng ở C-00 không đổi dữ liệu C-20 khi dùng BE thật. Cần quyết định: một tài khoản mỗi cửa hàng (bỏ C-00) hay tách khách khỏi tenant (mục 4.5 ý 7) |
+| L5 ✅ Đã rõ | C-20 Thẻ hạng | `GET /api/v1/loyalty/me` | Không phải lỗi. Câu hỏi: hạng thấp nhất BE trả `null` hay tên khác "Standard"? | `LoyaltyTierCalculator` luôn trả `"Standard"` (kể cả khách chưa có tài khoản điểm: 0 điểm), không trả `null`. App map về `LoyaltyTier.standard`; phòng hờ `tier` thiếu / lạ thì tự tính theo `totalPoints` |
+| L6 | C-00 đổi cửa hàng → C-20 | mọi `/api/v1/loyalty/me*` | Tenant lấy từ JWT nên chỉ xem được cửa hàng đã đăng ký; khách không có cách xem điểm ở cửa hàng khác | C-00 còn mock: đổi cửa hàng ở C-00 không đổi dữ liệu C-20 khi dùng BE thật. Cần quyết định: một tài khoản mỗi cửa hàng (bỏ C-00) hay tách khách khỏi tenant (mục 4.5 ý 7) |
 
 ### ❌ Chưa nối được: lỗi và nguyên nhân (gửi BE)
 
 | Màn trong app | API | Lỗi | Nguyên nhân |
 |---|---|---|---|
 | M-10, M-60/61, T-40, T-50, C-00, C-10, C-11, C-12 | - | Chưa có API | BE chưa làm các chức năng này |
-| T-30, C-30 | `/api/v1/loyalty/*` | Có API nhưng chưa dùng được | Xem L1, L2 ở "Loyalty: L1–L5" |
+| T-30, C-30 | `/api/v1/loyalty/*` | Có API nhưng chưa dùng được | Xem L1, L2 ở "Loyalty: L1–L6" |
 | Mọi màn cần đăng nhập | `POST /api/v1/auth/refresh` | Không phân biệt phiên bị thu hồi với hết hạn | API refresh nên trả mã riêng (vd. `TOKEN_REVOKED`) khi refresh token bị thu hồi do khóa/đổi quyền, để app phân biệt với hết hạn thường. Hiện trả 401 `INVALID_TOKEN` cho cả hai |
 | M-21 Chi tiết đơn | `GET /api/v1/orders/{id}` | Sản phẩm không có mã SKU, tên | `OrderItemDto` khai báo `skuCode`, `productName` nhưng `OrderService.getOrderDetail` không điền (entity `OrderItem` chỉ có `skuId`), nên luôn `null`. App tạm hiện "SKU #<skuId>". Đề xuất điền từ `product_skus` + `products` |
 | T-10 Công tắc tự nhập (TikTok) | `GET /api/v1/marketplace-connections/tiktok-shop` | Không có `autoImportProducts` | `3eb89ec` chỉ thêm cho Shopee (`ShopeeConnectionDto` + `PATCH …/shopee/settings`); `TiktokConnectionDto` chưa có. App giữ công tắc ở dạng mẫu cho cả hai sàn |
@@ -212,7 +213,7 @@ JWT payload: `{ sub: "<userId>", role, tenantId?, tenant_id?, subdomain?, iat, e
 | Đăng ký khách (A-05) | Đã có `POST /api/v1/auth/register` (mục 1). Còn chờ: gắn khách vào cửa hàng theo `subdomain`; OTP xác minh email nếu cần | ✅ (không OTP) |
 | Cửa hàng của khách (C-00) | `GET /api/customer/shops` → `[{ tenantId, name, logoUrl, tier, points }]`; `GET /api/storefront/shops/{shopCode}` (xem trước); `POST /api/customer/shops` `{ shopCode }` (tham gia) | ⚪ (mock) |
 
-**Nhiều cửa hàng:** BE lấy tenant từ JWT (`/api/v1/loyalty/*` đọc `TenantContext`), Nginx xóa header `X-Tenant-Id`, nên app không gửi header này. JWT của khách mang một `tenantId` cố định (cửa hàng lúc đăng ký), vì vậy chưa xem được cửa hàng khác (L5).
+**Nhiều cửa hàng:** BE lấy tenant từ JWT (`/api/v1/loyalty/*` đọc `TenantContext`), Nginx xóa header `X-Tenant-Id`, nên app không gửi header này. JWT của khách mang một `tenantId` cố định (cửa hàng lúc đăng ký), vì vậy chưa xem được cửa hàng khác (L6).
 
 ## 4. API app đang chờ backend (gửi team backend)
 
@@ -253,7 +254,7 @@ Quy ước chung: response `{ success, message, data, timestamp }`, enum viết 
 
 ### 4.4. Customer
 
-BE lấy tenant từ JWT, app không gửi `X-Tenant-Id` (xem L5 ở mục 0).
+BE lấy tenant từ JWT, app không gửi `X-Tenant-Id` (xem L6 ở mục 0).
 
 | Màn hình | Endpoint đề xuất | Mock đang thay thế |
 |---|---|---|
@@ -272,5 +273,5 @@ BE lấy tenant từ JWT, app không gửi `X-Tenant-Id` (xem L5 ở mục 0).
 4. Cấu hình CORS không cần cho mobile, nhưng cần cho web portal sau này.
 5. **Trả kèm `errorCode`** trong body lỗi (`{ success: false, message, errorCode }`). `BusinessException` đã có mã (`INVALID_CREDENTIALS`, `ACCOUNT_TEMP_LOCKED`, `ACCOUNT_DISABLED`) nhưng `GlobalExceptionHandler` chưa gửi ra, nên màn A-02 đang phải đoán loại lỗi qua nội dung `message` (xem `lib/features/auth/domain/auth_failure.dart`).
 6. **Khóa tenant khi đăng nhập (FR-003):** app chờ `403` với `errorCode: TENANT_LOCKED` (mock đang giả lập đúng như vậy).
-7. **Khách dùng nhiều cửa hàng:** tách tài khoản khách khỏi tenant (bảng nối khách–cửa hàng), thêm các API ở mục 3 (đăng ký + OTP, danh sách/tham gia cửa hàng) và cách chọn cửa hàng cho API khách (BE hiện lấy tenant từ JWT, xem L5).
+7. **Khách dùng nhiều cửa hàng:** tách tài khoản khách khỏi tenant (bảng nối khách–cửa hàng), thêm các API ở mục 3 (đăng ký + OTP, danh sách/tham gia cửa hàng) và cách chọn cửa hàng cho API khách (BE hiện lấy tenant từ JWT, xem L6).
 8. **Dự báo M-51, "Nên nhập thêm":** API dự báo trả `recommendedReorderQty` theo từng ngày. App đang hiển thị **giá trị lớn nhất trong 7 ngày** (`summarizeForecast` ở `lib/features/ai_insights/domain/demand_forecast.dart`). Cần backend xác nhận: đó là số nên nhập cho cả 7 ngày, hay phải cộng dồn, hay nên trả sẵn một con số tổng.

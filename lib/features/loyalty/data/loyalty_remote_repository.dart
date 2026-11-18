@@ -94,7 +94,8 @@ abstract final class LoyaltyJson {
 
 /// C-20 gọi `/api/v1/loyalty/me`, `/me/claims`, `/me/vouchers` (chỉ role
 /// CUSTOMER). BE lấy tenant và khách từ JWT nên không gửi `tenantId` hay
-/// header `X-Tenant-Id`; tham số `tenantId` của interface bị bỏ qua.
+/// header `X-Tenant-Id`; tham số `tenantId` của interface bị bỏ qua (lỗi
+/// L6: luôn là cửa hàng trong JWT).
 ///
 /// C-30 claim đơn vẫn chạy mock qua [claims]: `POST /loyalty/claims` đòi
 /// `orderId` nội bộ và `totalAmount`, khách chỉ biết mã đơn trên sàn (lỗi L2).

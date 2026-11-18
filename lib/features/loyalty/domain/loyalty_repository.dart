@@ -162,7 +162,8 @@ class ClaimFailure implements Exception {
 /// mẫu giữa các cửa hàng. BE (`/api/v1/loyalty/*`) lấy tenant và khách từ
 /// JWT (`TenantContext`), nên bản Remote bỏ qua tham số này và không gửi
 /// header `X-Tenant-Id` (Nginx cũng xóa header đó). Muốn xem cửa hàng khác
-/// thì phải có JWT của cửa hàng đó.
+/// thì phải có JWT của cửa hàng đó: đổi cửa hàng ở C-00 (còn mock) không
+/// đổi dữ liệu Remote (lỗi L6, docs/API_CONTRACT.md mục 0).
 ///
 /// Đã nối BE (`LoyaltyRemoteRepository`): [getSummary], [getVouchers].
 /// Còn mock: [claimOrder] (lỗi L2, docs/API_CONTRACT.md mục 0).

@@ -22,7 +22,7 @@ enum LoyaltyTier {
 
   /// Đọc `tier` / `nextTier` của BE (`LoyaltyTierCalculator`: "Standard",
   /// "Silver", "Platinum", "Diamond"; không phân biệt hoa thường). BE luôn
-  /// trả "Standard" cho hạng thấp nhất, nhưng `null`, chuỗi rỗng hay tên lạ
+  /// trả "Standard" cho hạng thấp nhất (L5 đã rõ), nhưng `null`, chuỗi rỗng hay tên lạ
   /// cũng trả `null` để nơi gọi tự tính hạng theo điểm.
   static LoyaltyTier? fromBackend(Object? value) {
     final name = value?.toString().trim().toLowerCase();

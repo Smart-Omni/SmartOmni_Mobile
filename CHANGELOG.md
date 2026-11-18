@@ -11,7 +11,7 @@ Ghi theo [Keep a Changelog](https://keepachangelog.com/vi/1.1.0/), phiên bản 
 
 ### Thay đổi
 - C-30 Claim đơn và T-30 Phát voucher vẫn chạy dữ liệu mẫu: BE đòi id đơn nội bộ (L2), mô hình voucher chưa chốt (L1). Chưa có tính năng đổi điểm lấy voucher.
-- Ghi rõ BE lấy cửa hàng từ JWT, app không gửi header `X-Tenant-Id` (`docs/API_CONTRACT.md` mục 0, L1–L5).
+- Ghi rõ BE lấy cửa hàng từ JWT, app không gửi header `X-Tenant-Id`; đổi cửa hàng ở C-00 (còn mock) không đổi dữ liệu C-20 khi dùng BE thật (L6). Đã rõ hạng thấp nhất BE luôn trả "Standard" (L5). Chi tiết ở `docs/API_CONTRACT.md` mục 0, L1–L6.
 
 ## [0.2.0] - 2026-11-18
 
