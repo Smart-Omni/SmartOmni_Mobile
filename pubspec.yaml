@@ -3,7 +3,7 @@ description: "SmartOmni Mobile - app cho Customer, Staff và Tenant Admin của 
 publish_to: 'none'
 
 # version: <tên phiên bản>+<build number>. CI tự tăng build number khi phát hành.
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: ^3.9.0
