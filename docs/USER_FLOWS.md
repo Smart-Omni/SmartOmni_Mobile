@@ -51,7 +51,7 @@ flowchart TD
 | T-10 | Kết nối sàn | Admin | ✅ |
 | T-20 | Quản lý nhân viên | Admin | 🟡 |
 | T-30 | Phát voucher | Admin | 🟡 |
-| T-40 | Gói dịch vụ SaaS | Admin | 🟡 |
+| T-40 | Gói dịch vụ SaaS | Admin | ✅ (hạn mức mock) |
 | T-50 | Yêu cầu hỗ trợ | Admin | 🟡 |
 
 ---
@@ -252,8 +252,12 @@ Danh sách Staff (tên, email, trạng thái) → Mời/Tạo Staff (email, mậ
 4. Theo dõi trạng thái: đang tạo / thành công / lỗi / chưa rõ (cần đối soát, không tạo lại).
 5. Nếu sàn không cho tạo voucher qua API → chức năng ẩn/khóa cho sàn đó.
 
-### F-T5. Gói dịch vụ SaaS (T-40) 🟡
+### F-T5. Gói dịch vụ SaaS (T-40) ✅
 Gói hiện tại, giới hạn (số SKU, số kết nối, dung lượng) và mức đã dùng, nâng/hạ cấp, lịch sử hóa đơn, thanh toán.
+1. Mở T-40 từ M-50 (chỉ Tenant Admin): thẻ gói (tên, trạng thái, hạn, số ngày còn lại), mức đã dùng (còn mẫu), hóa đơn.
+2. Gói FREE, đã hết hạn, hoặc PRO còn ≤ 5 ngày: bấm **Nâng cấp PRO** / **Thanh toán** → sheet VietQR (quét QR hoặc chuyển khoản tay, có Sao chép STK và nội dung), mã hết hạn sau 15 phút.
+3. Sheet mở thì app tự hỏi trạng thái mỗi 5 giây. Đã thanh toán → đóng sheet, báo thành công, tải lại gói, hóa đơn và hồ sơ cửa hàng (M-51 mở khóa). Hết hạn / thất bại → báo, **Tạo mã mới**. Đóng sheet thì ngừng hỏi.
+4. Hạ cấp / đổi gói: BE chưa có, không có nút.
 
 ### F-T6. Yêu cầu hỗ trợ (T-50) 🟡
 Tạo ticket (tiêu đề, mô tả) → danh sách ticket + trạng thái (Mở / Đang xử lý / Đã giải quyết).

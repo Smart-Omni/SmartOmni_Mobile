@@ -1,6 +1,89 @@
-/// Gói SaaS của cửa hàng (T-40). Bảng `subscription_plans`, `tenant_invoices`
-/// đã có trong ERD nhưng backend chưa có API.
+/// Gói SaaS của cửa hàng (T-40). BE `develop` @ `f9495df` có
+/// `/api/v1/tenants/subscription` (tenant-service): trạng thái gói, hóa đơn,
+/// thanh toán SePay (VietQR). Hạn mức và mức đã dùng BE chưa có (lỗi P3).
 library;
+
+import '../../../core/network/api_exception.dart';
+
+/// Trạng thái gói theo `SubscriptionSummaryResponse.status` của BE.
+enum PlanStatus {
+  free,
+  active,
+
+  /// PRO còn ≤ [earlyRenewalDays] ngày.
+  expiringSoon,
+  expired;
+
+  /// Chuỗi lạ hoặc thiếu thì coi là [free] (BE trả `FREE` cho mọi trường hợp
+  /// không có PRO đang chạy).
+  static PlanStatus fromBackend(Object? value) =>
+      switch (value?.toString().trim().toUpperCase()) {
+        'ACTIVE' => active,
+        'EXPIRING_SOON' => expiringSoon,
+        'EXPIRED' => expired,
+        _ => free,
+      };
+}
+
+/// BE chỉ cho tạo phiên thanh toán khi PRO còn từ chừng này ngày trở xuống
+/// (`SUBSCRIPTION_EARLY_RENEWAL_TOO_EARLY`).
+const earlyRenewalDays = 5;
+
+/// `GET /tenants/subscription/status`.
+class SubscriptionSummary {
+  const SubscriptionSummary({
+    required this.planName,
+    required this.isPro,
+    required this.status,
+    this.periodStart,
+    this.periodEnd,
+    this.daysRemaining = 0,
+    this.canRenewEarly = false,
+    this.currentInvoiceId,
+  });
+
+  /// `PRO` hoặc `FREE`.
+  final String planName;
+  final bool isPro;
+  final PlanStatus status;
+  final DateTime? periodStart;
+
+  /// Ngày cuối kỳ (BE `LocalDate`).
+  final DateTime? periodEnd;
+  final int daysRemaining;
+  final bool canRenewEarly;
+  final int? currentInvoiceId;
+
+  /// Nút Thanh toán / Nâng cấp PRO chỉ hiện khi BE sẽ nhận `checkout`.
+  bool get canPay =>
+      status == PlanStatus.free ||
+      status == PlanStatus.expired ||
+      canRenewEarly;
+}
+
+/// Một hóa đơn (`SubscriptionInvoiceDto`).
+class Invoice {
+  const Invoice({
+    required this.code,
+    required this.amount,
+    required this.paid,
+    this.periodStart,
+    this.periodEnd,
+    this.dueDate,
+    this.paidAt,
+    this.paymentMethod,
+  });
+
+  /// `invoiceNumber`, vd. `INV-12`.
+  final String code;
+  final num amount;
+  final bool paid;
+  final DateTime? periodStart;
+  final DateTime? periodEnd;
+  final DateTime? dueDate;
+  final DateTime? paidAt;
+  final String? paymentMethod;
+}
 
 /// Một hạn mức: đã dùng / tối đa. [limit] `null` = không giới hạn.
 class UsageQuota {
@@ -10,60 +93,102 @@ class UsageQuota {
   final num? limit;
 }
 
-class Subscription {
-  const Subscription({
-    required this.planName,
-    required this.expiresAt,
+/// Hạn mức và mức đã dùng. BE chưa có (lỗi P3): luôn là dữ liệu mẫu.
+class PlanUsage {
+  const PlanUsage({
     required this.skus,
     required this.connections,
     required this.imageStorageGb,
   });
 
-  final String planName;
-  final DateTime expiresAt;
   final UsageQuota skus;
   final UsageQuota connections;
   final UsageQuota imageStorageGb;
 }
 
-class Invoice {
-  const Invoice({
-    required this.code,
-    required this.period,
+/// Phiên thanh toán VietQR (`SubscriptionCheckoutResponse`).
+class CheckoutSession {
+  const CheckoutSession({
+    required this.orderCode,
     required this.amount,
-    required this.paid,
-    required this.dueDate,
+    required this.qrUrl,
+    required this.accountNumber,
+    required this.bankId,
+    required this.accountHolder,
+    required this.memo,
+    required this.planName,
+    required this.expiresAt,
   });
 
-  final String code;
+  final String orderCode;
+  final num amount;
 
-  /// Tháng tính phí (ngày 1 của tháng).
-  final DateTime period;
-  final int amount;
-  final bool paid;
-  final DateTime dueDate;
+  /// Ảnh QR (`vietqr.app`). Rỗng thì sheet chỉ hiện thông tin chuyển khoản.
+  final String qrUrl;
+  final String accountNumber;
+  final String bankId;
+  final String accountHolder;
+
+  /// Nội dung chuyển khoản (BE dùng chính [orderCode]).
+  final String memo;
+  final String planName;
+
+  /// Hết hạn mã QR (BE: 15 phút sau khi tạo).
+  final DateTime expiresAt;
 }
 
-class SubscriptionOverview {
-  const SubscriptionOverview({
-    required this.subscription,
-    required this.invoices,
-  });
+/// `SubscriptionOrderStatusResponse.status`.
+enum PaymentStatus {
+  pending,
+  paid,
+  failed,
+  expired;
 
-  final Subscription subscription;
+  /// Chuỗi lạ thì coi là [pending] (hỏi tiếp, không báo sai kết quả).
+  static PaymentStatus fromBackend(Object? value) =>
+      switch (value?.toString().trim().toUpperCase()) {
+        'PAID' => paid,
+        'FAILED' => failed,
+        'EXPIRED' => expired,
+        _ => pending,
+      };
+
+  bool get isFinal => this != pending;
+}
+
+abstract interface class SubscriptionRepository {
+  Future<SubscriptionSummary> status();
 
   /// Mới nhất trước.
-  final List<Invoice> invoices;
+  Future<List<Invoice>> invoices();
 
-  List<Invoice> get unpaid => [
-    for (final i in invoices)
-      if (!i.paid) i,
-  ];
+  /// Luôn là dữ liệu mẫu (BE chưa có, lỗi P3).
+  Future<PlanUsage> usage();
+
+  /// Tạo (hoặc dùng lại) phiên thanh toán PRO.
+  Future<CheckoutSession> checkout();
+
+  Future<PaymentStatus> orderStatus(String orderCode);
+
+  /// Chỉ dùng ở bản dev. Xem `SubscriptionRemoteRepository.simulatePay`.
+  Future<void> simulatePay(String orderCode);
 }
 
-/// ⚠️ Backend chưa có API gói SaaS -> mock. Không thanh toán trong app.
-abstract interface class SubscriptionRepository {
-  Future<SubscriptionOverview> overview();
+/// Mã lỗi BE khi PRO còn hơn [earlyRenewalDays] ngày mà vẫn gọi `checkout`.
+const earlyRenewalTooEarlyCode = 'SUBSCRIPTION_EARLY_RENEWAL_TOO_EARLY';
+
+/// Câu hiện khi không tạo được phiên thanh toán. Lỗi gia hạn sớm dùng câu của
+/// app (không phụ thuộc message BE), các lỗi khác dùng message của
+/// [ApiException].
+String checkoutErrorMessage(Object error) {
+  if (error is ApiException) {
+    if (error.code == earlyRenewalTooEarlyCode) {
+      return 'Gói PRO còn hơn $earlyRenewalDays ngày hiệu lực. Bạn chỉ gia '
+          'hạn được khi còn từ $earlyRenewalDays ngày trở xuống.';
+    }
+    return error.message;
+  }
+  return 'Không tạo được mã thanh toán. Vui lòng thử lại.';
 }
 
 enum UsageLevel {
@@ -84,19 +209,4 @@ UsageLevel usageLevel(UsageQuota q) {
   if (limit == null) return UsageLevel.normal;
   if (limit <= 0 || q.used >= limit) return UsageLevel.full;
   return q.used / limit >= usageNearRatio ? UsageLevel.near : UsageLevel.normal;
-}
-
-enum PlanStatus { active, expiringSoon, expired }
-
-/// Còn ≤ [planExpiringDays] ngày thì "Sắp hết hạn".
-const planExpiringDays = 7;
-
-/// [expiresAt] là ngày cuối còn dùng được (tính theo ngày, không theo giờ).
-PlanStatus planStatus(DateTime expiresAt, DateTime now) {
-  final today = DateTime(now.year, now.month, now.day);
-  final end = DateTime(expiresAt.year, expiresAt.month, expiresAt.day);
-  final daysLeft = end.difference(today).inDays;
-  if (daysLeft < 0) return PlanStatus.expired;
-  if (daysLeft <= planExpiringDays) return PlanStatus.expiringSoon;
-  return PlanStatus.active;
 }

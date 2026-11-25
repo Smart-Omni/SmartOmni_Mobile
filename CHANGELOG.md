@@ -4,12 +4,16 @@ Ghi theo [Keep a Changelog](https://keepachangelog.com/vi/1.1.0/), phiên bản 
 
 ## [Unreleased]
 
-Đối chiếu BE `develop` commit `361e8b5` (đọc code, chưa chạy với BE thật).
+Đối chiếu BE `develop` commit `f9495df` (gói dịch vụ) và `361e8b5` (loyalty); đọc code, chưa chạy với BE thật.
 
 ### Thêm
+- T-40 Gói dịch vụ gọi API thật (`/api/v1/tenants/subscription/*`): thẻ gói hiện tên gói, trạng thái (Miễn phí / Đang dùng / Sắp hết hạn / Đã hết hạn), hạn và số ngày còn lại; nhóm Hóa đơn hiện mã, số tiền, kỳ, Đã / Chưa thanh toán.
+- Thanh toán gói PRO trong app bằng VietQR: nút **Nâng cấp PRO** / **Thanh toán** (chỉ khi FREE, hết hạn hoặc còn ≤ 5 ngày) mở sheet có ảnh QR, số tài khoản, ngân hàng, chủ tài khoản, nội dung chuyển khoản (nút Sao chép), số tiền và đếm ngược. App tự kiểm tra mỗi 5 giây; thanh toán xong thì báo thành công và mở khóa Dự báo AI. Mã hết hạn thì app kiểm tra thêm một lần (tiền về đúng lúc vẫn tính là thành công), sau đó dặn không chuyển lại và cho tạo mã mới; thất bại thì cho tạo mã mới. Gia hạn khi PRO còn hơn 5 ngày báo câu tiếng Việt rõ ràng.
+- Bản dev có nút "Giả lập đã thanh toán" trong sheet (bản staging / prod không có).
 - C-20 Điểm & hạng của khách gọi API thật (`/api/v1/loyalty/me`, `/me/claims`, `/me/vouchers`), không còn dải "Dữ liệu mẫu" khi dùng BE thật. Thẻ hạng dùng hạng và số điểm còn thiếu của BE (khớp quy tắc 500 / 1.000 / 1.500, 1 điểm / 1.000 ₫). Lịch sử hiện "Đơn #<id>" kèm số tiền, chưa có nhãn sàn (L3). Voucher chưa có sàn và hạn dùng (L4); nút "Sao chép" chỉ hiện khi đã có mã, voucher chưa phát xong có nhãn "Đang phát" / "Chưa phát được".
 
 ### Thay đổi
+- T-40: bỏ nút "Đổi gói" (BE chưa có API đổi / hạ gói). Hạn mức và mức đã dùng vẫn là dữ liệu mẫu; khi dùng BE thật dải "Dữ liệu mẫu" chỉ còn ở phần đó. Ghi 7 điểm lệch của BE (P1–P7) ở `docs/API_CONTRACT.md`: API giả lập thanh toán mở cho mọi user (P1), nhóm API gói không kiểm role (P2), `/status` thiếu hạn mức, mức đã dùng và giá (P3), `isProTenant` cố định `planId` 2 (P4), `/tenants/me` PRO nhưng `/status` FREE (P5), hóa đơn chỉ có loại đã trả và kỳ là chuỗi (P6), mã QR hết hạn 15 phút nhưng BE báo hết hạn sau 24 giờ (P7).
 - C-30 Claim đơn và T-30 Phát voucher vẫn chạy dữ liệu mẫu: BE đòi id đơn nội bộ (L2), mô hình voucher chưa chốt (L1). Chưa có tính năng đổi điểm lấy voucher.
 - Ghi rõ BE lấy cửa hàng từ JWT, app không gửi header `X-Tenant-Id`; đổi cửa hàng ở C-00 (còn mock) không đổi dữ liệu C-20 khi dùng BE thật (L6). Đã rõ hạng thấp nhất BE luôn trả "Standard" (L5). Chi tiết ở `docs/API_CONTRACT.md` mục 0, L1–L6.
 

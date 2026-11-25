@@ -27,6 +27,18 @@ abstract final class ApiPaths {
   static const usersMe = '/api/v1/users/me';
   static const tenantsMe = '/api/v1/tenants/me';
 
+  // Gói dịch vụ (T-40, tenant-service). BE lấy tenant từ JWT.
+  static const _subscription = '/api/v1/tenants/subscription';
+  static const subscriptionStatus = '$_subscription/status';
+  static const subscriptionInvoices = '$_subscription/invoices';
+  static const subscriptionCheckout = '$_subscription/checkout';
+  static String subscriptionOrderStatus(String orderCode) =>
+      '$_subscription/orders/${Uri.encodeComponent(orderCode)}/status';
+
+  /// Chỉ bản dev (lỗi P1: BE mở cho mọi user).
+  static String subscriptionSimulatePay(String orderCode) =>
+      '$_subscription/orders/${Uri.encodeComponent(orderCode)}/simulate-pay';
+
   // Nhân viên (T-20). Trả `PageResponse` snake_case.
   static const users = '/api/v1/users';
   static String userStatus(int id) => '/api/v1/users/$id/status';

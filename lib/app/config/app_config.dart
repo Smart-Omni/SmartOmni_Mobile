@@ -35,6 +35,10 @@ class AppConfig {
 
   bool get isProd => flavor == Flavor.prod;
 
+  /// Nút "Giả lập đã thanh toán" ở T-40. Chỉ flavor dev: BE đang mở API
+  /// `simulate-pay` cho mọi user (lỗi P1), bản staging/prod không được có.
+  bool get allowsPaymentSimulation => flavor == Flavor.dev;
+
   static const _baseUrlOverride = String.fromEnvironment('API_BASE_URL');
   static const _useMockOverride = String.fromEnvironment('USE_MOCK');
 
