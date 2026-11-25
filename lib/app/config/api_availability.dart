@@ -15,9 +15,12 @@ enum ApiFeature {
 
   /// C-20 cho khách: thẻ hạng, lịch sử điểm, voucher. C-30 claim vẫn mock.
   loyalty,
+
+  /// T-40: trạng thái gói, hóa đơn, thanh toán VietQR. Hạn mức vẫn mock (P3).
+  subscription,
 }
 
-/// Chức năng đã nối được với BE `develop` @ `361e8b5` (docs/API_CONTRACT.md
+/// Chức năng đã nối được với BE `develop` @ `f9495df` (docs/API_CONTRACT.md
 /// mục 0). BE sửa xong chức năng nào thì thêm vào đây là app gọi API thật.
 const connectedFeatures = {
   ApiFeature.auth,
@@ -30,6 +33,7 @@ const connectedFeatures = {
   ApiFeature.aiForecast,
   ApiFeature.marketplace,
   ApiFeature.loyalty,
+  ApiFeature.subscription,
 };
 
 extension ApiAvailability on AppConfig {
