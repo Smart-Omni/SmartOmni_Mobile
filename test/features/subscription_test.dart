@@ -81,20 +81,22 @@ class _Be {
   (int, Object?) checkout = (200, ok(_checkout()));
   String orderStatus = 'PENDING';
 
+  /// Gọi sau mỗi lần trả trạng thái đơn (để đổi trạng thái cho lần hỏi sau).
+  void Function()? afterPoll;
+
   late final backend = FakeBackend((o) async {
     final path = o.path;
     if (path == ApiPaths.subscriptionStatus) return (200, ok(status));
     if (path == ApiPaths.subscriptionInvoices) return (200, ok(invoices));
     if (path == ApiPaths.subscriptionCheckout) return checkout;
     if (path == ApiPaths.subscriptionOrderStatus(_code)) {
-      return (
-        200,
-        ok({
-          'orderCode': _code,
-          'status': orderStatus,
-          'planName': orderStatus == 'PAID' ? 'PRO' : 'FREE',
-        }),
-      );
+      final body = ok({
+        'orderCode': _code,
+        'status': orderStatus,
+        'planName': orderStatus == 'PAID' ? 'PRO' : 'FREE',
+      });
+      afterPoll?.call();
+      return (200, body);
     }
     if (path == ApiPaths.subscriptionSimulatePay(_code)) {
       orderStatus = 'PAID';
@@ -638,18 +640,49 @@ void main() {
       expect(find.byKey(const Key('checkout_retry')), findsOneWidget);
     });
 
-    testWidgets('quá expiresAt mà BE vẫn PENDING thì coi là hết hạn (P4)', (
-      tester,
-    ) async {
+    testWidgets('P7: quá expiresAt mà vẫn PENDING thì hỏi thêm một lần rồi '
+        'báo hết hạn, có Tạo mã mới', (tester) async {
       var now = _now;
       final be = _Be();
       await _pumpSheet(tester, repo: be.repo(), clock: () => now);
       now = _now.add(const Duration(minutes: 16));
       await tester.pump(const Duration(seconds: 5));
       await tester.pumpAndSettle();
+      expect(be.polls, 2, reason: 'lần hỏi thường + một lần hỏi thêm');
       expect(find.byKey(const Key('checkout_expired')), findsOneWidget);
+      expect(find.text('Mã đã hết hạn.'), findsOneWidget);
+      expect(
+        find.text(
+          'Nếu bạn đã chuyển khoản, đừng chuyển lại - hệ thống sẽ ghi nhận '
+          'trong vài phút, hãy tải lại trang Gói dịch vụ.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('checkout_retry')), findsOneWidget);
       await tester.pump(const Duration(seconds: 20));
-      expect(be.polls, 1);
+      expect(be.polls, 2, reason: 'hết hạn rồi thì ngừng hỏi');
+    });
+
+    testWidgets('P7: quá expiresAt, lần hỏi thêm trả PAID thì xử lý như '
+        'thành công', (tester) async {
+      var now = _now;
+      final be = _Be();
+      bool? result;
+      await _pumpSheet(
+        tester,
+        repo: be.repo(),
+        clock: () => now,
+        onResult: (r) => result = r,
+      );
+      now = _now.add(const Duration(minutes: 16));
+      // Lần hỏi thường vẫn PENDING, tiền về ngay sau đó.
+      be.afterPoll = () => be.orderStatus = 'PAID';
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      expect(be.polls, 2);
+      expect(find.byKey(const Key('checkout_expired')), findsNothing);
+      expect(find.byType(CheckoutSheet), findsNothing);
+      expect(result, isTrue);
     });
 
     testWidgets('SUBSCRIPTION_EARLY_RENEWAL_TOO_EARLY: câu tiếng Việt, không '

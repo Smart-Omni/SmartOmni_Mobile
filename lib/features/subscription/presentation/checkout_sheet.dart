@@ -51,10 +51,10 @@ class CheckoutSheet extends ConsumerWidget {
         const SoBanner(
           key: Key('checkout_expired'),
           tone: SoBannerTone.warning,
-          title: 'Mã thanh toán đã hết hạn',
+          title: 'Mã đã hết hạn.',
           message:
-              'Nếu bạn đã chuyển khoản, gói sẽ được cập nhật khi hệ '
-              'thống nhận tiền. Nếu chưa, hãy tạo mã mới.',
+              'Nếu bạn đã chuyển khoản, đừng chuyển lại - hệ thống sẽ ghi '
+              'nhận trong vài phút, hãy tải lại trang Gói dịch vụ.',
         ),
         retry,
       ),

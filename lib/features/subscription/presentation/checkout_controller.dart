@@ -108,8 +108,17 @@ class CheckoutController extends Notifier<CheckoutState> {
     }
     _checking = true;
     try {
-      final status = await _repo.orderStatus(session.orderCode);
+      var status = await _repo.orderStatus(session.orderCode);
       if (!ref.mounted || state.session != session) return;
+      if (status == PaymentStatus.pending &&
+          !_clock().isBefore(session.expiresAt)) {
+        // BE chỉ báo EXPIRED sau 24 giờ (lỗi P7) dù mã QR hết hạn sau 15
+        // phút. Trước khi báo hết hạn, hỏi thêm một lần: tiền có thể vừa về
+        // đúng lúc mã hết hạn. Lần này lỗi mạng thì vẫn báo hết hạn.
+        status = await _finalStatus(session.orderCode);
+        if (!ref.mounted || state.session != session) return;
+        if (status == PaymentStatus.pending) status = PaymentStatus.expired;
+      }
       switch (status) {
         case PaymentStatus.paid:
           _finish(CheckoutPhase.paid, session);
@@ -118,16 +127,20 @@ class CheckoutController extends Notifier<CheckoutState> {
         case PaymentStatus.expired:
           _finish(CheckoutPhase.expired, session);
         case PaymentStatus.pending:
-          // BE chỉ báo EXPIRED sau 24 giờ (lỗi P4) dù mã QR hết hạn sau 15
-          // phút: quá `expiresAt` thì app tự coi là hết hạn.
-          if (!_clock().isBefore(session.expiresAt)) {
-            _finish(CheckoutPhase.expired, session);
-          }
+          break;
       }
     } on Object {
       // Hỏi lại ở lần sau.
     } finally {
       _checking = false;
+    }
+  }
+
+  Future<PaymentStatus> _finalStatus(String orderCode) async {
+    try {
+      return await _repo.orderStatus(orderCode);
+    } on Object {
+      return PaymentStatus.expired;
     }
   }
 

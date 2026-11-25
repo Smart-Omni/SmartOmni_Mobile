@@ -9,7 +9,8 @@ import '../domain/subscription.dart';
 import 'checkout_sheet.dart';
 import 'subscription_providers.dart';
 
-/// T-40 Gói dịch vụ (chỉ Tenant Admin, chặn ở `resolveRedirect`).
+/// T-40 Gói dịch vụ (chỉ Tenant Admin, chặn ở `resolveRedirect`; BE không
+/// kiểm role cho `/tenants/subscription/*`, lỗi P2).
 ///
 /// Thẻ kính: tên gói, trạng thái, hạn, số ngày còn lại (theo
 /// `/subscription/status`; M-51 vẫn theo `planType` của `tenants/me`, xem
