@@ -1,6 +1,6 @@
 # Hợp đồng API (màn hình ↔ backend)
 
-Backend: [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/SmartOmni_BE), nhánh `develop`, đối chiếu ở commit `361e8b5` (thêm `/api/v1/loyalty`, `LoyaltyController` ở order-service). Lần đối chiếu trước: `9558375` (Merge PR #35 `fix/auth-b1-b5`), `3eb89ec` (tài liệu BE: `TAILIEU_SUA_LOI_SHOPEE_VA_NEN_TANG.md`), `4cae7a2`, `fda1ab2`.
+Backend: [Smart-Omni/SmartOmni_BE](https://github.com/Smart-Omni/SmartOmni_BE), nhánh `develop`, đối chiếu ở commit `f9495df` (Merge PR #44; thêm `/api/v1/tenants/subscription`, `SubscriptionController` ở tenant-service). Lần đối chiếu trước: `361e8b5` (thêm `/api/v1/loyalty`), `9558375` (Merge PR #35 `fix/auth-b1-b5`), `3eb89ec` (tài liệu BE: `TAILIEU_SUA_LOI_SHOPEE_VA_NEN_TANG.md`), `4cae7a2`, `fda1ab2`.
 
 - Mọi request đi qua **Nginx Gateway** `:8080`, header `Authorization: Bearer <JWT>` (trừ login/quên mật khẩu).
 - Response chuẩn: `{ "success": bool, "message": string?, "code": string?, "data": T, "timestamp": ISO-8601 }`. `code` là mã lỗi ổn định (từ `4cae7a2`), vd. `TOKEN_REVOKED`, `FEATURE_NOT_AVAILABLE`, `SKU_LIMIT_EXCEEDED`, `VALIDATION_ERROR`. Từ `9558375` mọi 401 đều có `code`: `TOKEN_EXPIRED`, `TOKEN_REVOKED` hoặc `UNAUTHORIZED`.
@@ -15,7 +15,7 @@ Chú thích cột **Trạng thái**:
 - ⚪ **Chưa làm** - chưa có màn hình (mục "Sắp có").
 - 🔜 **Đang nối** - BE đã có API (`fda1ab2`), app đang nối trong nhánh `feature/api-be-1111`; tới khi xong vẫn dùng mock.
 
-## 0. Tình trạng nối API (BE `develop` @ `361e8b5`)
+## 0. Tình trạng nối API (BE `develop` @ `f9495df`)
 
 Khi `USE_MOCK=false`, chức năng nào gọi API thật được chọn ở `lib/app/config/api_availability.dart` (`connectedFeatures`); chức năng chưa nối được dùng Mock và hiện `SoMockBanner`. Mọi đường dẫn API nằm ở `lib/core/network/api_paths.dart`. BE sửa xong: sửa đường dẫn (nếu đổi) rồi thêm chức năng vào `connectedFeatures`.
 
@@ -38,6 +38,7 @@ Khi `USE_MOCK=false`, chức năng nào gọi API thật được chọn ở `li
 | M-40 Tồn kho | `GET /api/v1/inventory`, `POST /api/v1/inventory/{skuId}/adjust` | Đọc thẳng `InventoryItemDto` (mã SKU, tên sản phẩm, `availableQuantity`, đủ SKU kể cả tồn 0), giữ thứ tự BE. Tên biến thể ghép từ danh sách sản phẩm (dùng chung M-30). Dòng tồn không khớp SKU: BE trả `SKU-<id>` / "Unknown Product". Nhãn tồn ở M-30, M-31 hiện lại |
 | T-20 Nhân viên | `GET /api/v1/users`, `POST /api/v1/users`, `PATCH /api/v1/users/{id}/status` | Danh sách (chủ cửa hàng và role `STAFF`), thêm (họ tên + email + mật khẩu tạm, role `STAFF`), khóa / mở khóa. App chặn chủ cửa hàng tự khóa (BE không chặn) |
 | C-20 Điểm & hạng (khách) | `GET /api/v1/loyalty/me`, `GET /api/v1/loyalty/me/claims`, `GET /api/v1/loyalty/me/vouchers` | Chỉ role `CUSTOMER`. Thẻ hạng dùng `tier`, `pointsToNextTier` của BE (khớp `LoyaltyRules`: 500 / 1.000 / 1.500, 1 điểm / 1.000 ₫); `tier` lạ hoặc thiếu thì tự tính theo `totalPoints`. Lịch sử hiện "Đơn #<orderId>", không nhãn sàn (L3). Voucher ẩn sàn và hạn dùng (L4); nút "Sao chép" chỉ có khi có `code`; `status` khác `issued` hiện nhãn trung tính. Xem "Loyalty: L1–L6" |
+| T-40 Gói dịch vụ (chỉ Tenant Admin) | `GET /api/v1/tenants/subscription/status`, `GET …/invoices`, `POST …/checkout`, `GET …/orders/{orderCode}/status` | Thẻ gói theo `/status` (tên, trạng thái, hạn, số ngày còn lại); hóa đơn theo `/invoices`. Nút Thanh toán / Nâng cấp PRO chỉ khi `FREE`, `EXPIRED` hoặc `canRenewEarly`: sheet VietQR (ảnh `qrUrl`, STK, ngân hàng, chủ TK, nội dung, số tiền, đếm ngược `expiresAt`), hỏi trạng thái đơn mỗi 5 giây khi sheet mở; `PAID` → đóng sheet, tải lại `/status`, `/invoices`, `tenants/me`. Hạn mức và mức đã dùng vẫn mẫu (P3). `simulate-pay` chỉ bản dev (P1). Xem "Gói dịch vụ: P1–P5" |
 
 ### 🆕 Thay đổi ở `9558375` (app đã xử lý)
 
@@ -118,11 +119,29 @@ DTO app đọc:
 | L5 ✅ Đã rõ | C-20 Thẻ hạng | `GET /api/v1/loyalty/me` | Không phải lỗi. Câu hỏi: hạng thấp nhất BE trả `null` hay tên khác "Standard"? | `LoyaltyTierCalculator` luôn trả `"Standard"` (kể cả khách chưa có tài khoản điểm: 0 điểm), không trả `null`. App map về `LoyaltyTier.standard`; phòng hờ `tier` thiếu / lạ thì tự tính theo `totalPoints` |
 | L6 | C-00 đổi cửa hàng → C-20 | mọi `/api/v1/loyalty/me*` | Tenant lấy từ JWT nên chỉ xem được cửa hàng đã đăng ký; khách không có cách xem điểm ở cửa hàng khác | C-00 còn mock: đổi cửa hàng ở C-00 không đổi dữ liệu C-20 khi dùng BE thật. Cần quyết định: một tài khoản mỗi cửa hàng (bỏ C-00) hay tách khách khỏi tenant (mục 4.5 ý 7) |
 
+### Gói dịch vụ (BE `f9495df`): P1–P5
+
+Đọc code BE (`SubscriptionController`, `SubscriptionServiceImpl`, `dto/Subscription*`, `SepayVietQrHelper`, `SecurityConfig` của tenant-service), chưa chạy với BE thật. JSON camelCase; `LocalDate` là `yyyy-MM-dd`, `Instant` là ISO-8601, `BigDecimal` là số. Tenant lấy từ JWT. Mã lỗi nằm ở khóa `code` của `ApiResponse`.
+
+DTO app đọc:
+- `SubscriptionSummaryResponse` (`/status`): `{ planName, pro, status, periodStart, periodEnd, daysRemaining, canRenewEarly, currentInvoiceId }`. Field Java là `boolean isPro`, Lombok sinh getter `isPro()` nên Jackson ghi khóa **`"pro"`** (test controller của BE cũng đọc `$.data.pro`); app đọc cả `"pro"` lẫn `"isPro"`. `status`: `FREE` / `ACTIVE` / `EXPIRING_SOON` (còn ≤ 5 ngày) / `EXPIRED`. Gói FREE: ngày `null`, `daysRemaining` 0.
+- `SubscriptionInvoiceDto` (`/invoices`, mới trước cũ): `{ id, invoiceNumber ("INV-<id>"), paymentCode, gatewayTransactionId, paymentMethod, period ("yyyy-MM-dd - yyyy-MM-dd"), amount, status, dueDate, paidAt, createdAt }`.
+- `SubscriptionCheckoutResponse` (`POST /checkout`, không body): `{ orderCode ("PRO" + 4 số tenant + 5 số payment), amount, qrUrl (vietqr.app), accountNumber, bankId, accountHolder, memo (= orderCode), planName ("PRO"), expiresAt (+15 phút) }`. PRO còn > 5 ngày: 400 `SUBSCRIPTION_EARLY_RENEWAL_TOO_EARLY` → app hiện "Gói PRO còn hơn 5 ngày hiệu lực. Bạn chỉ gia hạn được khi còn từ 5 ngày trở xuống.", không có nút tạo lại.
+- `SubscriptionOrderStatusResponse` (`/orders/{orderCode}/status`): `{ orderCode, status (PENDING/PAID/FAILED/EXPIRED), planName, paidAt }`. Mã sai / không thuộc tenant → `FAILED`.
+
+| Mã | Màn | API | Lỗi | Ảnh hưởng tới app / đề xuất |
+|---|---|---|---|---|
+| P1 | T-40 sheet thanh toán | `POST /api/v1/tenants/subscription/orders/{orderCode}/simulate-pay` | Ai đăng nhập cũng gọi được (chỉ cần `authenticated`, không kiểm role, không tắt theo môi trường): tự lên PRO, sinh hóa đơn PAID mà không trả tiền. Cả nhóm `/tenants/subscription/*` cũng không chặn role (STAFF tạo được phiên thanh toán) | Nút "Giả lập đã thanh toán" chỉ có ở flavor dev (`AppConfig.allowsPaymentSimulation`); staging / prod không có. Luồng thật chỉ chờ webhook SePay và hỏi trạng thái đơn, không phụ thuộc API này. Đề xuất: chỉ bật API ở profile dev, chỉ cho `TENANT_ADMIN` dùng `/checkout` |
+| P2 | T-40 Hóa đơn | `GET …/invoices` | Chỉ trả hóa đơn `PAID` (checkout không tạo hóa đơn chờ) nên app không bao giờ có "Chưa thanh toán"; `period` là một chuỗi ghép, không phải hai trường ngày | App tách `period` theo `" - "`; vẫn hiện nhãn "Chưa thanh toán" nếu BE sau này trả trạng thái khác `PAID`. Đề xuất `periodStart`, `periodEnd` riêng |
+| P3 | T-40 Mức đã dùng, Đổi gói | - | Chưa có API hạn mức / mức đã dùng (SKU, kết nối sàn, dung lượng ảnh), chưa có API đổi / hạ gói | Phần "Mức đã dùng" giữ dữ liệu mẫu + `SoMockBanner` riêng phần đó. Không hiện nút "Đổi gói" |
+| P4 | T-40 sheet thanh toán | `POST …/checkout`, `GET …/orders/{code}/status` | `expiresAt` của mã QR là 15 phút, nhưng trạng thái đơn chỉ thành `EXPIRED` khi phiên tạo quá 24 giờ. Gọi checkout lại trong 15 phút dùng lại phiên cũ (cùng `orderCode`) nhưng trả `expiresAt` mới | Quá `expiresAt` mà vẫn `PENDING` thì app tự coi là hết hạn, ngừng hỏi, cho "Tạo mã mới". Chuyển khoản muộn vẫn được BE ghi nhận qua webhook; lần mở T-40 sau sẽ thấy PRO. Đề xuất trả `EXPIRED` theo đúng 15 phút |
+| P5 | T-40 và M-51 | `GET …/subscription/status`, `GET /api/v1/tenants/me` | Shop PRO mà không có hóa đơn PAID (vd. đặt `plan_type = PRO` tay / seed) thì `/status` trả `FREE`, còn `/tenants/me` trả `planType: PRO` | T-40 hiện theo `/status` (FREE, có nút Nâng cấp PRO). M-51 vẫn theo `planType` của `/tenants/me`. Hai màn có thể lệch nhau tới khi BE thống nhất một nguồn |
+
 ### ❌ Chưa nối được: lỗi và nguyên nhân (gửi BE)
 
 | Màn trong app | API | Lỗi | Nguyên nhân |
 |---|---|---|---|
-| M-10, M-60/61, T-40, T-50, C-00, C-10, C-11, C-12 | - | Chưa có API | BE chưa làm các chức năng này |
+| M-10, M-60/61, T-50, C-00, C-10, C-11, C-12 | - | Chưa có API | BE chưa làm các chức năng này |
 | T-30, C-30 | `/api/v1/loyalty/*` | Có API nhưng chưa dùng được | Xem L1, L2 ở "Loyalty: L1–L6" |
 | Mọi màn cần đăng nhập | `POST /api/v1/auth/refresh` | Không phân biệt phiên bị thu hồi với hết hạn | API refresh nên trả mã riêng (vd. `TOKEN_REVOKED`) khi refresh token bị thu hồi do khóa/đổi quyền, để app phân biệt với hết hạn thường. Hiện trả 401 `INVALID_TOKEN` cho cả hai |
 | M-21 Chi tiết đơn | `GET /api/v1/orders/{id}` | Sản phẩm không có mã SKU, tên | `OrderItemDto` khai báo `skuCode`, `productName` nhưng `OrderService.getOrderDetail` không điền (entity `OrderItem` chỉ có `skuId`), nên luôn `null`. App tạm hiện "SKU #<skuId>". Đề xuất điền từ `product_skus` + `products` |
@@ -197,7 +216,7 @@ JWT payload: `{ sub: "<userId>", role, tenantId?, tenant_id?, subdomain?, iat, e
 | Tự nhập sản phẩm (Shopee) | `PATCH /api/v1/marketplace-connections/shopee/settings` | `{ "auto_import_products": true\|false }` | ✅ | TikTok chưa có API: công tắc vẫn mẫu |
 | Quản lý Staff | `GET /api/v1/users?page=0&size=100&sortBy=createdAt&sortDir=asc` → `PageResponse<UserProfileResponse>` (snake_case); `POST /api/v1/users` `{ email, password (6–100), full_name (bắt buộc, ≤ 100), role: "STAFF" }` (409 `EMAIL_EXISTS`); `PATCH /api/v1/users/{id}/status` `{ status: ACTIVE\|DISABLED }` | | ✅ | `StaffRemoteRepository`. Chủ cửa hàng = role `TENANT_ADMIN`; chỉ hiện `TENANT_ADMIN`/`ADMIN`/`STAFF`. Chỉ tải trang đầu 100 người |
 | Phát voucher | - | - | 🟡 | Phụ thuộc API tạo voucher của sàn; app dùng mock (`VoucherRepository`) |
-| Gói SaaS | - | - | 🟡 | `subscription_plans`, `tenant_invoices` đã có trong ERD; app dùng mock (`SubscriptionRepository`), chưa thanh toán trong app |
+| Gói SaaS | `GET /api/v1/tenants/subscription/status`, `GET …/invoices`, `POST …/checkout`, `GET …/orders/{orderCode}/status`; `POST …/orders/{orderCode}/simulate-pay` (chỉ bản dev) | checkout: không body | ✅ | `SubscriptionRemoteRepository`. Hạn mức còn mock (P3). Xem "Gói dịch vụ: P1–P5" |
 | Hỗ trợ | - | - | 🟡 | Bảng `support_tickets` đã có, Nginx đã route `/api/support-tickets/`; app dùng mock (`SupportRepository`): danh sách + tạo (tiêu đề, mô tả) |
 
 ## 3. Customer
@@ -249,7 +268,7 @@ Quy ước chung: response `{ success, message, data, timestamp }`, enum viết 
 | T-10 Kết nối sàn | Đã nối OAuth, ngắt kết nối, tự nhập Shopee (mục 2). Còn chờ: API bật/tắt tự nhập cho TikTok | `MarketplaceMockRepository` (chỉ chế độ mock, OAuth giả không mở trình duyệt) |
 | T-20 Nhân viên | Đã nối `/api/v1/users` (mục 2). Còn đề xuất: BE chặn chủ cửa hàng tự khóa mình | `StaffMockRepository` (chỉ chế độ mock) |
 | T-30 Phát voucher | `GET /api/customers?fields=id,name,email,tier` (khách của cửa hàng); `GET /api/vouchers/capabilities` → `{ SHOPEE: AVAILABLE\|UNSUPPORTED\|NOT_CONNECTED, … }`; `GET /api/voucher-batches`; `POST /api/voucher-batches` `{ platform, discount, minOrder, expiresAt, customerIds }` → đợt `CREATING`, sau đó `SUCCESS` / `FAILED` (+ `failureReason`) / `UNKNOWN`. Chỉ gửi email khi sàn xác nhận tạo thành công; đợt `UNKNOWN` cần đối soát, không tạo lại | `VoucherMockRepository` |
-| T-40 Gói dịch vụ | `GET /api/subscription` → `{ planName, expiresAt, usage: { skus, connections, imageStorageGb } }` (mỗi mục `{ used, limit }`, `limit: null` = không giới hạn); `GET /api/tenant-invoices` → `[{ code, period, amount, paid, dueDate }]`. Đổi gói / thanh toán làm trên web | `SubscriptionMockRepository` |
+| T-40 Gói dịch vụ | Đã nối trạng thái gói, hóa đơn, thanh toán (mục 0). Còn đề xuất (P3): `GET /api/v1/tenants/subscription/usage` → `{ skus, connections, imageStorageGb }` (mỗi mục `{ used, limit }`, `limit: null` = không giới hạn); API đổi / hạ gói | `SubscriptionMockRepository.usage` (luôn mock) |
 | T-50 Hỗ trợ | `GET /api/support-tickets` → `[{ id, code, title, status: OPEN\|IN_PROGRESS\|RESOLVED, updatedAt, lastReply: { author: SUPPORT\|ME, text }? }]`; `POST /api/support-tickets` `{ title (≤ 120), description (≤ 2.000) }` | `SupportMockRepository` |
 
 ### 4.4. Customer
