@@ -12,9 +12,10 @@ class StaffRemoteRepository implements StaffRepository {
 
   final Dio _dio;
 
-  /// Role hiện ở T-20: chủ cửa hàng và nhân viên (`STAFF`, do chủ tạo hoặc
-  /// vào qua lời mời). BE `9558375` đã bỏ `MANAGER` (migration V21).
-  static const _shownRoles = {'TENANT_ADMIN', 'ADMIN', 'STAFF'};
+  /// Role hiện ở T-20: chủ cửa hàng và nhân viên (`MANAGER`, do chủ tạo hoặc
+  /// vào qua lời mời). BE `d26b2b8` (V29) đổi `STAFF` lại thành `MANAGER`;
+  /// giữ `STAFF` phòng dữ liệu cũ còn sót.
+  static const _shownRoles = {'TENANT_ADMIN', 'ADMIN', 'MANAGER', 'STAFF'};
 
   /// Chủ cửa hàng ở lần tải gần nhất. BE không chặn tự khóa mình, app chặn.
   final _ownerIds = <int>{};
@@ -65,7 +66,8 @@ class StaffRemoteRepository implements StaffRepository {
           'email': email.trim(),
           'password': password,
           'full_name': name.trim(),
-          'role': 'STAFF',
+          // BE V29: role 'STAFF' giờ bị 400 INVALID_ROLE.
+          'role': 'MANAGER',
         },
       );
       return unwrapResponse<StaffMember>(

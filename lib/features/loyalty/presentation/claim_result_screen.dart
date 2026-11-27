@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../app/router/routes.dart';
 import '../../../core/design/design.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../l10n/l10n.dart';
 import '../domain/loyalty_repository.dart';
 import '../domain/loyalty_rules.dart';
 
@@ -33,41 +34,60 @@ enum ClaimNext {
 }
 
 /// Tiêu đề, mô tả, màu banner cho từng loại lỗi claim (DESIGN.md mục 8b).
-(String, String, SoBannerTone) claimFailureText(ClaimFailure f) {
-  // Backend có thể không trả ngày: khi đó vẫn có câu đọc được.
+/// Chuỗi lấy từ arb ([l10n]); BE không trả ngày thì vẫn có câu đọc được.
+(String, String, SoBannerTone) claimFailureText(
+  ClaimFailure f,
+  AppLocalizations l10n,
+) {
   final completedAt = f.completedAt;
+  final claimableFrom = f.claimableFrom;
   final claimedAt = f.claimedAt;
+  final retryAfter = f.retryAfter;
   return switch (f.kind) {
     ClaimEligibility.tooEarly => (
-      'Chưa đủ 15 ngày',
-      completedAt == null
-          ? 'Đơn chưa đủ 15 ngày kể từ khi hoàn tất.'
-          : 'Đơn hoàn tất ${Formatters.date(completedAt).substring(0, 5)}. '
-                'Claim được từ ${Formatters.date(f.claimableFrom)}.',
+      l10n.claimErrTooEarlyTitle,
+      claimableFrom == null
+          ? l10n.claimErrTooEarly
+          : completedAt == null
+          ? l10n.claimErrTooEarlyFrom(Formatters.date(claimableFrom))
+          : l10n.claimErrTooEarlyCompleted(
+              Formatters.date(completedAt).substring(0, 5),
+              Formatters.date(claimableFrom),
+            ),
       SoBannerTone.warning,
     ),
     ClaimEligibility.alreadyClaimed => (
-      'Đơn đã được claim',
-      [
-        if (claimedAt != null) 'Đã claim ngày ${Formatters.date(claimedAt)}.',
-        'Mỗi đơn chỉ claim một lần.',
-      ].join(' '),
+      l10n.claimErrAlreadyClaimedTitle,
+      claimedAt == null
+          ? l10n.claimErrAlreadyClaimed
+          : l10n.claimErrAlreadyClaimedOn(Formatters.date(claimedAt)),
       SoBannerTone.danger,
     ),
     ClaimEligibility.notFound => (
-      'Không tìm thấy đơn',
-      'Kiểm tra lại mã và sàn đã chọn.',
+      l10n.claimErrNotFoundTitle,
+      l10n.claimErrNotFound,
       SoBannerTone.danger,
     ),
     ClaimEligibility.notCompleted => (
-      'Đơn chưa hoàn tất',
-      'Sàn chưa xác nhận hoàn tất. Nhận hàng xong chờ thêm 15 ngày.',
+      l10n.claimErrNotCompletedTitle,
+      l10n.claimErrNotCompleted,
+      SoBannerTone.warning,
+    ),
+    ClaimEligibility.platformRequired => (
+      l10n.claimErrPlatformRequiredTitle,
+      l10n.claimErrPlatformRequired,
+      SoBannerTone.warning,
+    ),
+    ClaimEligibility.syncing => (
+      l10n.claimErrSyncingTitle,
+      l10n.claimErrSyncing,
       SoBannerTone.warning,
     ),
     ClaimEligibility.tooManyAttempts => (
-      'Thử sai quá nhiều lần',
-      'Tạm khóa claim, thử lại sau '
-          '${(f.retryAfter ?? Duration.zero).inMinutes.clamp(1, 999)} phút.',
+      l10n.claimErrTooManyTitle,
+      retryAfter == null
+          ? l10n.claimErrTooManyLater
+          : l10n.claimErrTooMany(retryAfter.inMinutes.clamp(1, 999)),
       SoBannerTone.danger,
     ),
     ClaimEligibility.eligible => throw StateError('Claim hợp lệ không có lỗi'),
@@ -111,7 +131,7 @@ class ClaimResultScreen extends StatelessWidget {
   }
 
   List<Widget> _failure(BuildContext context, ClaimFailure f) {
-    final (title, message, tone) = claimFailureText(f);
+    final (title, message, tone) = claimFailureText(f, context.l10n);
     return [
       SoBanner(
         key: Key('claim_error_${f.kind.name}'),
@@ -181,24 +201,27 @@ class _SuccessCard extends StatelessWidget {
           ),
           const SizedBox(height: SoSpace.s16),
           _Row(label: 'Mã đơn', value: SoCodeTag(r.orderCode)),
-          const SizedBox(height: SoSpace.s8),
-          _Row(
-            label: 'Đã thanh toán',
-            value: Text(
-              Formatters.vnd(r.amountPaid),
-              style: context.soText.money,
+          if (r.amountPaid case final paid?) ...[
+            const SizedBox(height: SoSpace.s8),
+            _Row(
+              label: 'Đã thanh toán',
+              value: Text(Formatters.vnd(paid), style: context.soText.money),
             ),
-          ),
-          const SizedBox(height: SoSpace.s8),
-          _Row(
-            label: 'Điểm',
-            value: Text(
-              '${Formatters.number(r.pointsBefore)} → '
-              '${Formatters.number(r.pointsAfter)}',
-              key: const Key('claim_points_change'),
-              style: context.soText.money,
+          ],
+          if ((r.pointsBefore, r.pointsAfter) case (
+            final before?,
+            final after?,
+          )) ...[
+            const SizedBox(height: SoSpace.s8),
+            _Row(
+              label: 'Điểm',
+              value: Text(
+                '${Formatters.number(before)} → ${Formatters.number(after)}',
+                key: const Key('claim_points_change'),
+                style: context.soText.money,
+              ),
             ),
-          ),
+          ],
           if (r.tieredUp) ...[
             const SizedBox(height: SoSpace.s16),
             Container(
@@ -213,13 +236,13 @@ class _SuccessCard extends StatelessWidget {
                 runSpacing: SoSpace.s8,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  SoTierBadge(tier: r.tierBefore),
+                  SoTierBadge(tier: r.tierBefore!),
                   Icon(
                     LucideIcons.chevronRight,
                     size: SoSize.iconSmall,
                     color: c.muted,
                   ),
-                  SoTierBadge(tier: r.tierAfter),
+                  SoTierBadge(tier: r.tierAfter!),
                   Text('Bạn đã lên hạng', style: context.textTheme.titleMedium),
                 ],
               ),

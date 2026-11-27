@@ -6,8 +6,8 @@
 /// |----------------|---------------|-------------------------------------------|
 /// | `TENANT_ADMIN` | tenantAdmin   | Chủ cửa hàng (Tenant Admin)               |
 /// | `ADMIN`        | tenantAdmin   | Tên cũ, giữ để tương thích                |
-/// | `STAFF`        | staff         | Nhân viên (BE `9558375` gộp MANAGER vào)  |
-/// | `MANAGER`      | staff         | Đã bỏ ở BE (V21); JWT cũ có thể còn mang  |
+/// | `MANAGER`      | staff         | Nhân viên (BE `d26b2b8`, V29 đổi lại)     |
+/// | `STAFF`        | staff         | Tên trước V29; JWT cũ bị 401 TOKEN_REVOKED |
 /// | `CUSTOMER`     | customer      | Khách đăng ký qua A-05                    |
 /// | `SUPER_ADMIN`  | superAdmin    | Không hỗ trợ trên mobile (dùng web)       |
 enum UserRole {
@@ -22,8 +22,8 @@ enum UserRole {
       case 'ADMIN':
       case 'TENANT_ADMIN':
         return UserRole.tenantAdmin;
-      case 'STAFF':
-      case 'MANAGER': // JWT cũ trước V21; BE trả 401 TOKEN_REVOKED cho token này
+      case 'MANAGER':
+      case 'STAFF': // Tên trước V29; BE trả 401 TOKEN_REVOKED cho JWT mang role này
         return UserRole.staff;
       case 'CUSTOMER':
         return UserRole.customer;

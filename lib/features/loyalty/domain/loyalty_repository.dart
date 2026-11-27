@@ -26,26 +26,51 @@ class PointEntry {
 
 /// Tổng quan điểm của khách.
 ///
-/// BE (`GET /api/v1/loyalty/me`) tự tính hạng và số điểm còn thiếu; khi có
-/// thì dùng số của BE ([backendTier], [backendPointsToNext]), không có thì
-/// tính bằng [LoyaltyRules] (mock, hoặc BE trả thiếu / tên hạng lạ).
+/// BE (`GET /api/v1/loyalty/me`) tự tính hạng (mặc định Standard / Gold /
+/// Platinum / Diamond, hoặc tên mốc shop cấu hình). Có `tier` thì hiện
+/// ĐÚNG tên BE trả ([backendTierName], [backendNextTierName],
+/// [backendPointsToNext]); chỉ khi BE thiếu `tier` (hoặc bản mock) mới tính
+/// bằng [LoyaltyRules].
 class LoyaltySummary {
   const LoyaltySummary({
     required this.totalPoints,
     required this.history,
-    this.backendTier,
+    this.backendTierName,
+    this.backendNextTierName,
     this.backendPointsToNext,
   });
 
   final int totalPoints;
   final List<PointEntry> history;
-  final LoyaltyTier? backendTier;
+
+  /// `tier` của BE, đã bỏ khoảng trắng; `null` khi BE không trả.
+  final String? backendTierName;
+
+  /// `nextTier` của BE; `null` = đang ở hạng cao nhất (chỉ có nghĩa khi có
+  /// [backendTierName]).
+  final String? backendNextTierName;
+
+  /// `pointsToNextTier` của BE (chỉ dùng khi có [backendTierName]).
   final int? backendPointsToNext;
 
-  LoyaltyTier get tier => backendTier ?? LoyaltyRules.tierFor(totalPoints);
+  bool get _fromBackend => backendTierName != null;
 
-  int get pointsToNext =>
-      backendPointsToNext ?? LoyaltyRules.pointsToNextTier(totalPoints);
+  /// Hạng chuẩn gần nhất, dùng để chọn màu huy hiệu. Tên BE lạ (mốc shop tự
+  /// đặt) thì lấy hạng chuẩn theo điểm.
+  LoyaltyTier get tier =>
+      LoyaltyTier.fromBackend(backendTierName) ??
+      LoyaltyRules.tierFor(totalPoints);
+
+  /// Tên hạng để hiện: đúng chuỗi BE trả, thiếu thì tự tính.
+  String get tierLabel => backendTierName ?? tier.label;
+
+  /// Tên hạng kế tiếp; `null` nếu đã hạng cao nhất.
+  String? get nextTierLabel =>
+      _fromBackend ? backendNextTierName : tier.next?.label;
+
+  int get pointsToNext => _fromBackend && backendPointsToNext != null
+      ? backendPointsToNext!
+      : LoyaltyRules.pointsToNextTier(totalPoints);
 }
 
 /// Trạng thái phát voucher (`status` của `LoyaltyRewardRequestDto`: BE lưu
@@ -112,19 +137,26 @@ class ClaimResult {
   final String orderCode;
   final Platform platform;
 
-  /// Tiền hàng thực trả (VND), căn cứ tính điểm.
-  final num amountPaid;
+  /// Tiền hàng thực trả (VND), căn cứ tính điểm; `null` khi BE không trả
+  /// (ẩn dòng "Đã thanh toán").
+  final num? amountPaid;
   final int points;
-  final int pointsBefore;
+
+  /// Điểm trước khi claim; `null` khi không đọc lại được tổng điểm sau claim
+  /// (BE thật: `GET /loyalty/me` lỗi), khi đó ẩn dòng "Điểm" và "lên hạng".
+  final int? pointsBefore;
   final DateTime claimedAt;
 
-  int get pointsAfter => pointsBefore + points;
+  int? get pointsAfter => pointsBefore == null ? null : pointsBefore! + points;
 
-  LoyaltyTier get tierBefore => LoyaltyRules.tierFor(pointsBefore);
+  LoyaltyTier? get tierBefore =>
+      pointsBefore == null ? null : LoyaltyRules.tierFor(pointsBefore!);
 
-  LoyaltyTier get tierAfter => LoyaltyRules.tierFor(pointsAfter);
+  LoyaltyTier? get tierAfter =>
+      pointsAfter == null ? null : LoyaltyRules.tierFor(pointsAfter!);
 
-  bool get tieredUp => tierAfter.index > tierBefore.index;
+  bool get tieredUp =>
+      tierBefore != null && tierAfter!.index > tierBefore!.index;
 }
 
 /// Claim không hợp lệ, kèm dữ liệu để báo cụ thể (ngày được claim, ngày đã
@@ -133,6 +165,7 @@ class ClaimFailure implements Exception {
   const ClaimFailure(
     this.kind, {
     this.completedAt,
+    this.eligibleFrom,
     this.claimedAt,
     this.retryAfter,
   }) : assert(kind != ClaimEligibility.eligible);
@@ -142,6 +175,10 @@ class ClaimFailure implements Exception {
   /// [ClaimEligibility.tooEarly]: ngày sàn xác nhận hoàn tất.
   final DateTime? completedAt;
 
+  /// [ClaimEligibility.tooEarly]: ngày đủ điều kiện BE báo (đọc từ message
+  /// hoặc body lỗi `ORDER_NOT_ELIGIBLE_YET`); có thì ưu tiên hơn ngày tự tính.
+  final DateTime? eligibleFrom;
+
   /// [ClaimEligibility.alreadyClaimed]: ngày đơn đã được claim.
   final DateTime? claimedAt;
 
@@ -150,7 +187,8 @@ class ClaimFailure implements Exception {
 
   /// Ngày sớm nhất được claim (ca chưa đủ 15 ngày).
   DateTime? get claimableFrom =>
-      completedAt == null ? null : LoyaltyRules.claimableFrom(completedAt!);
+      eligibleFrom ??
+      (completedAt == null ? null : LoyaltyRules.claimableFrom(completedAt!));
 
   @override
   String toString() => 'ClaimFailure(${kind.name})';
@@ -165,8 +203,8 @@ class ClaimFailure implements Exception {
 /// thì phải có JWT của cửa hàng đó: đổi cửa hàng ở C-00 (còn mock) không
 /// đổi dữ liệu Remote (lỗi L6, docs/API_CONTRACT.md mục 0).
 ///
-/// Đã nối BE (`LoyaltyRemoteRepository`): [getSummary], [getVouchers].
-/// Còn mock: [claimOrder] (lỗi L2, docs/API_CONTRACT.md mục 0).
+/// Đã nối BE (`LoyaltyRemoteRepository`): [getSummary], [getVouchers],
+/// [claimOrder] (`POST /loyalty/claims` bằng mã đơn trên sàn, BE `084b908`).
 abstract class LoyaltyRepository {
   Future<LoyaltySummary> getSummary(int tenantId);
 

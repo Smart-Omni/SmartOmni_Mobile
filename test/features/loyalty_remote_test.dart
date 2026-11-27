@@ -5,10 +5,11 @@ import 'package:smartomni_mobile/core/models/platform.dart';
 import 'package:smartomni_mobile/core/network/api_exception.dart';
 import 'package:smartomni_mobile/core/network/api_paths.dart';
 import 'package:smartomni_mobile/core/utils/mock_delay.dart';
-import 'package:smartomni_mobile/features/loyalty/data/loyalty_mock_repository.dart';
 import 'package:smartomni_mobile/features/loyalty/data/loyalty_remote_repository.dart';
 import 'package:smartomni_mobile/features/loyalty/domain/loyalty_repository.dart';
 import 'package:smartomni_mobile/features/loyalty/domain/loyalty_rules.dart';
+import 'package:smartomni_mobile/features/loyalty/presentation/claim_order_screen.dart';
+import 'package:smartomni_mobile/features/loyalty/presentation/claim_result_screen.dart';
 import 'package:smartomni_mobile/features/loyalty/presentation/loyalty_providers.dart';
 import 'package:smartomni_mobile/features/loyalty/presentation/loyalty_screen.dart';
 
@@ -21,8 +22,8 @@ Map<String, Object?> _profile(int points) {
   final (tier, next, threshold) = switch (points) {
     >= 1500 => ('Diamond', null, null),
     >= 1000 => ('Platinum', 'Diamond', 1500),
-    >= 500 => ('Silver', 'Platinum', 1000),
-    _ => ('Standard', 'Silver', 500),
+    >= 500 => ('Gold', 'Platinum', 1000),
+    _ => ('Standard', 'Gold', 500),
   };
   return {
     'customerId': 42,
@@ -95,8 +96,8 @@ void main() {
       },
     );
 
-    test('ngưỡng SILVER 500, PLATINUM 1000, DIAMOND 1500', () {
-      expect(LoyaltyTier.silver.minPoints, 500);
+    test('ngưỡng GOLD 500, PLATINUM 1000, DIAMOND 1500', () {
+      expect(LoyaltyTier.gold.minPoints, 500);
       expect(LoyaltyTier.platinum.minPoints, 1000);
       expect(LoyaltyTier.diamond.minPoints, 1500);
     });
@@ -113,15 +114,16 @@ void main() {
   group('LoyaltyTier.fromBackend', () {
     test('đọc 4 hạng của BE, không phân biệt hoa thường', () {
       expect(LoyaltyTier.fromBackend('Standard'), LoyaltyTier.standard);
-      expect(LoyaltyTier.fromBackend('Silver'), LoyaltyTier.silver);
+      expect(LoyaltyTier.fromBackend('Gold'), LoyaltyTier.gold);
       expect(LoyaltyTier.fromBackend('PLATINUM'), LoyaltyTier.platinum);
       expect(LoyaltyTier.fromBackend(' diamond '), LoyaltyTier.diamond);
     });
 
-    test('null, rỗng, tên lạ trả null', () {
+    test('null, rỗng, tên lạ trả null; "Silver" (tên cũ) là Gold', () {
       expect(LoyaltyTier.fromBackend(null), isNull);
       expect(LoyaltyTier.fromBackend(''), isNull);
-      expect(LoyaltyTier.fromBackend('Gold'), isNull);
+      expect(LoyaltyTier.fromBackend('Vàng'), isNull);
+      expect(LoyaltyTier.fromBackend('Silver'), LoyaltyTier.gold);
     });
   });
 
@@ -129,7 +131,7 @@ void main() {
     test('đọc LoyaltyProfileDto: dùng hạng và điểm còn thiếu của BE', () {
       final s = LoyaltyJson.summary(_profile(620));
       expect(s.totalPoints, 620);
-      expect(s.tier, LoyaltyTier.silver);
+      expect(s.tier, LoyaltyTier.gold);
       expect(s.pointsToNext, 380);
       expect(s.history, isEmpty);
     });
@@ -137,26 +139,60 @@ void main() {
     test('hạng cao nhất: nextTier, nextTierThreshold null', () {
       final s = LoyaltyJson.summary(_profile(1800));
       expect(s.tier, LoyaltyTier.diamond);
-      expect(s.tier.next, isNull);
+      expect(s.nextTierLabel, isNull);
       expect(s.pointsToNext, 0);
     });
 
-    test(
-      'tier null hoặc lạ: tính hạng theo điểm, không tin pointsToNextTier',
-      () {
-        final s = LoyaltyJson.summary({
-          'totalPoints': 120,
-          'tier': null,
-          'pointsToNextTier': 9999,
-        });
-        expect(s.tier, LoyaltyTier.standard);
-        expect(s.pointsToNext, 380);
-        expect(
-          LoyaltyJson.summary({'totalPoints': 700, 'tier': 'Gold'}).tier,
-          LoyaltyTier.silver,
-        );
-      },
-    );
+    test('tier thiếu: tính hạng theo điểm, không tin pointsToNextTier', () {
+      final s = LoyaltyJson.summary({
+        'totalPoints': 120,
+        'tier': null,
+        'nextTier': 'Diamond',
+        'pointsToNextTier': 9999,
+      });
+      expect(s.tier, LoyaltyTier.standard);
+      expect(s.tierLabel, 'Standard');
+      expect(s.nextTierLabel, 'Gold');
+      expect(s.pointsToNext, 380);
+      expect(
+        LoyaltyJson.summary({'totalPoints': 700, 'tier': ' '}).tierLabel,
+        'Gold',
+      );
+    });
+
+    test('hiện ĐÚNG tên tier BE trả, kể cả tên mốc shop tự đặt', () {
+      final s = LoyaltyJson.summary({
+        'totalPoints': 700,
+        'tier': 'Hạng Vàng Shopee',
+        'nextTier': 'Kim cương',
+        'pointsToNextTier': 300,
+      });
+      expect(s.tierLabel, 'Hạng Vàng Shopee');
+      expect(s.nextTierLabel, 'Kim cương');
+      expect(s.pointsToNext, 300);
+      // Tên lạ: màu huy hiệu theo hạng chuẩn của số điểm.
+      expect(s.tier, LoyaltyTier.gold);
+
+      // BE nói Standard dù 700 điểm (mốc shop cao hơn): tin BE.
+      final low = LoyaltyJson.summary({
+        'totalPoints': 700,
+        'tier': 'Standard',
+        'nextTier': 'Gold',
+        'pointsToNextTier': 100,
+      });
+      expect(low.tierLabel, 'Standard');
+      expect(low.tier, LoyaltyTier.standard);
+      expect(low.pointsToNext, 100);
+
+      final top = LoyaltyJson.summary({
+        'totalPoints': 2000,
+        'tier': 'VIP',
+        'nextTier': null,
+        'pointsToNextTier': 0,
+      });
+      expect(top.nextTierLabel, isNull);
+      expect(top.pointsToNext, 0);
+    });
 
     test('thiếu dữ liệu: data null, thiếu điểm, điểm âm, số dạng chuỗi', () {
       final empty = LoyaltyJson.summary(null);
@@ -238,10 +274,10 @@ void main() {
   group('LoyaltyJson.vouchers (GET /loyalty/me/vouchers)', () {
     test('đã phát: có mã, mô tả từ campaignName + discountPercent', () {
       final v = LoyaltyJson.voucher(
-        _voucher(id: 1, status: 'issued', code: 'SO-SILVER-7Q2'),
+        _voucher(id: 1, status: 'issued', code: 'SO-GOLD-7Q2'),
       );
       expect(v.id, 1);
-      expect(v.code, 'SO-SILVER-7Q2');
+      expect(v.code, 'SO-GOLD-7Q2');
       expect(v.description, 'Tri ân hạng Bạc · Giảm 10%');
       expect(v.status, VoucherIssueStatus.issued);
       expect(v.status.label, isNull);
@@ -301,10 +337,7 @@ void main() {
         ],
         vouchers: [_voucher(id: 1, status: 'issued', code: 'A1')],
       );
-      final repo = LoyaltyRemoteRepository(
-        fakeDio(backend),
-        claims: LoyaltyMockRepository(),
-      );
+      final repo = LoyaltyRemoteRepository(fakeDio(backend));
       final summary = await repo.getSummary(99);
       final vouchers = await repo.getVouchers(99);
 
@@ -333,28 +366,150 @@ void main() {
             ? (403, apiError('Access denied'))
             : (200, ok(_profile(10))),
       );
-      final repo = LoyaltyRemoteRepository(
-        fakeDio(backend),
-        claims: LoyaltyMockRepository(),
-      );
+      final repo = LoyaltyRemoteRepository(fakeDio(backend));
       expect(repo.getSummary(1), throwsA(isA<ApiException>()));
     });
 
-    test('C-30 claim đơn vẫn chạy mock (lỗi L2), không gọi BE', () async {
-      final backend = _loyaltyBackend();
-      final repo = LoyaltyRemoteRepository(
-        fakeDio(backend),
-        claims: LoyaltyMockRepository(),
+    test('C-30 claim: POST /loyalty/claims với platformOrderId + platform, '
+        'đọc LoyaltyClaimDto, tổng điểm mới từ /me', () async {
+      final backend = FakeBackend(
+        (o) async => switch ((o.method, o.path)) {
+          ('POST', ApiPaths.loyaltyClaims) => (
+            201,
+            ok({
+              'id': 9,
+              'orderId': 77,
+              'customerId': 42,
+              'eligibleAmountVnd': 520000,
+              'pointsAwarded': 520,
+              'claimedAt': '2026-11-27T03:00:00Z',
+            }),
+          ),
+          ('GET', ApiPaths.loyaltyMe) => (200, ok(_profile(1140))),
+          _ => (404, apiError('Not found')),
+        },
       );
-      await expectLater(
-        repo.claimOrder(
-          tenantId: 1,
-          platform: Platform.shopee,
-          orderCode: 'KHONGCO',
+      final repo = LoyaltyRemoteRepository(fakeDio(backend));
+      final r = await repo.claimOrder(
+        tenantId: 1,
+        platform: Platform.tiktokShop,
+        orderCode: ' 5760028171077135663 ',
+      );
+
+      final post = backend.requests.first;
+      expect(post.method, 'POST');
+      expect(post.path, ApiPaths.loyaltyClaims);
+      expect(post.data, {
+        'platformOrderId': '5760028171077135663',
+        'platform': 'TIKTOK_SHOP',
+      });
+      expect(r.points, 520);
+      expect(r.amountPaid, 520000);
+      expect(r.orderCode, '5760028171077135663');
+      expect(r.pointsBefore, 620);
+      expect(r.pointsAfter, 1140);
+      expect(r.tieredUp, isTrue);
+      expect(r.claimedAt, DateTime.utc(2026, 11, 27, 3).toLocal());
+    });
+
+    test(
+      'claim xong nhưng /me lỗi: vẫn thành công, không có điểm cũ',
+      () async {
+        final backend = FakeBackend(
+          (o) async => o.method == 'POST'
+              ? (201, ok({'pointsAwarded': 12, 'claimedAt': null}))
+              : (500, apiError('boom')),
+        );
+        final r = await LoyaltyRemoteRepository(
+          fakeDio(backend),
+        ).claimOrder(tenantId: 1, platform: Platform.shopee, orderCode: 'A1');
+        expect(r.points, 12);
+        expect(r.pointsBefore, isNull);
+        expect(r.amountPaid, isNull);
+        expect(r.tieredUp, isFalse);
+        expect(backend.requests.first.data, {
+          'platformOrderId': 'A1',
+          'platform': 'SHOPEE',
+        });
+      },
+    );
+
+    Future<Object?> claimError(int status, String code, String message) async {
+      final backend = FakeBackend(
+        (o) async =>
+            (status, {'success': false, 'message': message, 'code': code}),
+      );
+      try {
+        await LoyaltyRemoteRepository(
+          fakeDio(backend),
+        ).claimOrder(tenantId: 1, platform: Platform.shopee, orderCode: 'X');
+      } catch (e) {
+        return e;
+      }
+      fail('claimOrder phải ném lỗi');
+    }
+
+    test('mã lỗi BE → ClaimFailure đúng loại', () async {
+      final cases = {
+        (404, 'ORDER_NOT_FOUND'): ClaimEligibility.notFound,
+        (400, 'ORDER_NOT_COMPLETED'): ClaimEligibility.notCompleted,
+        (400, 'ORDER_NOT_ELIGIBLE_YET'): ClaimEligibility.tooEarly,
+        (409, 'ORDER_ALREADY_CLAIMED'): ClaimEligibility.alreadyClaimed,
+        (409, 'PLATFORM_REQUIRED'): ClaimEligibility.platformRequired,
+        (409, 'ORDER_SYNCING'): ClaimEligibility.syncing,
+        (429, 'TOO_MANY_CLAIM_ATTEMPTS'): ClaimEligibility.tooManyAttempts,
+      };
+      for (final MapEntry(key: (status, code), :value) in cases.entries) {
+        final e = await claimError(status, code, 'English message');
+        expect(e, isA<ClaimFailure>(), reason: code);
+        expect((e! as ClaimFailure).kind, value, reason: code);
+      }
+    });
+
+    test(
+      'ORDER_NOT_ELIGIBLE_YET: đọc ngày đủ điều kiện trong message',
+      () async {
+        final e = await claimError(
+          400,
+          'ORDER_NOT_ELIGIBLE_YET',
+          'Order has not reached the 15-day eligibility date yet '
+              '(eligible from 2026-12-09)',
+        );
+        expect((e! as ClaimFailure).claimableFrom, DateTime(2026, 12, 9));
+
+        final noDate = await claimError(
+          400,
+          'ORDER_NOT_ELIGIBLE_YET',
+          'Order has not reached the 15-day eligibility date yet',
+        );
+        expect((noDate! as ClaimFailure).claimableFrom, isNull);
+      },
+    );
+
+    test('ngày đủ điều kiện trong body (data.eligibleForPointsAt)', () {
+      final f = LoyaltyJson.claimFailure(
+        const ApiException(
+          type: ApiErrorType.validation,
+          message: 'not yet',
+          code: 'ORDER_NOT_ELIGIBLE_YET',
         ),
-        throwsA(isA<ClaimFailure>()),
+        body: {
+          'data': {'eligibleForPointsAt': '2026-12-20T00:00:00+07:00'},
+        },
       );
-      expect(backend.requests, isEmpty);
+      expect(f!.claimableFrom, DateTime(2026, 12, 20));
+    });
+
+    test('mã lỗi khác: ApiException câu tiếng Việt, giữ mã', () async {
+      final e = await claimError(
+        400,
+        'ORDER_HAS_APPROVED_RETURN',
+        'Order with an approved or completed return/refund cannot be claimed',
+      );
+      expect(e, isA<ApiException>());
+      final api = e! as ApiException;
+      expect(api.code, 'ORDER_HAS_APPROVED_RETURN');
+      expect(api.message, startsWith('Không claim được'));
     });
   });
 
@@ -373,7 +528,7 @@ void main() {
         },
       ],
       vouchers: [
-        _voucher(id: 1, status: 'issued', code: 'SO-SILVER-7Q2'),
+        _voucher(id: 1, status: 'issued', code: 'SO-GOLD-7Q2'),
         _voucher(id: 2, status: 'pending'),
       ],
     );
@@ -384,10 +539,7 @@ void main() {
       overrides: [
         loyaltyUseRemoteProvider.overrideWithValue(true),
         loyaltyRepositoryProvider.overrideWithValue(
-          LoyaltyRemoteRepository(
-            fakeDio(backend),
-            claims: LoyaltyMockRepository(),
-          ),
+          LoyaltyRemoteRepository(fakeDio(backend)),
         ),
       ],
     );
@@ -399,7 +551,7 @@ void main() {
     expect(find.text('620'), findsOneWidget);
     expect(
       tester.widget<SoTierBadge>(find.byType(SoTierBadge)).tier,
-      LoyaltyTier.silver,
+      LoyaltyTier.gold,
     );
 
     // Lịch sử: "Đơn #1024", không nhãn sàn.
@@ -418,9 +570,9 @@ void main() {
     );
 
     // Voucher đã phát: mã + Sao chép; chưa phát: nhãn trung tính, không nút.
-    final issued = find.byKey(const Key('voucher_SO-SILVER-7Q2'));
+    final issued = find.byKey(const Key('voucher_SO-GOLD-7Q2'));
     expect(issued, findsOneWidget);
-    expect(find.byKey(const Key('copy_SO-SILVER-7Q2')), findsOneWidget);
+    expect(find.byKey(const Key('copy_SO-GOLD-7Q2')), findsOneWidget);
     expect(
       find.descendant(of: issued, matching: find.byType(SoChannelTag)),
       findsNothing,
@@ -443,5 +595,101 @@ void main() {
           .status,
       SoStatus.neutral,
     );
+  });
+
+  Future<void> openRemoteClaim(WidgetTester tester, FakeBackend backend) async {
+    await loginAs(
+      tester,
+      'customer@demo.vn',
+      tallView: true,
+      overrides: [
+        loyaltyUseRemoteProvider.overrideWithValue(true),
+        loyaltyRepositoryProvider.overrideWithValue(
+          LoyaltyRemoteRepository(fakeDio(backend)),
+        ),
+      ],
+    );
+    await tester.tap(find.text('Claim đơn'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ClaimOrderScreen), findsOneWidget);
+  }
+
+  Future<void> claimCode(WidgetTester tester, String code) async {
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const Key('claim_code')),
+        matching: find.byType(EditableText),
+      ),
+      code,
+    );
+    await tapVisible(tester, find.byKey(const Key('claim_submit')));
+  }
+
+  testWidgets('C-30 BE thật: không banner mock, claim thành công báo +điểm, '
+      'C-20 tải lại và hiện đúng tên hạng BE', (tester) async {
+    var points = 620;
+    var tierName = 'Gold';
+    final backend = FakeBackend((o) async {
+      switch ((o.method, o.path)) {
+        case ('POST', ApiPaths.loyaltyClaims):
+          points += 520;
+          tierName = 'Bạch Kim Shopee';
+          return (
+            201,
+            ok({
+              'orderId': 77,
+              'eligibleAmountVnd': 520000,
+              'pointsAwarded': 520,
+              'claimedAt': '2026-11-27T03:00:00Z',
+            }),
+          );
+        case ('GET', ApiPaths.loyaltyMe):
+          return (200, ok({..._profile(points), 'tier': tierName}));
+        case ('GET', ApiPaths.loyaltyMyClaims):
+        case ('GET', ApiPaths.loyaltyMyVouchers):
+          return (200, ok(const []));
+      }
+      return (404, apiError('Not found'));
+    });
+    await openRemoteClaim(tester, backend);
+    expect(find.byType(SoMockBanner), findsNothing);
+
+    await claimCode(tester, '5760028171077135663');
+    expect(find.byType(ClaimResultScreen), findsOneWidget);
+    expect(find.byKey(const Key('claim_success')), findsOneWidget);
+    expect(find.text('+520 điểm'), findsOneWidget);
+    expect(find.text('620 → 1.140'), findsOneWidget);
+
+    await tapVisible(tester, find.byKey(const Key('claim_view_tier')));
+    expect(find.byType(LoyaltyScreen), findsOneWidget);
+    expect(find.text('1.140'), findsOneWidget);
+    final badge = tester.widget<SoTierBadge>(
+      find.byKey(const Key('tier_badge')),
+    );
+    expect(badge.label, 'Bạch Kim Shopee');
+    expect(find.text('Bạch Kim Shopee'), findsOneWidget);
+  });
+
+  testWidgets('C-30 BE thật: ORDER_NOT_ELIGIBLE_YET hiện ngày BE báo', (
+    tester,
+  ) async {
+    final backend = FakeBackend(
+      (o) async => (
+        400,
+        {
+          'success': false,
+          'message':
+              'Order has not reached the 15-day eligibility date yet '
+              '(eligible from 2026-12-09)',
+          'code': 'ORDER_NOT_ELIGIBLE_YET',
+        },
+      ),
+    );
+    await openRemoteClaim(tester, backend);
+    await claimCode(tester, '5760028171077135663');
+
+    final banner = find.byKey(const Key('claim_error_tooEarly'));
+    expect(banner, findsOneWidget);
+    expect(tester.widget<SoBanner>(banner).message, contains('09/12/2026'));
   });
 }

@@ -40,11 +40,12 @@ Map<String, Object?> _page(List<Object?> content) => ok({
 
 final _users = [
   _user(1, 'TENANT_ADMIN', name: 'Chủ Shop'),
-  _user(2, 'STAFF', name: 'Lê Bình'),
-  _user(4, 'STAFF', name: 'Đỗ Dũng', status: 'DISABLED'),
+  _user(2, 'MANAGER', name: 'Lê Bình'),
+  _user(4, 'MANAGER', name: 'Đỗ Dũng', status: 'DISABLED'),
   _user(9, 'CUSTOMER', name: 'Khách lạc vào'),
-  // BE 9558375 (V21) đã đổi hết MANAGER sang STAFF; còn sót thì không hiện.
-  _user(10, 'MANAGER', name: 'Quản lý cũ'),
+  // BE d26b2b8 (V29) đổi STAFF lại thành MANAGER; dữ liệu cũ còn sót thì
+  // vẫn hiện như nhân viên.
+  _user(10, 'STAFF', name: 'Nhân viên cũ'),
 ];
 
 void main() {
@@ -57,7 +58,8 @@ void main() {
       final req = backend.requests.single;
       expect(req.path, ApiPaths.users);
       expect(req.queryParameters['page'], 0);
-      expect([for (final m in members) m.id], [1, 2, 4]);
+      expect([for (final m in members) m.id], [1, 2, 4, 10]);
+      expect(members[3].isOwner, isFalse);
       expect(members[0].isOwner, isTrue);
       expect(members[0].name, 'Chủ Shop');
       expect(members[1].isOwner, isFalse);
@@ -66,11 +68,11 @@ void main() {
     });
 
     test(
-      'nhân viên role STAFF (vào qua lời mời) cũng hiện, khóa được',
+      'nhân viên role MANAGER (vào qua lời mời) cũng hiện, khóa được',
       () async {
         final backend = FakeBackend(
           (o) async =>
-              (200, _page([..._users, _user(12, 'STAFF', name: 'Phan Mời')])),
+              (200, _page([..._users, _user(12, 'MANAGER', name: 'Phan Mời')])),
         );
         final members = await StaffRemoteRepository(fakeDio(backend)).list();
         final invited = members.firstWhere((m) => m.id == 12);
@@ -80,9 +82,10 @@ void main() {
       },
     );
 
-    test('thêm nhân viên gửi CreateUserRequest với role STAFF', () async {
+    test('thêm nhân viên gửi CreateUserRequest với role MANAGER (STAFF giờ '
+        'bị 400 INVALID_ROLE)', () async {
       final backend = FakeBackend(
-        (o) async => (200, ok(_user(7, 'STAFF', name: 'Nguyễn Mới'))),
+        (o) async => (200, ok(_user(7, 'MANAGER', name: 'Nguyễn Mới'))),
       );
       final added = await StaffRemoteRepository(fakeDio(backend)).add(
         name: ' Nguyễn Mới ',
@@ -97,7 +100,7 @@ void main() {
         'email': 'moi@shop.vn',
         'password': 'tam123456',
         'full_name': 'Nguyễn Mới',
-        'role': 'STAFF',
+        'role': 'MANAGER',
       });
       expect(added.id, 7);
       expect(added.name, 'Nguyễn Mới');
@@ -142,7 +145,7 @@ void main() {
         final backend = FakeBackend((o) async {
           if (o.method == 'GET') return (200, _page(_users));
           final status = (o.data as Map)['status'] as String;
-          return (200, ok(_user(2, 'STAFF', status: status)));
+          return (200, ok(_user(2, 'MANAGER', status: status)));
         });
         final repo = StaffRemoteRepository(fakeDio(backend));
         await repo.list();
@@ -170,7 +173,7 @@ void main() {
     final backend = FakeBackend((o) async {
       if (o.method == 'POST') {
         final body = o.data as Map;
-        final created = _user(7, 'STAFF', name: body['full_name'] as String)
+        final created = _user(7, 'MANAGER', name: body['full_name'] as String)
           ..['email'] = body['email'];
         users.add(created);
         return (200, ok(created));
@@ -195,7 +198,8 @@ void main() {
     expect(find.byType(SoMockBanner), findsNothing);
     expect(find.text('Chủ Shop'), findsOneWidget);
     expect(find.text('Khách lạc vào'), findsNothing);
-    expect(find.text('Nhân viên · 2'), findsOneWidget);
+    // Nhân viên role STAFF cũ (id 10) vẫn hiện.
+    expect(find.text('Nhân viên · 3'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('staff_add')));
     await tester.pumpAndSettle();
@@ -213,6 +217,6 @@ void main() {
 
     expect(find.byType(SoBottomSheet), findsNothing);
     expect(find.text('Nguyễn Mới'), findsOneWidget);
-    expect(find.text('Nhân viên · 3'), findsOneWidget);
+    expect(find.text('Nhân viên · 4'), findsOneWidget);
   });
 }

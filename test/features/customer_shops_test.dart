@@ -41,7 +41,7 @@ void main() {
     expect(find.byKey(const Key('shop_1')), findsOneWidget);
     expect(find.byKey(const Key('shop_2')), findsOneWidget);
     expect(find.text('620 điểm'), findsOneWidget);
-    expect(find.text('Silver'), findsOneWidget);
+    expect(find.text('Gold'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byKey(const Key('shop_1')),

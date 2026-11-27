@@ -13,7 +13,7 @@ flowchart TD
     Login -->|đúng| Role
     Login -->|Quên mật khẩu| Forgot["A-03 Quên mật khẩu"]
     Role -->|CUSTOMER| CHome["Khu Customer<br/>tab: Sản phẩm · Điểm & hạng · Claim đơn · Tài khoản"]
-    Role -->|STAFF| MHome["Khu Merchant<br/>tab: Tổng quan · Đơn hàng · Sản phẩm · Tồn kho · Thêm"]
+    Role -->|MANAGER| MHome["Khu Merchant<br/>tab: Tổng quan · Đơn hàng · Sản phẩm · Tồn kho · Thêm"]
     Role -->|ADMIN = Tenant Admin| MHome
     Role -->|SUPER_ADMIN| Deny["Báo lỗi: dùng Super Admin Console trên web"]
     Deny --> Login
@@ -34,7 +34,7 @@ flowchart TD
 | C-11 | Chi tiết sản phẩm + nút mua trên sàn | Customer | ✅ (mock) |
 | C-12 | Chatbot tư vấn | Customer | ✅ (mock) |
 | C-20 | Điểm & hạng + lịch sử + voucher | Customer | ✅ (mock) |
-| C-30 | Claim đơn | Customer | ✅ (mock) |
+| C-30 | Claim đơn | Customer | ✅ |
 | C-40 | Tài khoản | Customer | ✅ (khung) |
 | M-10 | Tổng quan (Staff: việc hôm nay / Admin: tổng quan cửa hàng) | Staff, Admin | ✅ (mock) |
 | M-20 | Danh sách đơn | Staff, Admin | ✅ |
@@ -100,7 +100,7 @@ flowchart LR
     Shop -.-> Chat["C-12 Chatbot (mock)"]
     Ext -. "đơn hoàn tất + 15 ngày" .-> Claim["C-30 Claim đơn"]
     Claim -->|thành công| Points["C-20 Điểm & hạng"]
-    Points --> Voucher["Voucher (copy mã) → dùng trên sàn"]
+    Points -. "đạt mốc của sàn (chưa làm)" .-> Voucher["Bấm Nhận voucher → mã dùng trên sàn"]
 ```
 
 ### F-C1. Khám phá sản phẩm và mua trên sàn
@@ -121,13 +121,15 @@ Nút "Hỏi AI" trên thanh của C-10 → **C-12** khung chat với AI tư vấ
 |---|---|---|
 | 1 | Mở tab **Claim đơn** (C-30) | Hiển thị điều kiện: đơn hoàn tất ≥ 15 ngày, mỗi đơn 1 lần |
 | 2 | Chọn sàn (Shopee / TikTok Shop), nhập **mã đơn** | Validate không trống |
-| 3 | Bấm **Claim điểm** | 🟡 `POST /api/customer/claims` - khóa nút khi đang gửi |
-| 4a | | Thành công: "Bạn được cộng **520** điểm" (+ hạng mới nếu lên hạng) |
-| 4b | | Không tìm thấy đơn trong shop đã chọn |
-| 4c | | Đơn chưa được sàn xác nhận hoàn tất |
-| 4d | | Chưa đủ 15 ngày (nên hiển thị ngày được claim) |
-| 4e | | Đơn đã được claim |
-| 4f | | Thử sai quá nhiều lần → tạm khóa (BE quyết định ngưỡng) |
+| 3 | Bấm **Claim điểm** | ✅ `POST /api/v1/loyalty/claims` `{ platformOrderId, platform }` - khóa nút khi đang gửi |
+| 4a | | Thành công: "+**520** điểm", điểm cũ → mới (+ hạng mới nếu lên hạng); C-20 tải lại |
+| 4b | | Không tìm thấy đơn trong shop đã chọn (`ORDER_NOT_FOUND`) |
+| 4c | | Đơn chưa được sàn xác nhận hoàn tất (`ORDER_NOT_COMPLETED`) |
+| 4d | | Chưa đủ 15 ngày, hiện ngày được claim nếu BE báo (`ORDER_NOT_ELIGIBLE_YET`) |
+| 4e | | Đơn đã được claim (`ORDER_ALREADY_CLAIMED`) |
+| 4g | | Mã đơn có ở nhiều sàn → yêu cầu chọn đúng sàn (`PLATFORM_REQUIRED`) |
+| 4h | | Đơn đang được lấy từ sàn → thử lại sau ít phút (`ORDER_SYNCING`) |
+| 4f | | Thử sai quá nhiều lần → tạm khóa (`TOO_MANY_CLAIM_ATTEMPTS`; BE: 10 mã không tồn tại / giờ) |
 
 Quy tắc hiển thị: điểm = `floor(tiền hàng thực trả / 1.000₫)`, không tính ship/thuế.
 
@@ -135,9 +137,10 @@ Quy tắc hiển thị: điểm = `floor(tiền hàng thực trả / 1.000₫)`,
 
 ### F-C4. Xem điểm, hạng, voucher
 **C-20** gồm:
-1. Thẻ hạng: tên hạng (Standard / Silver / Platinum / Diamond), tổng điểm, thanh tiến độ, "Còn X điểm để lên hạng Y".
+1. Thẻ hạng: tên hạng (Standard / Gold / Platinum / Diamond), tổng điểm, thanh tiến độ, "Còn X điểm để lên hạng Y".
 2. Quy tắc tích điểm (ngắn gọn).
-3. **Voucher của bạn**: mã, sàn áp dụng, mô tả, hạn dùng, nút **Sao chép mã**. Khách dùng mã trên app sàn. (Voucher do Tenant Admin chủ động phát, khách **không** đổi điểm lấy thưởng.)
+3. **Voucher của bạn**: mã, sàn áp dụng, mô tả, hạn dùng, nút **Sao chép mã**. Khách dùng mã trên app sàn.
+   - **Quyết định mới (BE `specs/customer-loyalty-tiers.md`, 2026-11-27) – CHƯA LÀM:** ví điểm chung cho mọi sàn, nhưng **mốc và % giảm riêng theo từng sàn** (mỗi shop Shopee/TikTok đã kết nối có các mốc riêng, gợi ý Gold 500 / 10%, Platinum 1.000 / 20%, Diamond 1.500 / 30%). Thẻ hạng hiện thanh tiến độ theo mốc của từng sàn; ở mốc đã đạt, khách **bấm Nhận voucher** (mỗi mốc một lần, **không trừ điểm**) → BE phát mã trên sàn (`POST /api/v1/loyalty/me/reward-requests`, `platforms[].milestones[]` trong `GET /loyalty/me`). Thay cho cách cũ "Tenant Admin chủ động phát".
 4. **Lịch sử tích điểm**: mã đơn, sàn, ngày claim, +điểm.
 
 ### F-C5. Tài khoản
@@ -246,7 +249,9 @@ Có **toàn bộ flow của Staff**, thêm:
 Danh sách Staff (tên, email, trạng thái) → Mời/Tạo Staff (email, mật khẩu tạm) → Vô hiệu hóa / kích hoạt lại. (Chưa chốt Staff có quyền con.)
 
 ### F-T4. Phát voucher cho khách (T-30) 🟡
-1. Chọn đối tượng: theo **hạng** (Silver trở lên…) hoặc chọn từng khách.
+> **Quyết định mới – CHƯA LÀM:** voucher theo **mốc riêng từng sàn**, khách tự bấm nhận ở mốc đã đạt (xem F-C4). Màn T-30 sẽ thành màn cấu hình mốc cho từng sàn (tên mốc, điểm, %; nút "Dùng gợi ý"; `PUT /api/v1/loyalty/tiers`). Luồng phát theo đợt bên dưới là bản mock hiện tại.
+
+1. Chọn đối tượng: theo **hạng** (Gold trở lên…) hoặc chọn từng khách.
 2. Chọn sàn/shop, cấu hình voucher (giá trị, đơn tối thiểu, hạn dùng - tùy API sàn).
 3. Xác nhận → SmartOmni gọi API sàn tạo voucher → **chỉ gửi email cho khách khi sàn xác nhận tạo thành công**.
 4. Theo dõi trạng thái: đang tạo / thành công / lỗi / chưa rõ (cần đối soát, không tạo lại).

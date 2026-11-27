@@ -75,14 +75,18 @@
   "marketplaceOauthConnected": "Đã kết nối {platform}",
   "@marketplaceOauthConnected": {
     "placeholders": {
-      "platform": { "type": "String" }
+      "platform": {
+        "type": "String"
+      }
     }
   },
   "marketplaceOauthDenied": "Bạn đã từ chối cấp quyền",
   "marketplaceOauthAutoImportFailed": "Đã kết nối {platform} nhưng chưa lưu được công tắc tự nhập. Bật lại trên thẻ sàn.",
   "@marketplaceOauthAutoImportFailed": {
     "placeholders": {
-      "platform": { "type": "String" }
+      "platform": {
+        "type": "String"
+      }
     }
   },
   "marketplaceOauthInvalidRedirect": "Máy chủ chưa cho phép quay về app sau khi ủy quyền. Liên hệ quản trị SmartOmni.",
@@ -101,5 +105,55 @@
         "type": "String"
       }
     }
-  }
+  },
+  "claimErrNotFoundTitle": "Không tìm thấy đơn",
+  "claimErrNotFound": "Kiểm tra lại mã đơn và sàn đã chọn.",
+  "claimErrNotCompletedTitle": "Đơn chưa hoàn tất",
+  "claimErrNotCompleted": "Sàn chưa xác nhận hoàn tất. Nhận hàng xong chờ thêm 15 ngày.",
+  "claimErrTooEarlyTitle": "Chưa đủ 15 ngày",
+  "claimErrTooEarly": "Đơn chưa đủ 15 ngày kể từ khi hoàn tất.",
+  "claimErrTooEarlyFrom": "Đơn chưa đủ 15 ngày kể từ khi hoàn tất. Claim được từ {date}.",
+  "@claimErrTooEarlyFrom": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "claimErrTooEarlyCompleted": "Đơn hoàn tất {completed}. Claim được từ {date}.",
+  "@claimErrTooEarlyCompleted": {
+    "placeholders": {
+      "completed": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "claimErrAlreadyClaimedTitle": "Đơn đã được claim",
+  "claimErrAlreadyClaimed": "Mỗi đơn chỉ claim một lần.",
+  "claimErrAlreadyClaimedOn": "Đã claim ngày {date}. Mỗi đơn chỉ claim một lần.",
+  "@claimErrAlreadyClaimedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "claimErrPlatformRequiredTitle": "Cần chọn sàn",
+  "claimErrPlatformRequired": "Mã đơn này có ở nhiều sàn. Chọn đúng sàn đã mua rồi claim lại.",
+  "claimErrSyncingTitle": "Đơn đang được đồng bộ",
+  "claimErrSyncing": "Cửa hàng đang lấy đơn này từ sàn. Thử lại sau ít phút.",
+  "claimErrTooManyTitle": "Thử sai quá nhiều lần",
+  "claimErrTooMany": "Tạm khóa claim, thử lại sau {minutes} phút.",
+  "@claimErrTooMany": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "claimErrTooManyLater": "Bạn đã nhập sai mã đơn quá nhiều lần. Thử lại sau ít phút.",
+  "claimErrGeneric": "Không claim được đơn này. Kiểm tra lại mã đơn hoặc thử lại sau."
 }

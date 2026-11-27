@@ -234,7 +234,7 @@ void main() {
     test('đăng nhập lưu cả access token và refresh token', () async {
       final storage = InMemoryTokenStorage();
       final c = container(
-        FakeBackend((o) async => (200, ok(_authResponse('STAFF')))),
+        FakeBackend((o) async => (200, ok(_authResponse('MANAGER')))),
         storage,
       );
       await settled(c);
@@ -248,41 +248,47 @@ void main() {
       expect(await storage.readRefreshToken(), 'r1');
     });
 
-    test('STAFF chưa thuộc cửa hàng (tenant_id null) → staffNoTenant, '
-        'gọi logout bằng token vừa nhận, không lưu token', () async {
-      final storage = InMemoryTokenStorage();
-      final auth = _authResponse('STAFF', tenantId: null);
-      final backend = FakeBackend(
-        (o) async => o.path == ApiPaths.logout ? (200, ok()) : (200, ok(auth)),
-      );
-      final c = container(backend, storage);
-      await settled(c);
+    for (final role in ['MANAGER', 'STAFF']) {
+      test('$role chưa thuộc cửa hàng (tenant_id null) → staffNoTenant, '
+          'gọi logout bằng token vừa nhận, không lưu token', () async {
+        final storage = InMemoryTokenStorage();
+        final auth = _authResponse(role, tenantId: null);
+        final backend = FakeBackend(
+          (o) async =>
+              o.path == ApiPaths.logout ? (200, ok()) : (200, ok(auth)),
+        );
+        final c = container(backend, storage);
+        await settled(c);
 
-      await expectLater(
-        c
-            .read(authControllerProvider.notifier)
-            .login(email: 'staff@shop.vn', password: '123456'),
-        throwsA(
-          isA<LoginFailure>().having(
-            (f) => f.kind,
-            'kind',
-            LoginFailureKind.staffNoTenant,
+        await expectLater(
+          c
+              .read(authControllerProvider.notifier)
+              .login(email: 'staff@shop.vn', password: '123456'),
+          throwsA(
+            isA<LoginFailure>().having(
+              (f) => f.kind,
+              'kind',
+              LoginFailureKind.staffNoTenant,
+            ),
           ),
-        ),
-      );
-      // logout chạy nền, không chặn: chờ nó tới BE giả.
-      for (var i = 0; i < 20 && backend.calls(ApiPaths.logout) == 0; i++) {
-        await Future<void>.delayed(Duration.zero);
-      }
-      final logout = backend.requests.singleWhere(
-        (r) => r.path == ApiPaths.logout,
-      );
-      expect(logout.method, 'POST');
-      expect(logout.headers['Authorization'], 'Bearer ${auth['access_token']}');
-      expect(c.read(currentSessionProvider), isNull);
-      expect(await storage.readToken(), isNull);
-      expect(await storage.readRefreshToken(), isNull);
-    });
+        );
+        // logout chạy nền, không chặn: chờ nó tới BE giả.
+        for (var i = 0; i < 20 && backend.calls(ApiPaths.logout) == 0; i++) {
+          await Future<void>.delayed(Duration.zero);
+        }
+        final logout = backend.requests.singleWhere(
+          (r) => r.path == ApiPaths.logout,
+        );
+        expect(logout.method, 'POST');
+        expect(
+          logout.headers['Authorization'],
+          'Bearer ${auth['access_token']}',
+        );
+        expect(c.read(currentSessionProvider), isNull);
+        expect(await storage.readToken(), isNull);
+        expect(await storage.readRefreshToken(), isNull);
+      });
+    }
 
     test('mở lại app: access hết hạn + còn refresh token → gia hạn', () async {
       final storage = InMemoryTokenStorage(
@@ -347,12 +353,12 @@ void main() {
     );
   });
 
-  testWidgets('A-02: STAFF chưa thuộc cửa hàng, logout lỗi → vẫn hiện banner '
+  testWidgets('A-02: MANAGER chưa thuộc cửa hàng, logout lỗi → vẫn hiện banner '
       '"chưa thuộc cửa hàng", ở lại màn đăng nhập', (tester) async {
     final backend = FakeBackend(
       (o) async => o.path == ApiPaths.logout
           ? (500, apiError('Lỗi máy chủ'))
-          : (200, ok(_authResponse('STAFF', tenantId: null))),
+          : (200, ok(_authResponse('MANAGER', tenantId: null))),
     );
     await loginAs(
       tester,

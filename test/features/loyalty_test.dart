@@ -21,12 +21,12 @@ void main() {
 
   group('LoyaltyRules.tierFor', () {
     test(
-      'ngưỡng hạng: Standard < 500 ≤ Silver < 1000 ≤ Platinum < 1500 ≤ Diamond',
+      'ngưỡng hạng: Standard < 500 ≤ Gold < 1000 ≤ Platinum < 1500 ≤ Diamond',
       () {
         expect(LoyaltyRules.tierFor(0), LoyaltyTier.standard);
         expect(LoyaltyRules.tierFor(499), LoyaltyTier.standard);
-        expect(LoyaltyRules.tierFor(500), LoyaltyTier.silver);
-        expect(LoyaltyRules.tierFor(999), LoyaltyTier.silver);
+        expect(LoyaltyRules.tierFor(500), LoyaltyTier.gold);
+        expect(LoyaltyRules.tierFor(999), LoyaltyTier.gold);
         expect(LoyaltyRules.tierFor(1000), LoyaltyTier.platinum);
         expect(LoyaltyRules.tierFor(1499), LoyaltyTier.platinum);
         expect(LoyaltyRules.tierFor(1500), LoyaltyTier.diamond);
@@ -110,7 +110,7 @@ void main() {
         expect(result.points, 520);
         expect(result.pointsBefore, 620);
         expect(result.pointsAfter, 1140);
-        expect(result.tierBefore, LoyaltyTier.silver);
+        expect(result.tierBefore, LoyaltyTier.gold);
         expect(result.tierAfter, LoyaltyTier.platinum);
         expect(result.tieredUp, isTrue);
         expect((await r.getSummary(1)).totalPoints, 1140);
@@ -193,7 +193,7 @@ void main() {
   });
 
   group('thẻ hạng và voucher (C-20)', () {
-    test('tierSegments: 3 nấc Standard→Silver→Platinum→Diamond', () {
+    test('tierSegments: 3 nấc Standard→Gold→Platinum→Diamond', () {
       expect(LoyaltyRules.tierSegments(0), [0, 0, 0]);
       expect(LoyaltyRules.tierSegments(250), [0.5, 0, 0]);
       expect(LoyaltyRules.tierSegments(620), [1, closeTo(0.24, 1e-9), 0]);

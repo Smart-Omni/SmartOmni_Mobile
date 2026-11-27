@@ -16,7 +16,7 @@ final _now = DateTime(2026, 10, 22, 9);
 
 const _customers = [
   VoucherCustomer(id: 1, name: 'A', email: 'a@x.vn', tier: LoyaltyTier.diamond),
-  VoucherCustomer(id: 2, name: 'B', email: 'b@x.vn', tier: LoyaltyTier.silver),
+  VoucherCustomer(id: 2, name: 'B', email: 'b@x.vn', tier: LoyaltyTier.gold),
   VoucherCustomer(
     id: 3,
     name: 'C',
@@ -88,7 +88,7 @@ void main() {
   group('quy tắc T-30', () {
     test('countFromTier: từ hạng trở lên, cộng dồn', () {
       expect(countFromTier(_customers, LoyaltyTier.standard), 3);
-      expect(countFromTier(_customers, LoyaltyTier.silver), 2);
+      expect(countFromTier(_customers, LoyaltyTier.gold), 2);
       expect(countFromTier(_customers, LoyaltyTier.platinum), 1);
       expect(countFromTier(_customers, LoyaltyTier.diamond), 1);
       expect(audienceCount(_customers, const PickedAudience({2, 3, 99})), 2);
@@ -96,7 +96,7 @@ void main() {
 
     test('audienceLabel', () {
       expect(audienceLabel(const TierAudience(LoyaltyTier.standard)), 'Tất cả');
-      expect(audienceLabel(const TierAudience(LoyaltyTier.silver)), 'Silver+');
+      expect(audienceLabel(const TierAudience(LoyaltyTier.gold)), 'Gold+');
       expect(audienceLabel(const TierAudience(LoyaltyTier.diamond)), 'Diamond');
       expect(audienceLabel(const PickedAudience({1, 2})), '2 khách đã chọn');
     });
@@ -127,7 +127,7 @@ void main() {
       final repo = VoucherMockRepository(clock: () => now);
       final setup = await repo.setup();
       expect(countFromTier(setup.customers, LoyaltyTier.standard), 128);
-      expect(countFromTier(setup.customers, LoyaltyTier.silver), 42);
+      expect(countFromTier(setup.customers, LoyaltyTier.gold), 42);
       expect(setup.supportOf(Platform.tiktokShop), VoucherSupport.unsupported);
 
       final batch = await repo.issue(
@@ -136,7 +136,7 @@ void main() {
           discount: 30000,
           minOrder: 200000,
           expiresAt: voucherExpiry(now, 7),
-          audience: 'Silver+',
+          audience: 'Gold+',
           customerIds: const [1, 2],
         ),
       );
@@ -172,10 +172,10 @@ void main() {
     expect(find.byType(VoucherScreen), findsOneWidget);
     expect(find.byType(SoMockBanner), findsOneWidget);
     expect(_chip(tester, 'voucher_tier_standard').count, 128);
-    expect(_chip(tester, 'voucher_tier_silver').count, 42);
+    expect(_chip(tester, 'voucher_tier_gold').count, 42);
     expect(_chip(tester, 'voucher_tier_platinum').count, 15);
     expect(_chip(tester, 'voucher_tier_diamond').count, 4);
-    expect(_chip(tester, 'voucher_tier_silver').selected, isTrue);
+    expect(_chip(tester, 'voucher_tier_gold').selected, isTrue);
 
     final seg = tester.widget<SoSegmented<Platform>>(
       find.byKey(const Key('voucher_platform')),
@@ -230,7 +230,7 @@ void main() {
     await tester.tap(find.byKey(const Key('voucher_submit')));
     await tester.pumpAndSettle();
     expect(find.text('Phát voucher cho 42 khách?'), findsOneWidget);
-    expect(find.text('Silver+ · 42 khách'), findsOneWidget);
+    expect(find.text('Gold+ · 42 khách'), findsOneWidget);
     expect(find.text('29/10/2026'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('voucher_confirm')));
@@ -277,7 +277,7 @@ void main() {
 
     expect(_chip(tester, 'voucher_pick').label, '2 khách đã chọn');
     expect(_chip(tester, 'voucher_pick').selected, isTrue);
-    expect(_chip(tester, 'voucher_tier_silver').selected, isFalse);
+    expect(_chip(tester, 'voucher_tier_gold').selected, isFalse);
     expect(_submit(tester).label, 'Phát cho 2 khách trên Shopee');
   });
 

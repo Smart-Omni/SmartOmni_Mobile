@@ -3,7 +3,7 @@ import '../../../core/utils/mock_delay.dart';
 import '../../loyalty/domain/loyalty_rules.dart';
 import '../domain/voucher.dart';
 
-/// 128 khách mẫu (Diamond 4 · Platinum 11 · Silver 27 · Standard 86), Shopee
+/// 128 khách mẫu (Diamond 4 · Platinum 11 · Gold 27 · Standard 86), Shopee
 /// tạo được voucher, TikTok Shop thì không. Đợt phát trong phiên chạy app
 /// chuyển "Đang tạo" -> "Thành công" sau [confirmAfter].
 class VoucherMockRepository implements VoucherRepository {
@@ -27,7 +27,7 @@ class VoucherMockRepository implements VoucherRepository {
         discount: 30000,
         minOrder: 200000,
         expiresAt: voucherExpiry(now, 12),
-        audience: 'Silver+',
+        audience: 'Gold+',
         customerCount: 42,
         status: VoucherBatchStatus.success,
         createdAt: now.subtract(const Duration(days: 2)),
@@ -77,7 +77,7 @@ class VoucherMockRepository implements VoucherRepository {
             : id <= 15
             ? LoyaltyTier.platinum
             : id <= 42
-            ? LoyaltyTier.silver
+            ? LoyaltyTier.gold
             : LoyaltyTier.standard,
       ),
   ]);
