@@ -46,8 +46,11 @@ final subdomainFormatters = <TextInputFormatter>[
   ),
 ];
 
-/// Mã đơn trên sàn: như mã cửa hàng (vd. "240920shop01" → "240920SHOP01").
-final orderCodeFormatters = shopCodeFormatters;
+/// Mã đơn (C-30): chữ không dấu, số, "-" và "_", viết hoa (vd.
+/// "manual-claim-01" → "MANUAL-CLAIM-01"). Khác mã cửa hàng vì đơn tạo tay
+/// của BE có tiền tố "MANUAL-" (`OrderService.MANUAL_ORDER_ID_PREFIX`) và mã
+/// đơn trên sàn có thể chứa "-" hoặc "_"; lọc mất thì BE trả ORDER_NOT_FOUND.
+final orderCodeFormatters = _upperCode(RegExp(r'[A-Za-z0-9_-]'));
 
 /// Số điện thoại: chỉ chữ số, tối đa 10.
 final phoneFormatters = <TextInputFormatter>[

@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartomni_mobile/core/utils/formatters.dart';
 import 'package:smartomni_mobile/core/utils/input_formatters.dart';
@@ -87,6 +88,34 @@ void main() {
       expect(Validators.positiveVnd(''), isNotNull);
       expect(Validators.positiveVnd('0'), isNotNull);
       expect(Validators.positiveVnd('159.000'), isNull);
+    });
+  });
+
+  group('Ô mã đơn C-30 (orderCodeFormatters)', () {
+    String typed(List<TextInputFormatter> formatters, String text) {
+      var value = TextEditingValue(text: text);
+      for (final f in formatters) {
+        value = f.formatEditUpdate(TextEditingValue.empty, value);
+      }
+      return value.text;
+    }
+
+    test('giữ "-" và "_", viết hoa', () {
+      expect(typed(orderCodeFormatters, 'manual-claim-01'), 'MANUAL-CLAIM-01');
+      expect(typed(orderCodeFormatters, 'ab_12-c'), 'AB_12-C');
+      expect(
+        typed(orderCodeFormatters, '5760028171077135663'),
+        '5760028171077135663',
+      );
+    });
+
+    test('ký tự lạ (dấu cách, @, dấu tiếng Việt) vẫn bị lọc', () {
+      expect(typed(orderCodeFormatters, 'manual claim@01'), 'MANUALCLAIM01');
+      expect(typed(orderCodeFormatters, ' đơn#1 '), 'N1');
+    });
+
+    test('mã cửa hàng vẫn không nhận "-"', () {
+      expect(typed(shopCodeFormatters, 'shop-demo'), 'SHOPDEMO');
     });
   });
 }

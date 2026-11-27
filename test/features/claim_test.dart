@@ -161,4 +161,25 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('C-30: mã đơn giữ "-" ("manual-claim-01" → "MANUAL-CLAIM-01"), '
+      'bản mock không chặn vì định dạng', (tester) async {
+    await _openClaim(tester);
+    await tester.enterText(_codeField, 'manual-claim-01');
+    await tester.pump();
+    expect(_code(tester), 'MANUAL-CLAIM-01');
+
+    await tester.enterText(_codeField, 'manual claim@01');
+    await tester.pump();
+    expect(_code(tester), 'MANUALCLAIM01');
+
+    // Mã có "-" qua validator, tới domain mock: không có trong dữ liệu mẫu.
+    await _expectError(
+      tester,
+      'manual-claim-01',
+      'notFound',
+      'Không tìm thấy đơn',
+    );
+    expect(_code(tester), 'MANUAL-CLAIM-01');
+  });
 }
