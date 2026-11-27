@@ -47,6 +47,7 @@ class LoginFailure implements Exception {
       'ACCOUNT_TEMP_LOCKED' => LoginFailureKind.temporarilyLocked,
       'ACCOUNT_DISABLED' => LoginFailureKind.accountDisabled,
       'TENANT_LOCKED' => LoginFailureKind.tenantLocked,
+      ApiException.managerNoTenantCode ||
       ApiException.staffNoTenantCode => LoginFailureKind.staffNoTenant,
       _ => _kindFromMessage(e),
     };

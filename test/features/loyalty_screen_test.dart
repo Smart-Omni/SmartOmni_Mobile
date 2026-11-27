@@ -38,7 +38,7 @@ void main() {
     expect(find.text('620'), findsOneWidget);
     expect(
       tester.widget<SoTierBadge>(find.byType(SoTierBadge)).tier,
-      LoyaltyTier.silver,
+      LoyaltyTier.gold,
     );
     expect(
       _richText(tester, 'tier_next'),
@@ -47,17 +47,17 @@ void main() {
     expect(find.text('Platinum · 1.000'), findsOneWidget);
 
     // Voucher: mỗi voucher một thẻ; sắp hết hạn thì báo.
-    expect(find.byKey(const Key('voucher_SILVER50K')), findsOneWidget);
+    expect(find.byKey(const Key('voucher_GOLD50K')), findsOneWidget);
     expect(
       find.descendant(
-        of: find.byKey(const Key('voucher_TTSILVER10')),
+        of: find.byKey(const Key('voucher_TTGOLD10')),
         matching: find.text('Hết hạn sau 12 ngày'),
       ),
       findsOneWidget,
     );
     expect(
       find.descendant(
-        of: find.byKey(const Key('voucher_SILVER50K')),
+        of: find.byKey(const Key('voucher_GOLD50K')),
         matching: find.textContaining('HSD '),
       ),
       findsOneWidget,
@@ -80,9 +80,9 @@ void main() {
         null,
       ),
     );
-    await tapVisible(tester, find.byKey(const Key('copy_SILVER50K')));
-    expect(copied, 'SILVER50K');
-    expect(find.text('Đã sao chép SILVER50K'), findsOneWidget);
+    await tapVisible(tester, find.byKey(const Key('copy_GOLD50K')));
+    expect(copied, 'GOLD50K');
+    expect(find.text('Đã sao chép GOLD50K'), findsOneWidget);
 
     // Lịch sử: mới nhất trước; số điểm nằm trọn trong thẻ (không bị cắt).
     final row = find.byKey(const Key('history_240905SHOP11'));

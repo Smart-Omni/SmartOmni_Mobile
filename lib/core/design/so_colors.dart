@@ -42,8 +42,8 @@ class SoColors extends ThemeExtension<SoColors> {
     required this.shadowTint,
     required this.tierStandardBg,
     required this.tierStandardInk,
-    required this.tierSilverBg,
-    required this.tierSilverInk,
+    required this.tierGoldBg,
+    required this.tierGoldInk,
     required this.tierPlatinumBg,
     required this.tierPlatinumInk,
     required this.tierDiamondBg,
@@ -127,8 +127,8 @@ class SoColors extends ThemeExtension<SoColors> {
 
   final Color tierStandardBg;
   final Color tierStandardInk;
-  final Color tierSilverBg;
-  final Color tierSilverInk;
+  final Color tierGoldBg;
+  final Color tierGoldInk;
   final Color tierPlatinumBg;
   final Color tierPlatinumInk;
   final Color tierDiamondBg;
@@ -169,8 +169,8 @@ class SoColors extends ThemeExtension<SoColors> {
     shadowTint: Color(0xFF0B2A33),
     tierStandardBg: Color(0xFFE7ECEE),
     tierStandardInk: Color(0xFF44555C),
-    tierSilverBg: Color(0xFFD4DCE1),
-    tierSilverInk: Color(0xFF0B1A1F),
+    tierGoldBg: Color(0xFFD4DCE1),
+    tierGoldInk: Color(0xFF0B1A1F),
     tierPlatinumBg: Color(0xFF3E4E55),
     tierPlatinumInk: Color(0xFFFFFFFF),
     tierDiamondBg: Color(0xFF0B1A1F),
@@ -215,8 +215,8 @@ class SoColors extends ThemeExtension<SoColors> {
     shadowTint,
     tierStandardBg,
     tierStandardInk,
-    tierSilverBg,
-    tierSilverInk,
+    tierGoldBg,
+    tierGoldInk,
     tierPlatinumBg,
     tierPlatinumInk,
     tierDiamondBg,
@@ -258,8 +258,8 @@ class SoColors extends ThemeExtension<SoColors> {
     shadowTint: v[31],
     tierStandardBg: v[32],
     tierStandardInk: v[33],
-    tierSilverBg: v[34],
-    tierSilverInk: v[35],
+    tierGoldBg: v[34],
+    tierGoldInk: v[35],
     tierPlatinumBg: v[36],
     tierPlatinumInk: v[37],
     tierDiamondBg: v[38],

@@ -34,9 +34,15 @@ class ApiException implements Exception {
   /// Mã lỗi nghiệp vụ nếu backend gửi kèm (`errorCode`), vd. `ACCOUNT_TEMP_LOCKED`.
   final String? code;
 
-  /// 403 của BE khi tài khoản STAFF chưa thuộc cửa hàng nào (`tenantId` null)
-  /// gọi API dữ liệu của cửa hàng.
+  /// 403 của BE khi tài khoản nhân viên chưa thuộc cửa hàng nào (`tenantId`
+  /// null) gọi API dữ liệu của cửa hàng. BE `d26b2b8` (V29) đổi mã thành
+  /// `MANAGER_NO_TENANT`; giữ mã cũ `STAFF_NO_TENANT` để tương thích.
+  static const managerNoTenantCode = 'MANAGER_NO_TENANT';
   static const staffNoTenantCode = 'STAFF_NO_TENANT';
+
+  /// `true` nếu [code] là một trong hai mã "nhân viên chưa thuộc cửa hàng".
+  static bool isNoTenantCode(String? code) =>
+      code == managerNoTenantCode || code == staffNoTenantCode;
 
   /// Câu hiện cho [staffNoTenantCode] (từ `app_vi.arb`; mọi thông điệp của
   /// [ApiException] đều tiếng Việt).
@@ -67,7 +73,7 @@ class ApiException implements Exception {
         final code = _extractCode(e.response?.data);
         return ApiException(
           type: _typeForStatus(status),
-          message: code == staffNoTenantCode
+          message: isNoTenantCode(code)
               ? staffNoTenantMessage
               : serverMessage ?? _defaultMessageForStatus(status),
           statusCode: status,

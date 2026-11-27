@@ -15,15 +15,15 @@ final loyaltyUseRemoteProvider = Provider<bool>(
   (ref) => ref.watch(appConfigProvider).usesRemote(ApiFeature.loyalty),
 );
 
-/// Tạo lại theo từng phiên đăng nhập (như cửa hàng). Khi dùng BE thật, C-30
-/// claim đơn vẫn chạy mock (lỗi L2, docs/API_CONTRACT.md mục 0).
+/// Tạo lại theo từng phiên đăng nhập (như cửa hàng). BE thật: C-20 và C-30
+/// (claim đơn) đều gọi `/api/v1/loyalty/*`.
 final loyaltyRepositoryProvider = Provider<LoyaltyRepository>((ref) {
+  if (ref.watch(loyaltyUseRemoteProvider)) {
+    return LoyaltyRemoteRepository(ref.watch(dioProvider));
+  }
   final session = ref.watch(currentSessionProvider);
   final registered = ref.read(mockAccountStoreProvider).find(session?.email);
-  final mock = LoyaltyMockRepository(demoData: registered == null);
-  return ref.watch(loyaltyUseRemoteProvider)
-      ? LoyaltyRemoteRepository(ref.watch(dioProvider), claims: mock)
-      : mock;
+  return LoyaltyMockRepository(demoData: registered == null);
 });
 
 /// Điểm và lịch sử của khách tại cửa hàng đang xem.

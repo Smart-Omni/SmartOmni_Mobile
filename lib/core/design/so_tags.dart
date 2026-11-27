@@ -61,9 +61,19 @@ class SoStatusTag extends StatelessWidget {
 /// Nhãn hạng khách hàng: capsule cao 24 (bản lớn 32), chữ caption 600, màu
 /// theo hạng (DESIGN.md mục 2). Không viền.
 class SoTierBadge extends StatelessWidget {
-  const SoTierBadge({super.key, required this.tier, this.large = false});
+  const SoTierBadge({
+    super.key,
+    required this.tier,
+    this.label,
+    this.large = false,
+  });
 
+  /// Chọn màu theo hạng.
   final LoyaltyTier tier;
+
+  /// Chữ hiện thay cho `tier.label` (vd. tên hạng BE trả, có thể là tên mốc
+  /// shop tự đặt).
+  final String? label;
 
   /// Cao 32 thay vì 24 (thẻ thành viên).
   final bool large;
@@ -73,7 +83,7 @@ class SoTierBadge extends StatelessWidget {
     final c = context.soColors;
     final (bg, fg) = switch (tier) {
       LoyaltyTier.standard => (c.tierStandardBg, c.tierStandardInk),
-      LoyaltyTier.silver => (c.tierSilverBg, c.tierSilverInk),
+      LoyaltyTier.gold => (c.tierGoldBg, c.tierGoldInk),
       LoyaltyTier.platinum => (c.tierPlatinumBg, c.tierPlatinumInk),
       LoyaltyTier.diamond => (c.tierDiamondBg, c.tierDiamondInk),
     };
@@ -88,7 +98,7 @@ class SoTierBadge extends StatelessWidget {
         shape: SoShape.squircle(SoRadius.capsuleAll),
       ),
       child: Text(
-        tier.label,
+        label ?? tier.label,
         style: context.textTheme.labelSmall?.copyWith(
           color: fg,
           fontWeight: FontWeight.w600,

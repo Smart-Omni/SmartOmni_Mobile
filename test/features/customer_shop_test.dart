@@ -39,7 +39,7 @@ void main() {
 
     test('hạng theo điểm của từng cửa hàng', () {
       const shop = CustomerShop(tenantId: 1, code: 'X', name: 'X', points: 620);
-      expect(shop.tier, LoyaltyTier.silver);
+      expect(shop.tier, LoyaltyTier.gold);
     });
   });
 

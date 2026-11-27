@@ -67,6 +67,7 @@ abstract final class ApiPaths {
   // Điểm & hạng của khách (C-20, chỉ role CUSTOMER). BE lấy tenant và
   // khách từ JWT, không cần header `X-Tenant-Id`.
   static const loyaltyMe = '/api/v1/loyalty/me';
+  static const loyaltyClaims = '/api/v1/loyalty/claims';
   static const loyaltyMyClaims = '/api/v1/loyalty/me/claims';
   static const loyaltyMyVouchers = '/api/v1/loyalty/me/vouchers';
 

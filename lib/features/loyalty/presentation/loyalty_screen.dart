@@ -134,8 +134,9 @@ class _TierCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.soColors;
     final points = summary.totalPoints;
-    final tier = summary.tier;
-    final next = tier.next;
+    // Tên hạng hiện đúng như BE trả; chỉ tự tính khi BE thiếu `tier`.
+    final tierLabel = summary.tierLabel;
+    final next = summary.nextTierLabel;
     final segments = LoyaltyRules.tierSegments(points);
     final ink2 = context.textTheme.bodyMedium?.copyWith(color: c.ink2);
     const rule =
@@ -168,15 +169,20 @@ class _TierCard extends StatelessWidget {
                   ],
                 ),
               ),
-              SoTierBadge(tier: tier, large: true),
+              SoTierBadge(
+                key: const Key('tier_badge'),
+                tier: summary.tier,
+                label: tierLabel,
+                large: true,
+              ),
             ],
           ),
           const SizedBox(height: SoSpace.s16),
           Semantics(
             label: next == null
-                ? 'Đang ở hạng ${tier.label}, hạng cao nhất'
-                : 'Đang ở hạng ${tier.label}, còn ${summary.pointsToNext} '
-                      'điểm để lên ${next.label}',
+                ? 'Đang ở hạng $tierLabel, hạng cao nhất'
+                : 'Đang ở hạng $tierLabel, còn ${summary.pointsToNext} '
+                      'điểm để lên $next',
             excludeSemantics: true,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -224,7 +230,7 @@ class _TierCard extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      TextSpan(text: ' để lên ${next.label}. $rule'),
+                      TextSpan(text: ' để lên $next. $rule'),
                     ],
                   ),
             style: ink2,

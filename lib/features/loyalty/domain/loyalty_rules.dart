@@ -1,6 +1,7 @@
 /// Quy tắc điểm và hạng của SmartOmni (docs/project-context.md của backend),
-/// khớp `LoyaltyTierCalculator` và `LoyaltyCustomerService` của BE `361e8b5`:
-/// 500 / 1.000 / 1.500 điểm, 1 điểm cho mỗi 1.000 ₫ (làm tròn xuống).
+/// khớp `LoyaltyTierCalculator` và `LoyaltyCustomerService` của BE `e808fca`:
+/// Standard < 500, Gold >= 500, Platinum >= 1.000, Diamond >= 1.500;
+/// 1 điểm cho mỗi 1.000 ₫ (làm tròn xuống).
 ///
 /// Đặt logic ở đây (không nằm trong UI) để dễ viết unit test.
 /// Backend là nơi quyết định cuối cùng; app dùng các hàm này để hiển thị
@@ -9,7 +10,7 @@ library;
 
 enum LoyaltyTier {
   standard('Standard', 0),
-  silver('Silver', 500),
+  gold('Gold', 500),
   platinum('Platinum', 1000),
   diamond('Diamond', 1500);
 
@@ -21,12 +22,14 @@ enum LoyaltyTier {
   final int minPoints;
 
   /// Đọc `tier` / `nextTier` của BE (`LoyaltyTierCalculator`: "Standard",
-  /// "Silver", "Platinum", "Diamond"; không phân biệt hoa thường). BE luôn
-  /// trả "Standard" cho hạng thấp nhất (L5 đã rõ), nhưng `null`, chuỗi rỗng hay tên lạ
-  /// cũng trả `null` để nơi gọi tự tính hạng theo điểm.
+  /// "Gold", "Platinum", "Diamond"; không phân biệt hoa thường; "Silver" là
+  /// tên cũ của Gold). Shop cấu hình mốc riêng thì BE trả tên mốc (tên tự
+  /// đặt): tên lạ, `null` hay chuỗi rỗng trả `null`. Tên để hiện lấy ở
+  /// [LoyaltySummary.tierLabel], hàm này chỉ chọn màu huy hiệu.
   static LoyaltyTier? fromBackend(Object? value) {
     final name = value?.toString().trim().toLowerCase();
     if (name == null || name.isEmpty) return null;
+    if (name == 'silver') return LoyaltyTier.gold;
     for (final t in LoyaltyTier.values) {
       if (t.label.toLowerCase() == name) return t;
     }
@@ -67,7 +70,7 @@ class LoyaltyRules {
     return next == null ? 0 : next.minPoints - totalPoints;
   }
 
-  /// Tiến độ 3 nấc trên thẻ hạng (C-20): Standard → Silver, Silver →
+  /// Tiến độ 3 nấc trên thẻ hạng (C-20): Standard → Gold, Gold →
   /// Platinum, Platinum → Diamond; mỗi nấc từ 0 đến 1.
   static List<double> tierSegments(int totalPoints) => [
     for (final tier in LoyaltyTier.values.skip(1))
@@ -114,6 +117,12 @@ enum ClaimEligibility {
   tooEarly('Đơn chưa đủ 15 ngày kể từ khi hoàn tất'),
   alreadyClaimed('Đơn này đã được claim'),
   notFound('Không tìm thấy đơn trong shop đã chọn'),
+
+  /// Mã đơn có ở nhiều sàn, cần chọn sàn (BE `PLATFORM_REQUIRED`).
+  platformRequired('Cần chọn sàn của đơn'),
+
+  /// BE đang đồng bộ đơn từ sàn (`ORDER_SYNCING`), thử lại sau ít phút.
+  syncing('Đơn đang được đồng bộ từ sàn'),
 
   /// Thử sai quá nhiều lần, tạm khóa claim (backend quyết định ngưỡng).
   tooManyAttempts('Thử sai quá nhiều lần');

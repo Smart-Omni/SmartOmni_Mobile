@@ -63,7 +63,7 @@ Chỉ có giao diện sáng ở đợt này, **nhưng mọi màu phải lấy t�
 | `scrim` | `#0B1A1F` α 28% | Lớp phủ sau sheet, kèm làm mờ nền 8 |
 | `shadowTint` | `#0B2A33` | Màu gốc của mọi bóng (mục 4) |
 | `tierStandardBg` / `Ink` | `#E7ECEE` / `#44555C` | Hạng Standard |
-| `tierSilverBg` / `Ink` | `#D4DCE1` / `#0B1A1F` | Hạng Silver |
+| `tierGoldBg` / `Ink` | `#D4DCE1` / `#0B1A1F` | Hạng Gold |
 | `tierPlatinumBg` / `Ink` | `#3E4E55` / `#FFFFFF` | Hạng Platinum |
 | `tierDiamondBg` / `Ink` | `#0B1A1F` / `#FFFFFF` | Hạng Diamond |
 
@@ -183,7 +183,7 @@ Giữ nguyên tên và tham số của bản 1 để màn hình không phải s�
 
 `SoStatus.kraft` của bản 1 đổi thành `SoStatus.brand`.
 
-**Hạng khách:** Standard < 500 · Silver ≥ 500 · Platinum ≥ 1.000 · Diamond ≥ 1.500 (màu ở mục 2).
+**Hạng khách:** Standard < 500 · Gold ≥ 500 · Platinum ≥ 1.000 · Diamond ≥ 1.500 (màu ở mục 2).
 
 **Tồn kho:** có thể bán = tồn − giữ chỗ. Hết hàng (≤ 0) → danger "Hết hàng"; sắp hết (≤ 5) → warning "Sắp hết".
 

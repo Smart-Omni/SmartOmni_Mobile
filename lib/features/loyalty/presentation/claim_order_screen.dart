@@ -70,8 +70,9 @@ class _ClaimOrderScreenState extends ConsumerState<ClaimOrderScreen> {
       ref.invalidate(loyaltySummaryProvider);
       outcome = ClaimOutcome.success(result, shopName: shop.name);
     } on ClaimFailure catch (f) {
-      if (f.kind == ClaimEligibility.tooManyAttempts) {
-        final wait = f.retryAfter ?? Duration.zero;
+      // BE thật không báo còn khóa bao lâu: không khóa nút, chỉ báo lỗi.
+      if (f.kind == ClaimEligibility.tooManyAttempts && f.retryAfter != null) {
+        final wait = f.retryAfter!;
         _lockedUntil = DateTime.now().add(wait);
         _unlockTimer?.cancel();
         _unlockTimer = Timer(wait, () {
@@ -131,13 +132,16 @@ class _ClaimOrderScreenState extends ConsumerState<ClaimOrderScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const SoMockBanner(
-                          message:
-                              'Thử: 240920SHOP01 (Shopee, hợp lệ), '
-                              '241008SHOP02 (chưa đủ 15 ngày), 241012SHOP03 '
-                              '(chưa hoàn tất).',
-                        ),
-                        const SizedBox(height: SoSpace.s16),
+                        // BE thật (`POST /loyalty/claims`) thì bỏ banner mock.
+                        if (!ref.watch(loyaltyUseRemoteProvider)) ...[
+                          const SoMockBanner(
+                            message:
+                                'Thử: 240920SHOP01 (Shopee, hợp lệ), '
+                                '241008SHOP02 (chưa đủ 15 ngày), 241012SHOP03 '
+                                '(chưa hoàn tất).',
+                          ),
+                          const SizedBox(height: SoSpace.s16),
+                        ],
                         Text(
                           'Nhập mã đơn đã mua trên sàn để cộng điểm cho '
                           '${shop?.name ?? 'cửa hàng'}.',

@@ -1,10 +1,12 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/widgets.dart' show Locale;
 
 import '../../../core/models/platform.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/api_paths.dart';
 import '../../../core/network/api_response.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../domain/loyalty_repository.dart';
 import '../domain/loyalty_rules.dart';
 
@@ -15,10 +17,9 @@ abstract final class LoyaltyJson {
   /// `LoyaltyProfileDto`: `{ customerId, tenantId, totalPoints, tier,
   /// nextTier, nextTierThreshold, pointsToNextTier }`.
   ///
-  /// `tier` lạ hoặc thiếu thì tính hạng theo `totalPoints` (BE luôn trả
-  /// "Standard" cho hạng thấp nhất, xem [LoyaltyTier.fromBackend]).
-  /// `pointsToNextTier` chỉ tin khi đọc được `tier`, để hai số không lệch
-  /// nhau.
+  /// Có `tier` thì hiện đúng tên BE trả (kể cả tên mốc shop tự đặt); thiếu
+  /// `tier` thì tính hạng theo `totalPoints`. `nextTier`/`pointsToNextTier`
+  /// chỉ dùng khi có `tier`, để các số không lệch nhau.
   static LoyaltySummary summary(
     Object? profile, {
     List<PointEntry> history = const [],
@@ -26,16 +27,22 @@ abstract final class LoyaltyJson {
     final map = profile is JsonMap ? profile : const <String, dynamic>{};
     final points = Json.asInt(map['totalPoints']) ?? 0;
     final safePoints = points < 0 ? 0 : points;
-    final tier = LoyaltyTier.fromBackend(map['tier']);
+    final tier = _name(map['tier']);
     final toNext = Json.asInt(map['pointsToNextTier']);
     return LoyaltySummary(
       totalPoints: safePoints,
       history: history,
-      backendTier: tier,
+      backendTierName: tier,
+      backendNextTierName: tier == null ? null : _name(map['nextTier']),
       backendPointsToNext: tier == null || toNext == null || toNext < 0
           ? null
           : toNext,
     );
+  }
+
+  static String? _name(Object? value) {
+    final s = value is String ? value.trim() : null;
+    return s == null || s.isEmpty ? null : s;
   }
 
   /// `LoyaltyClaimDto`: `{ id, orderId, customerId, eligibleAmountVnd,
@@ -85,6 +92,65 @@ abstract final class LoyaltyJson {
     );
   }
 
+  /// Mã lỗi của `POST /loyalty/claims` (BE `084b908`) → loại lỗi C-30.
+  static const claimErrorKinds = {
+    'ORDER_NOT_FOUND': ClaimEligibility.notFound,
+    'ORDER_NOT_COMPLETED': ClaimEligibility.notCompleted,
+    'ORDER_NOT_ELIGIBLE_YET': ClaimEligibility.tooEarly,
+    'ORDER_ALREADY_CLAIMED': ClaimEligibility.alreadyClaimed,
+    'PLATFORM_REQUIRED': ClaimEligibility.platformRequired,
+    'ORDER_SYNCING': ClaimEligibility.syncing,
+    'TOO_MANY_CLAIM_ATTEMPTS': ClaimEligibility.tooManyAttempts,
+  };
+
+  /// Lỗi claim của BE → [ClaimFailure]; `null` nếu không phải mã đã biết.
+  ///
+  /// `ORDER_NOT_ELIGIBLE_YET`: BE ghi ngày trong message
+  /// ("... (eligible from 2026-12-09)", lịch Việt Nam); đọc thêm các trường
+  /// ngày trong body nếu BE trả sau này.
+  static ClaimFailure? claimFailure(ApiException e, {Object? body}) {
+    final kind = claimErrorKinds[e.code];
+    if (kind == null) return null;
+    return ClaimFailure(
+      kind,
+      eligibleFrom: kind == ClaimEligibility.tooEarly
+          ? _eligibleDate(body) ?? _dateIn(e.message)
+          : null,
+    );
+  }
+
+  static final _isoDate = RegExp(r'(\d{4})-(\d{2})-(\d{2})');
+
+  static DateTime? _dateIn(String? text) {
+    final m = text == null ? null : _isoDate.firstMatch(text);
+    if (m == null) return null;
+    return DateTime(
+      int.parse(m.group(1)!),
+      int.parse(m.group(2)!),
+      int.parse(m.group(3)!),
+    );
+  }
+
+  static DateTime? _eligibleDate(Object? body) {
+    for (final map in [
+      if (body is JsonMap) body,
+      if (body is JsonMap && body['data'] is JsonMap) body['data'] as JsonMap,
+    ]) {
+      for (final key in const [
+        'eligibleFrom',
+        'eligibleForPointsAt',
+        'eligible_for_points_at',
+      ]) {
+        final v = map[key];
+        if (v is String) {
+          final d = _dateIn(v);
+          if (d != null) return d;
+        }
+      }
+    }
+    return null;
+  }
+
   /// Danh sách `LoyaltyRewardRequestDto`; phần tử không phải object thì bỏ.
   static List<CustomerVoucher> vouchers(Object? data) => [
     for (final e in (data is List ? data : const []))
@@ -97,14 +163,13 @@ abstract final class LoyaltyJson {
 /// header `X-Tenant-Id`; tham số `tenantId` của interface bị bỏ qua (lỗi
 /// L6: luôn là cửa hàng trong JWT).
 ///
-/// C-30 claim đơn vẫn chạy mock qua [claims]: `POST /loyalty/claims` đòi
-/// `orderId` nội bộ và `totalAmount`, khách chỉ biết mã đơn trên sàn (lỗi L2).
+/// C-30 claim đơn gọi `POST /loyalty/claims` với mã đơn trên sàn
+/// (`platformOrderId` + `platform`, BE `084b908`; L2 đã sửa). BE tự kiểm tra
+/// 15 ngày, app không kiểm tra trước.
 class LoyaltyRemoteRepository implements LoyaltyRepository {
-  LoyaltyRemoteRepository(this._dio, {required LoyaltyRepository claims})
-    : _claims = claims;
+  LoyaltyRemoteRepository(this._dio);
 
   final Dio _dio;
-  final LoyaltyRepository _claims;
 
   @override
   Future<LoyaltySummary> getSummary(int tenantId) async {
@@ -125,11 +190,57 @@ class LoyaltyRemoteRepository implements LoyaltyRepository {
     required int tenantId,
     required Platform platform,
     required String orderCode,
-  }) => _claims.claimOrder(
-    tenantId: tenantId,
-    platform: platform,
-    orderCode: orderCode,
-  );
+  }) async {
+    final code = orderCode.trim();
+    final JsonMap dto;
+    try {
+      final res = await _dio.post<Object?>(
+        ApiPaths.loyaltyClaims,
+        // BE nhận `shopee` / `tiktok_shop` không phân biệt hoa thường.
+        data: {'platformOrderId': code, 'platform': platform.backendValue},
+      );
+      dto = unwrapResponse<JsonMap>(
+        res.data,
+        (d) => d is JsonMap ? d : const <String, dynamic>{},
+      );
+    } on DioException catch (e) {
+      final api = ApiException.fromDio(e);
+      final failure = LoyaltyJson.claimFailure(api, body: e.response?.data);
+      if (failure != null) throw failure;
+      // Mã lỗi khác (vd. đơn có hoàn trả): câu tiếng Việt chung, giữ mã lỗi.
+      if (api.code != null) {
+        throw ApiException(
+          type: api.type,
+          message: lookupAppLocalizations(const Locale('vi')).claimErrGeneric,
+          statusCode: api.statusCode,
+          code: api.code,
+        );
+      }
+      throw api;
+    }
+
+    final amount = Json.asDouble(dto['eligibleAmountVnd']);
+    final points =
+        Json.asInt(dto['pointsAwarded']) ??
+        (amount == null ? 0 : LoyaltyRules.pointsForAmount(amount));
+    // Tổng điểm sau claim để hiện "điểm cũ → mới"; lỗi thì chỉ hiện +điểm.
+    int? before;
+    try {
+      final summary = await _get(ApiPaths.loyaltyMe, LoyaltyJson.summary);
+      before = summary.totalPoints - points;
+      if (before < 0) before = 0;
+    } on ApiException {
+      before = null;
+    }
+    return ClaimResult(
+      orderCode: code,
+      platform: platform,
+      amountPaid: amount,
+      points: points < 0 ? 0 : points,
+      pointsBefore: before,
+      claimedAt: Json.asDate(dto['claimedAt']) ?? DateTime.now(),
+    );
+  }
 
   Future<T> _get<T>(String path, T Function(Object? data) parse) async {
     try {

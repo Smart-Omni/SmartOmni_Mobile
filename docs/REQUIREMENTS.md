@@ -17,7 +17,7 @@
 | Vai trò | Giao diện (theo BE) | Trên app mobile |
 |---|---|---|
 | **Customer** | Storefront, Customer Portal | ✅ Khu vực Customer |
-| **Staff** (code BE: `STAFF`; trước BE `9558375` là `MANAGER`) | Merchant Portal | ✅ Khu vực Merchant |
+| **Staff** (code BE: `MANAGER` từ `d26b2b8`/V29; giai đoạn `9558375` → V29 là `STAFF`) | Merchant Portal | ✅ Khu vực Merchant |
 | **Tenant Admin** (code BE: `ADMIN`) | Merchant Portal | ✅ Khu vực Merchant + mục quản trị |
 | **Super Admin** (`SUPER_ADMIN`) | Super Admin Console | ❌ Không hỗ trợ - dùng web |
 
@@ -46,7 +46,7 @@ Quyết định cho mobile:
 | CUS-4 | Đăng ký tài khoản Customer Portal bằng email + số điện thoại (cơ chế xác minh chưa chốt) |
 | CUS-5 | **Claim đơn**: chọn shop (sàn) + nhập mã đơn. Điều kiện: đơn **đã hoàn tất trên sàn** và **qua 15 ngày** kể từ `completed_at`; **mỗi đơn chỉ claim 1 lần** trong tenant; người claim hợp lệ đầu tiên được điểm (không xác minh là người mua) → cần giới hạn số lần thử |
 | CUS-6 | **Điểm** = `floor(tiền hàng thực trả sau giảm giá / 1.000 ₫)`, **không** tính phí ship và thuế. Điểm **không hết hạn**, **không** dùng để đổi thưởng |
-| CUS-7 | **Hạng** theo tổng điểm: Standard < 500 ≤ Silver < 1.000 ≤ Platinum < 1.500 ≤ Diamond. Thông thường không hạ hạng |
+| CUS-7 | **Hạng** theo tổng điểm: Standard < 500 ≤ Gold < 1.000 ≤ Platinum < 1.500 ≤ Diamond. Thông thường không hạ hạng |
 | CUS-8 | Xem voucher được Tenant Admin phát (mã dùng trên app sàn; BE gửi email khi tạo thành công) |
 | CUS-9 | Điểm tích chung cho các shop trong **cùng tenant**; không gộp danh tính khách giữa Shopee và TikTok |
 

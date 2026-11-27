@@ -39,13 +39,13 @@ class LoyaltyMockRepository implements LoyaltyRepository {
     });
     _vouchers[1] = [
       CustomerVoucher(
-        code: 'SILVER50K',
+        code: 'GOLD50K',
         platform: Platform.shopee,
         description: 'Giảm 50.000 ₫ cho đơn từ 300.000 ₫',
         expiresAt: now.add(const Duration(days: 20)),
       ),
       CustomerVoucher(
-        code: 'TTSILVER10',
+        code: 'TTGOLD10',
         platform: Platform.tiktokShop,
         description: 'Giảm 10%, tối đa 30.000 ₫',
         expiresAt: now.add(const Duration(days: 12)),

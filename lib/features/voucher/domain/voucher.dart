@@ -74,7 +74,7 @@ List<int> audienceIds(Iterable<VoucherCustomer> customers, VoucherAudience a) =>
 int audienceCount(Iterable<VoucherCustomer> customers, VoucherAudience a) =>
     audienceIds(customers, a).length;
 
-/// Nhãn đối tượng trên chip và trong đợt phát: "Tất cả", "Silver+",
+/// Nhãn đối tượng trên chip và trong đợt phát: "Tất cả", "Gold+",
 /// "Diamond", "5 khách đã chọn".
 String audienceLabel(VoucherAudience a) => switch (a) {
   TierAudience(fromTier: LoyaltyTier.standard) => 'Tất cả',
@@ -132,7 +132,7 @@ class VoucherBatch {
   final int minOrder;
   final DateTime expiresAt;
 
-  /// Nhãn đối tượng lúc phát (vd. "Silver+").
+  /// Nhãn đối tượng lúc phát (vd. "Gold+").
   final String audience;
   final int customerCount;
   final VoucherBatchStatus status;
@@ -171,7 +171,7 @@ class VoucherDraft {
   final int minOrder;
   final DateTime expiresAt;
 
-  /// Nhãn đối tượng (vd. "Silver+").
+  /// Nhãn đối tượng (vd. "Gold+").
   final String audience;
   final List<int> customerIds;
 }

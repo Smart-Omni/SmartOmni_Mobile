@@ -71,6 +71,17 @@ void main() {
         ),
         LoginFailureKind.staffNoTenant,
       );
+      // Mã mới từ BE d26b2b8 (V29).
+      expect(
+        kind(
+          _api(
+            403,
+            'Tài khoản nhân viên chưa thuộc cửa hàng nào',
+            code: 'MANAGER_NO_TENANT',
+          ),
+        ),
+        LoginFailureKind.staffNoTenant,
+      );
     });
 
     test('lỗi mạng / máy chủ -> other, giữ thông điệp', () {

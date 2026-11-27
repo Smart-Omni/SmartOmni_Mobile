@@ -7,9 +7,10 @@ void main() {
   group('UserRole.fromBackend', () {
     test('ánh xạ đúng role backend sang role app', () {
       expect(UserRole.fromBackend('ADMIN'), UserRole.tenantAdmin);
-      expect(UserRole.fromBackend('STAFF'), UserRole.staff);
-      // JWT cũ trước V21 của BE.
+      // BE d26b2b8 (V29): nhân viên là MANAGER; STAFF là tên cũ.
       expect(UserRole.fromBackend('MANAGER'), UserRole.staff);
+      expect(UserRole.fromBackend('manager'), UserRole.staff);
+      expect(UserRole.fromBackend('STAFF'), UserRole.staff);
       expect(UserRole.fromBackend('CUSTOMER'), UserRole.customer);
       expect(UserRole.fromBackend('SUPER_ADMIN'), UserRole.superAdmin);
       expect(UserRole.fromBackend('xyz'), UserRole.unknown);
@@ -52,7 +53,7 @@ void main() {
     test('dựng phiên từ JWT của backend', () {
       final token = JwtDecoder.buildUnsigned({
         'sub': '12',
-        'role': 'STAFF',
+        'role': 'MANAGER',
         'tenantId': 5,
         'exp': 1893456000,
       });

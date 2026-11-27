@@ -34,7 +34,7 @@ class _VoucherScreenState extends ConsumerState<VoucherScreen> {
   final _formKey = GlobalKey<FormState>();
   final _discount = TextEditingController();
   final _minOrder = TextEditingController();
-  VoucherAudience _audience = const TierAudience(LoyaltyTier.silver);
+  VoucherAudience _audience = const TierAudience(LoyaltyTier.gold);
   Platform? _platform;
   int _days = voucherValidDays.first;
   bool _busy = false;
